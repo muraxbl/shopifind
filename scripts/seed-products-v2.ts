@@ -920,7 +920,7 @@ async function probeUrl(url: string, timeoutMs = 8_000): Promise<{ status: UrlSt
       signal: ctl.signal,
       headers: {
         'User-Agent':
-          'Mozilla/5.0 (compatible; ShopifindBot/1.0; +https://shopifind.com)',
+          'Mozilla/5.0 (compatible; ShopifindBot/1.0; +https://shopifind.app)',
         Accept: 'text/html,application/xhtml+xml',
       },
     });

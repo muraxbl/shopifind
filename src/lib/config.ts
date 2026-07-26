@@ -8,7 +8,7 @@ export const SITE_CONFIG = {
   tagline: 'Less Amazon, more you.',
   description:
     'Buscador B2C de tiendas independientes en moda sostenible, gadgets indie y deco/hogar. Curado, ético, sin dropshipping genérico.',
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://shopifind.com',
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://shopifind.app',
   primaryNiches: ['sustainable-fashion', 'indie-gadgets', 'home-deco'] as const,
   legalDisclaimer:
     'Shopifind es una plataforma independiente de descubrimiento de productos. No estamos afiliados, respaldados ni patrocinados por Shopify Inc. "Shopify" es una marca registrada de Shopify Inc. y se usa aquí únicamente para describir comerciantes que operan en esa plataforma.',

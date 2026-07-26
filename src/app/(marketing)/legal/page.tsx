@@ -21,7 +21,7 @@ export default function LegalPage() {
           <br />
           Este aviso se publica de buena fe para evitar cualquier confusión con la marca registrada
           Shopify Inc. Si eres representante de Shopify Inc. y deseas revisar este contenido,
-          escríbenos a <a href="mailto:legal@shopifind.com">legal@shopifind.com</a>.
+          escríbenos a <a href="mailto:legal@shopifind.app">legal@shopifind.app</a>.
         </div>
 
         <h2>3. Programa de afiliados (FTC / UE disclosure)</h2>
@@ -54,7 +54,7 @@ export default function LegalPage() {
         <h2>6. Contacto</h2>
         <p>
           Para consultas legales, reclamaciones o retirada de listings:&nbsp;
-          <a href="mailto:legal@shopifind.com">legal@shopifind.com</a>.
+          <a href="mailto:legal@shopifind.app">legal@shopifind.app</a>.
         </p>
       </div>
     </div>

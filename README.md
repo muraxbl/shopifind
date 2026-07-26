@@ -118,7 +118,7 @@ Ver [`supabase/schema.sql`](./supabase/schema.sql) para la SQL completa.
 > *Shopifind is an independent product discovery platform. We are not affiliated with, endorsed by, or sponsored by Shopify Inc. The names "Shopify" and "Shopify Inc." are trademarks of their respective owners and are used here only to describe catalogued merchants that happen to operate on that platform.*
 
 **Estrategia defensiva:**
-- Dominio principal: `shopifind.com`
+- Dominio principal: `shopifind.app`
 - Plan B (registrar HOY): `nicheradar.com` o `cartcompass.com` (~12€/año)
 - Trademark propia a registrar: EUIPO clase 35/42, USPTO clase 35 (~300-800€)
 
@@ -191,7 +191,7 @@ Ver [`.env.example`](./.env.example). Críticas:
 ## 🤝 Contribuir / próximos pasos
 
 Tareas inmediatas:
-1. Registrar dominio `shopifind.com` + Plan B defensivo
+1. Registrar dominio `shopifind.app` + Plan B defensivo
 2. Crear cuentas: Skimlinks Publisher, Resend, OpenAI, Plausible, Supabase
 3. Aplicar al programa de Shopify Affiliates (para tiendas Shopify-only)
 4. Primer set de 50 tiendas candidatas MVP

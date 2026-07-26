@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         <h2>Tus derechos (UE / UK)</h2>
         <p>
           Acceso, rectificación, supresión, oposición, portabilidad. Para ejercerlos escribe a&nbsp;
-          <a href="mailto:privacy@shopifind.com">privacy@shopifind.com</a>.
+          <a href="mailto:privacy@shopifind.app">privacy@shopifind.app</a>.
         </p>
         <h2>Hosting y transferencias internacionales</h2>
         <p>

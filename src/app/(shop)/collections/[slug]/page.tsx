@@ -200,7 +200,7 @@ export default async function CollectionPage({ params }: { params: { slug: strin
 
       <footer className="mt-16 rounded-2xl border border-border/60 bg-secondary/40 p-6 text-sm text-muted-foreground">
         ¿Te gustaría sugerir una tienda o producto para esta colección? Escríbenos a{' '}
-        <a href="mailto:hola@shopifind.com" className="text-primary underline">hola@shopifind.com</a>.
+        <a href="mailto:hola@shopifind.app" className="text-primary underline">hola@shopifind.app</a>.
       </footer>
     </article>
   );

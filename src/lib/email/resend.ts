@@ -27,7 +27,7 @@ Shopifind es una plataforma independiente. No estamos afiliados a Shopify Inc.
  * Send a "your wishlist price dropped" alert.
  */
 export async function sendWishlistPriceAlert(input: AlertEmailInput) {
-  const from = process.env.RESEND_FROM_EMAIL ?? 'hello@shopifind.com';
+  const from = process.env.RESEND_FROM_EMAIL ?? 'hello@shopifind.app';
   const { oldPriceCents, newPriceCents, productTitle, productUrl, currency = 'EUR', to } = input;
 
   const formatCents = (c: number) =>
