@@ -27,6 +27,11 @@ async function fetchFeatured(limit = 8): Promise<FeaturedProduct[]> {
     .from('v_products_with_store')
     .select('id, slug, title, price_cents, currency, image_url, store_name, store_slug, niche, eco_tags, store_eco_score')
     .eq('in_stock', true)
+    // "Descubrimientos recientes" = most recently re-ingested products first.
+    // Tie-break with created_at so that products whose last_seen_at ties
+    // (rare, sub-ms) get freshly-created first rather than random ordering.
+    .order('last_seen_at', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(limit);
   return (data ?? []) as FeaturedProduct[];
 }
