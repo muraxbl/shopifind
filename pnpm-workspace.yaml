@@ -1,0 +1,7 @@
+# shopifind is a single-package repo. pnpm-workspace.yaml only needs to exist
+# if we are resolving `pnpm` config keys at workspace level; keep it minimal.
+# The actual build-script approval lives in package.json `pnpm.onlyBuiltDependencies`.
+packages: []
+allowBuilds:
+  esbuild: set this to true or false
+  unrs-resolver: set this to true or false

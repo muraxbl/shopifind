@@ -1,0 +1,118 @@
+'use server';
+
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { parseQueryIntent } from '@/lib/ai/queryIntent';
+import { revalidatePath } from 'next/cache';
+
+export type SearchInput = {
+  q: string;
+  niche?: string | null;
+  eco_tags?: string[];
+  min_price_cents?: number | null;
+  max_price_cents?: number | null;
+  sort?: 'relevance' | 'price_asc' | 'price_desc' | 'newest';
+  limit?: number;
+};
+
+export type SearchHit = {
+  id: string;
+  slug: string;
+  title: string;
+  price_cents: number;
+  currency: string;
+  image_url: string;
+  store_name: string;
+  store_slug: string;
+  niche: string;
+  eco_tags: string[];
+  store_eco_score: number;
+};
+
+const DEFAULT_LIMIT = 24;
+
+export async function searchProducts(input: SearchInput): Promise<SearchHit[]> {
+  const q = (input.q ?? '').trim();
+
+  const hasAnyFilter =
+    !!q ||
+    !!input.niche ||
+    !!input.eco_tags?.length ||
+    input.min_price_cents != null ||
+    input.max_price_cents != null;
+  if (!hasAnyFilter) return [];
+
+  const sb = createServerSupabaseClient();
+
+  // 1. Run the AI intent parser if needed.
+  let parsed = {
+    text: q,
+    niche: input.niche ?? null as string | null,
+    eco_tags_any: input.eco_tags ?? [] as string[],
+    min_price_cents: input.min_price_cents ?? null as number | null,
+    max_price_cents: input.max_price_cents ?? null as number | null,
+    sort: (input.sort ?? 'relevance') as 'relevance' | 'price_asc' | 'price_desc' | 'newest',
+  };
+
+  if (q && process.env.OPENAI_API_KEY) {
+    try {
+      const intent = await parseQueryIntent(q);
+      parsed = {
+        text: intent.text || q,
+        niche: parsed.niche ?? intent.niche,
+        eco_tags_any:
+          parsed.eco_tags_any.length > 0 ? parsed.eco_tags_any : intent.eco_tags_any,
+        min_price_cents: parsed.min_price_cents ?? intent.min_price_cents,
+        max_price_cents: parsed.max_price_cents ?? intent.max_price_cents,
+        sort: intent.sort || parsed.sort,
+      };
+    } catch (e) {
+      console.warn('[search] AI intent fallback:', e);
+    }
+  }
+
+  // 2. Single DB call.
+  let query = sb
+    .from('v_products_with_store')
+    .select(
+      'id, slug, title, price_cents, currency, image_url, store_name, store_slug, niche, eco_tags, store_eco_score'
+    )
+    .eq('in_stock', true);
+
+  if (parsed.text) {
+    // ILIKE wildcards (% _) from user input intentionally remain as wildcards —
+    // they're search hints, not regex noise. Strip them would surprise the user
+    // when they type "100%" or "M_XX" (likely real product names).
+    query = query.or(
+      `title.ilike.%${parsed.text}%,description.ilike.%${parsed.text}%`
+    );
+  }
+  if (parsed.niche) query = query.eq('niche', parsed.niche);
+  if (parsed.eco_tags_any.length) query = query.overlaps('eco_tags', parsed.eco_tags_any);
+  if (parsed.min_price_cents != null) query = query.gte('price_cents', parsed.min_price_cents);
+  if (parsed.max_price_cents != null) query = query.lte('price_cents', parsed.max_price_cents);
+  if (parsed.sort === 'price_asc')  query = query.order('price_cents', { ascending: true });
+  if (parsed.sort === 'price_desc') query = query.order('price_cents', { ascending: false });
+  if (parsed.sort === 'newest')     query = query.order('updated_at', { ascending: false });
+
+  const limit = Math.min(input.limit ?? DEFAULT_LIMIT, 100);
+  query = query.limit(limit);
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('[search] supabase error:', error.message);
+    return [];
+  }
+
+  // 3. Best-effort history capture (fire-and-forget — non-critical).
+  void sb
+    .from('search_history')
+    .insert(
+      { query: q.slice(0, 200), filters: parsed, results_count: data?.length ?? 0 } as never
+    )
+    .then(({ error: histErr }) => {
+      if (histErr) console.warn('[search] history insert skipped:', histErr.message);
+    });
+
+  revalidatePath('/search');
+  return (data ?? []) as unknown as SearchHit[];
+}
