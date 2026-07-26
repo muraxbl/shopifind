@@ -8,9 +8,13 @@ const nextConfig = {
   },
   images: {
     remotePatterns: [
-      // Skimlinks / merchants comunes — añadir cuando ingestas las primeras tiendas
+      // Skimlinks / merchants comunes — wildcard '**' acepta cualquier dominio HTTPS
       { protocol: 'https', hostname: '**' },
     ],
+    // placehold.co y otros placeholders devuelven SVG; next/image los rechaza por defecto.
+    // dangerouslyAllowSVG los deja pasar + CSP sándbox evita ejecución de scripts embebidos.
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     formats: ['image/avif', 'image/webp'],
   },
   // Redirección /go/[id] -> affiliate (server-side 302)
