@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AiSearchBox } from '@/components/search/AiSearchBox';
 import { ProductGrid } from '@/components/product/ProductGrid';
+import type { Metadata } from 'next';
 import { NICHE_LABEL, SITE_CONFIG, NicheId } from '@/lib/config';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
@@ -35,6 +36,29 @@ async function fetchFeatured(limit = 8): Promise<FeaturedProduct[]> {
     .limit(limit);
   return (data ?? []) as FeaturedProduct[];
 }
+
+/**
+ * Page-level metadata. Merges on top of the root layout's metadata in the
+ * Next App Router (so title, description, twitter.card, openGraph.type,
+ * siteName, etc. we set in layout.tsx stay in effect). We only add the
+ * fields the home page is missing:
+ *   - alternates.canonical: '/' with `metadataBase` set in layout resolves to
+ *     `${SITE_CONFIG.url}/` = https://shopifind.app/. Without this, Google
+ *     indexes shopifind.app/ as canonical-from-itself and won't consolidate.
+ *   - openGraph.url: required for LinkedIn / Twitter / FB share cards to
+ *     resolve the absolute URL of the shared page — `og:title` + `og:description`
+ *     inherited from layout are otherwise orphaned at crawl time.
+ *
+ * Both fields point at SITE_CONFIG.url (which reads NEXT_PUBLIC_SITE_URL or
+ * falls back to https://shopifind.app) so staging/prod stay in sync without
+ * code edits.
+ */
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+  openGraph: {
+    url: SITE_CONFIG.url,
+  },
+};
 
 export default async function Home() {
   const products = await fetchFeatured(8);
