@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,json}\"",
     "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/types/database.types.ts",
-    "scripts:seed:collection": "tsx scripts/seed-editorial-collection.ts"
+    "scripts:seed:collection": "tsx scripts/seed-editorial-collection.ts",
+    "scripts:seed:products": "tsx scripts/seed-products-v2.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
