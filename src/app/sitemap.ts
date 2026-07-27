@@ -85,10 +85,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // updated_at drives changeFrequency: Google re-crawls when our
   // sitemap signals this date advanced since last fetch, which is what
   // we want for stock flips.
+  //
+  // .range(0, 9999) — supabase-js v2 has a default response cap of
+  // 1000 rows when no range is set. Without this, we ship silently-
+  // truncated sitemaps (today: 1009 entries vs ~1449 expected). 9999
+  // is far below the sitemap protocol's 50,000-URL limit so we stay
+  // a single file.
   const productsRes = await sb
     .from('products')
     .select('slug, updated_at')
-    .eq('in_stock', true);
+    .eq('in_stock', true)
+    .range(0, 9999);
 
   if (productsRes.error) {
     console.error('[sitemap] products read failed:', productsRes.error.message);
