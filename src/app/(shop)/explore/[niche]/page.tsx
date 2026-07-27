@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ProductGrid } from '@/components/product/ProductGrid';
@@ -22,13 +22,36 @@ export async function generateStaticParams() {
   return SITE_CONFIG.primaryNiches.map((niche) => ({ niche }));
 }
 
+// Render any unscheduled niche on-demand (defensive: ensures /explore/<x>
+// is reachable even if Vercel's static-build cache missed a recent niche
+// add). Costs an extra RSC render per uncached request; negligible traffic.
+export const dynamicParams = true;
+
+// ISR: re-render the page every 60s so stock changes in the Supabase
+// v_products_with_store view (filtered by in_stock=true) propagate to
+// visitors without needing a full Vercel redeploy.
+export const revalidate = 60;
+
 export default async function ExploreNichePage({
   params,
 }: {
   params: { niche: string };
 }) {
-  if (!SITE_CONFIG.primaryNiches.includes(params.niche as NicheId)) notFound();
-  const niche = params.niche as NicheId;
+  // Spanish speakers naturally type the URL with a tilde ("iluminación").
+  // Strip diacritics via Unicode NFD decomposition + remove combining marks
+  // so "iluminación" resolves to the canonical ASCII slug "iluminacion".
+  // When the typed form differs from the canonical form, 301-redirect so
+  // Google sees ONE canonical URL (no duplicate-content split) and visitors
+  // land on the form that matches `generateStaticParams()`.
+  const normalized = (params.niche ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  if (normalized !== params.niche) {
+    redirect(`/explore/${normalized}`);
+  }
+  if (!SITE_CONFIG.primaryNiches.includes(normalized as NicheId)) notFound();
+  const niche = normalized as NicheId;
   const meta = NICHE_LABEL[niche];
   const products = await fetchProductsByNiche(niche);
 
