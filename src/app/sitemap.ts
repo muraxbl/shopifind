@@ -134,22 +134,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
   }
 
-  if (productsRes.error) {
-    console.error('[sitemap] products read failed:', productsRes.error.message);
-  } else {
-    const rows = (productsRes.data ?? []) as Array<{
-      slug: string;
-      updated_at: string | null;
-    }>;
-    for (const p of rows) {
-      routes.push({
-        url: `${baseUrl}/product/${p.slug}`,
-        lastModified: p.updated_at ? new Date(p.updated_at) : today,
-        changeFrequency: 'weekly',
-        priority: 0.6,
-      });
-    }
-  }
-
   return routes;
 }
