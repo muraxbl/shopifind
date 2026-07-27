@@ -87,7 +87,7 @@ export async function CollectionSpotlight({ niche }: { niche: string }) {
           <Badge variant="eco" className="mb-2 inline-flex w-fit gap-1">
             <Sparkles className="h-3 w-3" /> Colecciones de temporada
           </Badge>
-          <h2 className="font-display text-2xl md:text-3xl">Verano 2026 \u2014 c\u00e1psulas curadas</h2>
+          <h2 className="font-display text-2xl md:text-3xl">Verano 2026 — cápsulas curadas</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Listas cortas con productos reales de masterled.es, ordenadas por utilidad y temporada.
           </p>
@@ -119,7 +119,7 @@ export async function CollectionSpotlight({ niche }: { niche: string }) {
                   <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground">{c.subtitle}</p>
                 )}
                 <div className="mt-auto flex items-center gap-1 pt-3 text-sm font-medium text-primary">
-                  Ver colecci\u00f3n
+                  Ver colección
                   <ArrowRight className="h-3.5 w-3.5 translate-x-0 transition-transform group-hover:translate-x-0.5" />
                 </div>
               </div>
@@ -129,7 +129,7 @@ export async function CollectionSpotlight({ niche }: { niche: string }) {
       </ul>
 
       <p className="mt-6 text-xs text-muted-foreground">
-        \u00bfTienes una tienda o producto que creas que deber\u00eda entrar en una c\u00e1psula? Escr\u00edbenos a{' '}
+        ¿Tienes una tienda o producto que creas que debería entrar en una cápsula? Escríbenos a{' '}
         <a href={`mailto:hola@${SITE_CONFIG.url.replace(/^https?:\/\//, '')}`} className="text-primary underline">
           hola@{SITE_CONFIG.url.replace(/^https?:\/\//, '')}
         </a>
