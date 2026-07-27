@@ -3,6 +3,7 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { parseQueryIntent } from '@/lib/ai/queryIntent';
 import { revalidatePath } from 'next/cache';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from '@/lib/config';
 
 export type SearchInput = {
   q: string;
@@ -11,7 +12,10 @@ export type SearchInput = {
   min_price_cents?: number | null;
   max_price_cents?: number | null;
   sort?: 'relevance' | 'price_asc' | 'price_desc' | 'newest';
-  limit?: number;
+  /** 1-indexed page number; default 1. */
+  page?: number;
+  /** Items per page; default DEFAULT_PAGE_SIZE; clamped to [MIN, MAX]. */
+  pageSize?: number;
 };
 
 export type SearchHit = {
@@ -28,9 +32,23 @@ export type SearchHit = {
   store_eco_score: number;
 };
 
-const DEFAULT_LIMIT = 24;
+export type SearchResult = {
+  products: SearchHit[];
+  total: number;
+};
 
-export async function searchProducts(input: SearchInput): Promise<SearchHit[]> {
+function clampPageSize(raw: number | undefined): number {
+  const n = raw ?? DEFAULT_PAGE_SIZE;
+  return Math.min(MAX_PAGE_SIZE, Math.max(MIN_PAGE_SIZE, Math.floor(n)));
+}
+
+function clampPage(raw: number | undefined): number {
+  const n = raw ?? 1;
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.floor(n);
+}
+
+export async function searchProducts(input: SearchInput): Promise<SearchResult> {
   const q = (input.q ?? '').trim();
 
   const hasAnyFilter =
@@ -39,17 +57,19 @@ export async function searchProducts(input: SearchInput): Promise<SearchHit[]> {
     !!input.eco_tags?.length ||
     input.min_price_cents != null ||
     input.max_price_cents != null;
-  if (!hasAnyFilter) return [];
+  if (!hasAnyFilter) {
+    return { products: [], total: 0 };
+  }
 
   const sb = createServerSupabaseClient();
 
   // 1. Run the AI intent parser if needed.
   let parsed = {
     text: q,
-    niche: input.niche ?? null as string | null,
-    eco_tags_any: input.eco_tags ?? [] as string[],
-    min_price_cents: input.min_price_cents ?? null as number | null,
-    max_price_cents: input.max_price_cents ?? null as number | null,
+    niche: (input.niche ?? null) as string | null,
+    eco_tags_any: (input.eco_tags ?? []) as string[],
+    min_price_cents: (input.min_price_cents ?? null) as number | null,
+    max_price_cents: (input.max_price_cents ?? null) as number | null,
     sort: (input.sort ?? 'relevance') as 'relevance' | 'price_asc' | 'price_desc' | 'newest',
   };
 
@@ -70,11 +90,16 @@ export async function searchProducts(input: SearchInput): Promise<SearchHit[]> {
     }
   }
 
-  // 2. Single DB call.
+  // 2. Single DB call with offset pagination + count headers.
+  const pageSize = clampPageSize(input.pageSize);
+  const page = clampPage(input.page);
+  const offset = (page - 1) * pageSize;
+
   let query = sb
     .from('v_products_with_store')
     .select(
-      'id, slug, title, price_cents, currency, image_url, store_name, store_slug, niche, eco_tags, store_eco_score'
+      'id, slug, title, price_cents, currency, image_url, store_name, store_slug, niche, eco_tags, store_eco_score',
+      { count: 'exact' }
     )
     .eq('in_stock', true);
 
@@ -94,13 +119,16 @@ export async function searchProducts(input: SearchInput): Promise<SearchHit[]> {
   if (parsed.sort === 'price_desc') query = query.order('price_cents', { ascending: false });
   if (parsed.sort === 'newest')     query = query.order('updated_at', { ascending: false });
 
-  const limit = Math.min(input.limit ?? DEFAULT_LIMIT, 100);
-  query = query.limit(limit);
+  // .range(offset, offset+pageSize-1) — PostgREST inclusive end. Cap
+  // offset to 1000 to avoid Postgres statement-timeout / deep-pagination
+  // pathology. Users navigating past 1000 items can use narrower filters.
+  const safeOffset = Math.min(offset, 1000);
+  query = query.range(safeOffset, safeOffset + pageSize - 1);
 
-  const { data, error } = await query;
+  const { data, count, error } = await query;
   if (error) {
     console.error('[search] supabase error:', error.message);
-    return [];
+    return { products: [], total: 0 };
   }
 
   // 3. Best-effort history capture (fire-and-forget — non-critical).
@@ -113,6 +141,11 @@ export async function searchProducts(input: SearchInput): Promise<SearchHit[]> {
       if (histErr) console.warn('[search] history insert skipped:', histErr.message);
     });
 
-  revalidatePath('/search');
-  return (data ?? []) as unknown as SearchHit[];
+  // No revalidatePath('/search') here — the page already uses
+  // `export const dynamic = 'force-dynamic'` and is filtered per-request.
+  // revalidatePath would only add cache invalidation cost with no effect.
+  return {
+    products: (data ?? []) as unknown as SearchHit[],
+    total: typeof count === 'number' ? count : 0,
+  };
 }

@@ -3,20 +3,41 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { CollectionSpotlight } from '@/components/collection/CollectionSpotlight';
-import { NICHE_LABEL, NicheId, SITE_CONFIG } from '@/lib/config';
+import { Pagination } from '@/components/pagination/Pagination';
+import {
+  NICHE_LABEL,
+  NicheId,
+  SITE_CONFIG,
+  DEFAULT_PAGE_SIZE,
+  MAX_PAGE_SIZE,
+  MIN_PAGE_SIZE,
+} from '@/lib/config';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 type ProductHit = Parameters<typeof ProductGrid>[0]['products'][number];
 
-async function fetchProductsByNiche(niche: NicheId, limit = 48): Promise<ProductHit[]> {
+async function fetchProductsByNiche(
+  niche: NicheId,
+  pageSize: number,
+  offset: number
+): Promise<{ products: ProductHit[]; total: number }> {
   const sb = createServerSupabaseClient();
-  const { data } = await sb
+  // Cap offset to 1000 to avoid Postgres statement-timeout pathology for
+  // extreme deep pagination. Users beyond 1000 should narrow filters.
+  const safeOffset = Math.min(offset, 1000);
+  const { data, count } = await sb
     .from('v_products_with_store')
-    .select('id, slug, title, image_url, price_cents, currency, store_name, store_slug, niche, eco_tags, store_eco_score')
+    .select(
+      'id, slug, title, image_url, price_cents, currency, store_name, store_slug, niche, eco_tags, store_eco_score',
+      { count: 'exact' }
+    )
     .eq('niche', niche)
     .eq('in_stock', true)
-    .limit(limit);
-  return (data ?? []) as ProductHit[];
+    .range(safeOffset, safeOffset + pageSize - 1);
+  return {
+    products: (data ?? []) as ProductHit[],
+    total: typeof count === 'number' ? count : 0,
+  };
 }
 
 export async function generateStaticParams() {
@@ -35,8 +56,10 @@ export const revalidate = 60;
 
 export default async function ExploreNichePage({
   params,
+  searchParams,
 }: {
   params: { niche: string };
+  searchParams: { page?: string; page_size?: string };
 }) {
   // Spanish speakers naturally type the URL with a tilde ("iluminación").
   // Strip diacritics via Unicode NFD decomposition + remove combining marks
@@ -54,7 +77,20 @@ export default async function ExploreNichePage({
   if (!SITE_CONFIG.primaryNiches.includes(normalized as NicheId)) notFound();
   const niche = normalized as NicheId;
   const meta = NICHE_LABEL[niche];
-  const products = await fetchProductsByNiche(niche);
+
+  // Pagination (server-clamped so users can't pass page=-1 or page_size=9999).
+  const page = (() => {
+    const n = Number(searchParams.page);
+    if (!Number.isFinite(n) || n < 1) return 1;
+    return Math.floor(n);
+  })();
+  const pageSize = (() => {
+    const n = Number(searchParams.page_size);
+    if (!Number.isFinite(n) || n < MIN_PAGE_SIZE) return DEFAULT_PAGE_SIZE;
+    return Math.min(MAX_PAGE_SIZE, Math.floor(n));
+  })();
+  const offset = (page - 1) * pageSize;
+  const { products, total } = await fetchProductsByNiche(niche, pageSize, offset);
 
   return (
     <div className="container py-12">
@@ -91,7 +127,18 @@ export default async function ExploreNichePage({
 
       <ProductGrid
         products={products}
-        emptyMessage="Aún estamos curando tiendas en este nicho. Vuelve en unos días."
+        emptyMessage={
+          total === 0
+            ? 'Aún estamos curando tiendas en este nicho. Vuelve en unos días.'
+            : 'No hay productos en esta página.'
+        }
+      />
+
+      <Pagination
+        currentPage={page}
+        pageSize={pageSize}
+        total={total}
+        basePath={`/explore/${niche}`}
       />
     </div>
   );

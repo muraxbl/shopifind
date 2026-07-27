@@ -38,3 +38,39 @@ export const NICHE_LABEL: Record<NicheId, { label: string; emoji: string; taglin
     tagline: 'LED, smart Lighting, eficiencia energética bajo la lupa.',
   },
 };
+
+// ----- Pagination defaults (shared by /explore and /search) -----
+export const DEFAULT_PAGE_SIZE = 24;
+export const MAX_PAGE_SIZE = 96;
+export const MIN_PAGE_SIZE = 12;
+
+/**
+ * Identity of a row in the niche facet list. Empty string = "no filter"
+ * pseudo-entry, present in the search sidebar only (where it makes sense
+ * to say "Todos los nichos"); /explore never shows the pseudo-entry
+ * because there is no "all niches" page in the App Router.
+ */
+export type NicheFacetId = '' | NicheId;
+
+export interface NicheFacetItem {
+  id: NicheFacetId;
+  label: string;
+}
+
+/**
+ * Single source of truth for the niche chip list. Used by both
+ *    - /search/page.tsx  filter sidebar (with the 'Todos' pseudo-entry)
+ *    - /explore/[niche]/page.tsx (without the pseudo-entry, since there
+ *      is no /explore listing-of-all-niches route)
+ * Replaces the hardcoded array that previously lived inside
+ * src/app/(shop)/search/page.tsx and was prone to drift when a new
+ * primaryNiche was added.
+ */
+export const NICHE_FACET: readonly NicheFacetItem[] = (() => {
+  const all: NicheFacetItem[] = [{ id: '', label: 'Todos' }];
+  for (const id of SITE_CONFIG.primaryNiches) {
+    const meta = NICHE_LABEL[id];
+    all.push({ id, label: `${meta.emoji} ${meta.label}` });
+  }
+  return all;
+})();
