@@ -77,6 +77,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
                 { id: 'sustainable-fashion', label: '👗 Moda sostenible' },
                 { id: 'indie-gadgets', label: '🎛️ Gadgets indie' },
                 { id: 'home-deco', label: '🏠 Deco & hogar' },
+                { id: 'iluminacion', label: '💡 Iluminación' },
               ].map((n) => {
                 const params = new URLSearchParams();
                 if (q) params.set('q', q);

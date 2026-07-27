@@ -145,7 +145,7 @@ export default async function Home() {
           <div>
             <h2 className="font-display text-2xl md:text-3xl">Descubrimientos recientes</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Lo último que hemos indexado en los 3 nichos del MVP.
+              Lo último que hemos indexado en los {SITE_CONFIG.primaryNiches.length} nichos curados.
             </p>
           </div>
           <Button asChild variant="outline" size="sm">

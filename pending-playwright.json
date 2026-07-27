@@ -1,0 +1,68 @@
+{
+  "armedangels": {
+    "armedangels-detlef-hoodie": {
+      "home": "https://www.armedangels.com",
+      "merchant_slug": "armedangels",
+      "title": "Detlef Hoodie",
+      "product_slug": "armedangels-detlef-hoodie"
+    },
+    "armedangels-inaa-cardigan": {
+      "home": "https://www.armedangels.com",
+      "merchant_slug": "armedangels",
+      "title": "Inaa Cardigan",
+      "product_slug": "armedangels-inaa-cardigan"
+    }
+  },
+  "reformation-us": {
+    "reformation-juliette-dress": {
+      "home": "https://www.thereformation.com",
+      "merchant_slug": "reformation-us",
+      "title": "Juliette Dress",
+      "product_slug": "reformation-juliette-dress"
+    },
+    "reformation-mason-pant": {
+      "home": "https://www.thereformation.com",
+      "merchant_slug": "reformation-us",
+      "title": "Mason Pant",
+      "product_slug": "reformation-mason-pant"
+    },
+    "reformation-cynthia-jeans": {
+      "home": "https://www.thereformation.com",
+      "merchant_slug": "reformation-us",
+      "title": "Cynthia High Rise Jeans",
+      "product_slug": "reformation-cynthia-jeans"
+    },
+    "reformation-bea-skirt": {
+      "home": "https://www.thereformation.com",
+      "merchant_slug": "reformation-us",
+      "title": "Bea Skirt",
+      "product_slug": "reformation-bea-skirt"
+    }
+  },
+  "stella-mccartney": {
+    "smc-falabella-tote-mini": {
+      "home": "https://www.stellamccartney.com",
+      "merchant_slug": "stella-mccartney",
+      "title": "Falabella Tote Mini",
+      "product_slug": "smc-falabella-tote-mini"
+    },
+    "smc-elyse-platform": {
+      "home": "https://www.stellamccartney.com",
+      "merchant_slug": "stella-mccartney",
+      "title": "Elyse Platform Shoes",
+      "product_slug": "smc-elyse-platform"
+    },
+    "smc-logo-shoulder-bag": {
+      "home": "https://www.stellamccartney.com",
+      "merchant_slug": "stella-mccartney",
+      "title": "Logo Shoulder Bag",
+      "product_slug": "smc-logo-shoulder-bag"
+    },
+    "smc-loop-sneakers": {
+      "home": "https://www.stellamccartney.com",
+      "merchant_slug": "stella-mccartney",
+      "title": "Loop Sneakers",
+      "product_slug": "smc-loop-sneakers"
+    }
+  }
+}

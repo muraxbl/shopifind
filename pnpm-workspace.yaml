@@ -3,5 +3,5 @@
 # The actual build-script approval lives in package.json `pnpm.onlyBuiltDependencies`.
 packages: []
 allowBuilds:
-  esbuild: set this to true or false
-  unrs-resolver: set this to true or false
+  esbuild: false
+  unrs-resolver: false

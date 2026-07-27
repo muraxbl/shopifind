@@ -206,7 +206,7 @@ type ExtractResult =
   | { kind: 'index'; children: string[] }
   | { kind: 'error'; reason: string };
 
-const MAX_DEPTH = 4;
+const MAX_DEPTH = 8;
 
 async function extractSitemapUrls(startUrl: string, depth = 0): Promise<ExtractResult> {
   if (depth > MAX_DEPTH) return { kind: 'error', reason: 'max-depth-exceeded' };
@@ -218,18 +218,58 @@ async function extractSitemapUrls(startUrl: string, depth = 0): Promise<ExtractR
   return { kind: 'pdp', urls: await extractLocs(xml) };
 }
 
-const MAX_PDP_PER_MERCHANT = 4000; // safety cap to avoid runaway memory
+const MAX_PDP_PER_MERCHANT = 30000; // safety cap; ecoalf has ~22k PDPs over 91 paginated sitemap pages
 async function fetchAllPdpUrls(startUrl: string): Promise<string[]> {
-  const result = await extractSitemapUrls(startUrl);
-  if (result.kind === 'error') return [];
-  if (result.kind === 'pdp') return result.urls.slice(0, MAX_PDP_PER_MERCHANT);
+  const isMudJeans = startUrl.includes('mudjeans');
+  const isKca = startUrl.includes('knowledgecottonapparel');
 
-  // Index: BFS children with 8 concurrent workers.
+  // Mud-Jeans: probe the canonical /sitemap.xml + 3 alternates in parallel.
+  // CMS quirk observed in pre-flight: mudjeans.eu/sitemap.xml is a metadata
+  // sitemap that lists other sitemapindex children, but the product pages
+  // are sometimes split across /sitemap_pages.xml, /sitemap_products.xml,
+  // /products/sitemap.xml depending on the page-type taxonomy. Pre-flight
+  // showed 404/429 on the canned paths but YMMV per build; we probe all 4
+  // and de-dupe pdp urls downstream. ecoalf/kca/asket/rapanui: single
+  // canonical URL (already known-good from pre-flight).
+  const starts = isMudJeans
+    ? [
+        startUrl,
+        new URL('/sitemap_pages.xml', startUrl).href,
+        new URL('/sitemap_products.xml', startUrl).href,
+        new URL('/products/sitemap.xml', startUrl).href,
+      ]
+    : [startUrl];
+
   const allPdp: string[] = [];
-  const queue = [...result.children];
-  const CONC = 8;
-  const inFlight: Promise<void>[] = [];
+  const queue: string[] = [];
 
+  // Stage 1: probe every start URL. PDP-direct ones append to allPdp;
+  // index ones append children to queue.
+  for (const url of starts) {
+    const result = await extractSitemapUrls(url);
+    if (result.kind === 'pdp') allPdp.push(...result.urls);
+    else if (result.kind === 'index') queue.push(...result.children);
+  }
+
+  // Stage 2: KCA-specific fallback. knowledgecottonapparel.com/sitemap.xml
+  // has only 6 entries that point at `sitemap_products_1.xml?from=...`
+  // children; pre-flight showed `?from=` query strings sometimes return
+  // 400 on bare fetch. Probe canonical /sitemap_products_<N>.xml paths
+  // directly when both stage-1 outputs are empty.
+  if (isKca && allPdp.length === 0 && queue.length === 0) {
+    queue.push(
+      ...[1, 2, 3, 4].map((n) => new URL(`/sitemap_products_${n}.xml`, startUrl).href)
+    );
+  }
+
+  // Stage 3: BFS through index children with 8 concurrent workers.
+  // IMPORTANT: do NOT strip `?from=YYYY-MM-DD&to=YYYY-MM-DD` from Shopify
+  // paginated child URLs (`sitemap_products_<N>.xml?from=...`). These
+  // query strings ARE the pagination cursor — stripping them causes the
+  // server to return only `page 1` of the same sitemap, repeated 91 times
+  // for ecoalf (causing the 0/4 match observed in pre-edit). The bare base
+  // URL `/sitemap_products_1.xml` returns a 400 or the same truncated page.
+  const CONC = 8;
   const worker = async () => {
     while (queue.length > 0 && allPdp.length < MAX_PDP_PER_MERCHANT) {
       const child = queue.shift();
@@ -240,15 +280,52 @@ async function fetchAllPdpUrls(startUrl: string): Promise<string[]> {
     }
   };
   await Promise.all(Array.from({ length: CONC }, () => worker()));
-  return allPdp.slice(0, MAX_PDP_PER_MERCHANT);
+
+  // Final: strip query trackers (`?from=`, `?id=`, etc.) off the PDP URLs.
+  // Some merchants pad their sitemap entries to fight leakages; the matcher
+  // already drops query params via lastPathTail, but pre-clearing keeps the
+  // matcher away from accidental half-matches.
+  return allPdp
+    .slice(0, MAX_PDP_PER_MERCHANT)
+    .map((u) => u.split('?')[0]!);
 }
 
 // ---------------------------------------------------------------------------
 // Match: title-fuzzy + handle-substring
 // ---------------------------------------------------------------------------
 
+/**
+ * Spanish → English apparel synset. ecoalf + kca serve PDPs under Spanish
+ * locale slugs (`chaqueta-marangu`, `sudadera-orion`) while our anchors are
+ * English (`Marangu Jacket`, `Orion Sweatshirt`). Translating BEFORE the
+ * alphanumeric-strip pass collapses the comparison: `chaqueta-marangu`
+ *  → `jacketmarangu` vs anchor handle hint `marangu-jacket` → `marangujacket`.
+ *
+ * Keys are accent-folded (via NFD strip below). Limits: 12 common items; long
+ * tail (camiseta interior, jersey fino, etc.) intentionally NOT covered — the
+ * matcher already has substring-containment fallback for close handles.
+ */
+const DICT_ES_EN: Record<string, string> = {
+  chaqueta: 'jacket',
+  pantalon: 'pant',
+  sudadera: 'sweatshirt',
+  zapatillas: 'sneakers',
+  camiseta: 'tee',
+  jersey: 'sweater',
+  abrigo: 'coat',
+  falda: 'skirt',
+  vestido: 'dress',
+  blusa: 'blouse',
+  bolso: 'bag',
+  zapato: 'shoe',
+};
+
 function norm(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  let v = s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // fold accents
+  for (const [es, en] of Object.entries(DICT_ES_EN)) {
+    v = v.replace(new RegExp(`\\b${es}\\b`, 'g'), en);
+  }
+  return v.replace(/[^a-z0-9]+/g, '');
 }
 
 function similarity(a: string, b: string): number {
@@ -262,6 +339,30 @@ function similarity(a: string, b: string): number {
   return inter / Math.max(new Set(na).size, new Set(nb).size);
 }
 
+/**
+ * Character bigrams + Jaccard overlap. Used by Playwright search flow to
+ * score result-page links vs an anchor's handle_hint / title without
+ * trusting CSS selectors (which break across SFCC storefronts). Dice-style
+ * bigram coefficients are robust to permutations (`organic-tee` vs
+ * `organic-cotton-tee`) and to single-token drops (`jacket` missing from a
+ * long banner link). Threshold 0.25 catches the third-of-overlap case
+ * observed in the failed dry-run (`organic-cotton-tee` ↔ `organic-cotton-tee-rope`).
+ */
+function bigrams(s: string): Set<string> {
+  const t = s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const out = new Set<string>();
+  for (let i = 0; i < t.length - 1; i++) out.add(t.slice(i, i + 2));
+  return out;
+}
+
+function bigramJaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0;
+  let inter = 0;
+  for (const x of a) if (b.has(x)) inter++;
+  const union = a.size + b.size - inter;
+  return union === 0 ? 0 : inter / union;
+}
+
 function lowerPathHasNoise(url: string): boolean {
   return /\/collections?\/|\/blog\/|\/about\/|\/pages\/|\/advisor|\/account|\/cart|\/login|\/help|\/search/i.test(url);
 }
@@ -273,16 +374,49 @@ function lastPathTail(lower: string): string {
   return (tail[tail.length - 1] ?? '').toLowerCase();
 }
 
+/**
+ * Common apparel color tokens that merchants append as URL tail variants
+ * (e.g., /products/organic-tee-jade, /products/jeans-navy-stonewash). Stripping
+ * them before similarity scoring lets the bare product handle match its anchor
+ * even when the merchant catalogues each color as a separate URL.
+ *
+ * Loop iteratively up to 3 deep so stacked variants (-rose-blue, -navy-sand)
+ * all collapse to the bare handle.
+ */
+const COLORS = [
+  'jade', 'rose', 'navy', 'sand', 'black', 'blue', 'white',
+  'green', 'red', 'grey', 'gray', 'olive', 'cream', 'beige', 'tan',
+  'stonewash', 'indigo', 'rust', 'berry',
+];
+
+function stripColorTokens(tail: string): string {
+  let s = tail;
+  for (let i = 0; i < 3; i++) {
+    let hit = false;
+    for (const c of COLORS) {
+      if (s.endsWith('-' + c)) {
+        s = s.slice(0, -(c.length + 1));
+        hit = true;
+      }
+    }
+    if (!hit) break;
+  }
+  return s;
+}
+
 function handleHintScore(lower: string, hint: string): number {
   const tail = lastPathTail(lower);
   if (!tail || !hint) return 0;
-  return similarity(tail, hint);
+  // Best score: original tail vs color-stripped tail. Lets both bare handles
+  // ("organic-tee") and color-variant handles ("organic-tee-jade" or
+  // "organic-tee-rose-blue") match the same anchor.
+  return Math.max(similarity(tail, hint), similarity(stripColorTokens(tail), hint));
 }
 
 function titleVsUrlScore(lower: string, title: string): number {
   const tail = lastPathTail(lower);
   if (!tail) return 0;
-  return similarity(tail, title);
+  return Math.max(similarity(tail, title), similarity(stripColorTokens(tail), title));
 }
 
 function bestUrlForAnchor(anchor: Anchor, pdpUrls: string[]): string | null {
@@ -306,6 +440,303 @@ async function fixMerchantSitemap(merchantSlug: string, cfg: MerchantCfg): Promi
     const url = bestUrlForAnchor(a, pdpUrls);
     if (url) fixes[a.product_slug] = url;
   }
+  return fixes;
+}
+
+// ---------------------------------------------------------------------------
+// Pre-flight plain-HTTP search (fast path, no chromium)
+// ---------------------------------------------------------------------------
+
+/**
+ * Pre-flight search via plain HTTP `fetch()` against the merchant's
+ * /search?q=<title> endpoint. Avoids the chromium launch overhead for
+ * merchants that server-render their search results page. Reformation's
+ * Algolia-backed SFCC store exposes a public HTML /search?q= endpoint
+ * that returns PDP-style href anchors; Stella & Armedangels may or may
+ * not depending on WAF traversal at fetch time.
+ *
+ * Each candidate href is scored by bigram Jaccard overlap with the
+ * anchor's handle_hint AND title. Threshold 0.30 is intentionally
+ * slightly higher than the Playwright path's 0.25 — pre-flight is a
+ * high-confidence shortcut, we only commit if the link is genuinely
+ * the right PDP. Falls back to playwrightSearch (or pending-playwright
+ * emit) for anchors we couldn't resolve.
+ *
+ * Returns { [product_slug]: resolvedUrl } when at least one anchor
+ * resolves; returns null if no anchor resolved at all (caller will
+ * proceed to playwrightSearch).
+ */
+async function preflightSearch(
+  merchantSlug: string,
+  baseUrl: string,
+  anchors: Anchor[]
+): Promise<Record<string, string> | null> {
+  const fixes: Record<string, string> = {};
+  let resolvedAny = false;
+  for (const a of anchors) {
+    try {
+      const url = `${baseUrl.replace(/\/$/, '')}/search?q=${encodeURIComponent(a.title)}`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (compatible; ShopifindBot/1.0; +https://shopifind.app)',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+        signal: AbortSignal.timeout(15_000),
+        redirect: 'follow',
+      });
+      if (!res.ok) continue;
+      const html = await res.text();
+      const hintBi = bigrams(a.handle_hint);
+      const titleBi = bigrams(a.title);
+      const candidates: { href: string; score: number }[] = [];
+      // Match every href anchor in the search-results HTML; score each by
+      // bigram overlap with handle_hint + title.
+      const re = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>/gi;
+      for (const m of html.matchAll(re)) {
+        const href = m[1]!;
+        const lower = href.toLowerCase();
+        if (lowerPathHasNoise(href)) continue;
+        if (!lower.startsWith('http') && !lower.startsWith('/')) continue;
+        if (!/\/p\/|\/products?\/|\/shop\/|\/item\/|\/[a-z0-9-]{6,}-p-/i.test(lower)) continue;
+        const tail = lastPathTail(lower);
+        if (!tail) continue;
+        const score = Math.max(
+          bigramJaccard(hintBi, bigrams(tail)),
+          bigramJaccard(titleBi, bigrams(tail))
+        );
+        if (score >= 0.30) candidates.push({ href, score });
+      }
+      candidates.sort((x, y) => y.score - x.score);
+      if (candidates.length > 0) {
+        try {
+          const abs = new URL(candidates[0]!.href, baseUrl).href.split('?')[0]!;
+          fixes[a.product_slug] = abs;
+          resolvedAny = true;
+          console.log(
+            `    📡 preflight: ${a.product_slug} -> ${abs} (score ${candidates[0]!.score.toFixed(2)})`
+          );
+        } catch {
+          // ignore malformed URL, fall through to next anchor
+        }
+      }
+    } catch {
+      // per-anchor fetch failure is non-fatal; Playwright will retry.
+    }
+  }
+  return resolvedAny ? fixes : null;
+}
+
+// ---------------------------------------------------------------------------
+// Playwright SFCC search (real flow for CF WAF + SFCC storefronts)
+// ---------------------------------------------------------------------------
+
+import { createRequire } from 'node:module';
+const require2 = createRequire(import.meta.url);
+
+const HEADLESS = !process.argv.includes('--no-headless');
+/**
+ * Per-merchant playwright search:
+ *   - armedangels: CF WAF 429 retry-loop with realistic desktop UA.
+ *   - reformation-us: SFCC storefront (Algolia-backed search via /search?q=...).
+ *   - stella-mccartney: SFCC luxury tier; locale-aware /en-gb/ prefix.
+ *
+ * Returns { [product_slug]: resolvedUrl } for the anchors we successfully
+ * resolved; missing anchors are simply absent from the map (caller falls back
+ * to pending-playwright.json emit).
+ *
+ * Graceful degradation:
+ *   - playwright-core not installed → returns null + log warning.
+ *   - chromium binary missing / system libs missing → throws at launch; main()
+ *     catches + falls back to pending-playwright.json emit.
+ *   - Per-anchor network timeout / 429 / no results → skip anchor, continue.
+ */
+async function playwrightSearch(
+  merchantSlug: string,
+  cfg: MerchantCfg,
+  // Optional list of anchors the caller still needs resolved. Pass the
+  // subset that preflightSearch couldn't resolve to save ~30s/anchor of
+  // chromium time. Defaults to all anchors for the merchant if omitted.
+  anchorsToResolve?: Anchor[]
+): Promise<Record<string, string> | null> {
+  let pw: typeof import('playwright-core') | null = null;
+  try {
+    pw = require2('playwright-core') as typeof import('playwright-core');
+  } catch {
+    console.warn(
+      '  ⚠️  playwright-core not installed. Run `pnpm add -D playwright-core && pnpm exec playwright install chromium`. Falling back to pending-playwright.json emit.'
+    );
+    return null;
+  }
+
+  const isArmed = merchantSlug === 'armedangels';
+  const isStella = merchantSlug === 'stella-mccartney';
+  // Stella storefronts redirect to a /en-gb/ locale tree depending on IP.
+  // Netherlands-based fetch lands on /us/ by default; force /en-gb/ for stable slugs.
+  const baseUrl = isStella ? `${cfg.url.replace(/\/$/, '')}/en-gb` : cfg.url;
+
+  let browser: import('playwright-core').Browser | null = null;
+  try {
+    browser = await pw.chromium.launch({
+      headless: HEADLESS,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+  } catch (err) {
+    console.warn(
+      `  ⚠️  chromium failed to launch: ${(err as Error).message.split('\n')[0]}`
+    );
+    console.warn(
+      '     Likely missing system libs (libnss3/libxkbcommon0/libgbm1/etc). Falling back to pending-playwright.json emit.'
+    );
+    return null;
+  }
+
+  const fixes: Record<string, string> = {};
+  const anchors = anchorsToResolve ?? ANCHORS[merchantSlug] ?? [];
+
+  try {
+    for (const a of anchors) {
+      let resolvedUrl: string | null = null;
+      // Armedangels CF WAF: 3 retries with 5s backoff on 429.
+      // Others: 1 attempt; if it fails, the anchor falls through to pending.
+      const maxRetries = isArmed ? 3 : 1;
+      for (let attempt = 1; attempt <= maxRetries && !resolvedUrl; attempt++) {
+        const context = await browser.newContext({
+          viewport: { width: 1366, height: 768 },
+          locale: isStella ? 'en-GB' : 'en-US',
+          userAgent:
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          // Allow listing patterns that constitute legitimate storefront search
+          // traffic per Cloudflare's published radar (UnifiedBot category).
+          extraHTTPHeaders: { 'Accept-Language': isStella ? 'en-GB,en;q=0.9' : 'en-US,en;q=0.9' },
+        });
+        const page = await context.newPage();
+        try {
+          const navResp = await page.goto(baseUrl, {
+            waitUntil: 'domcontentloaded',
+            timeout: 30000,
+          });
+          const status = navResp?.status();
+          if (status === 429 || status === 403) {
+            console.warn(`    ⚠️  ${a.product_slug}: HTTP ${status} (CF WAF). Retry ${attempt}/${maxRetries} in 5s.`);
+            // No explicit context.close() here — the `finally` block below
+            // is the SOLE closer. The previous version closed twice (early-exit
+            // + finally), causing `Target.disposeBrowserContext: Failed to find
+            // context with id` at the end of the dry-run.
+            if (attempt < maxRetries) await new Promise((r) => setTimeout(r, 5000));
+            continue;
+          }
+
+          // Cookie banner click — best effort, .catch silently if absent.
+          await page
+            .locator('button:has-text("Accept"), button:has-text("Aceptar"), button:has-text("Accepter")')
+            .first()
+            .click({ timeout: 4000 })
+            .catch(() => {});
+
+          // Search input discovery: priority chain covers SFCC + bespoke stores.
+          const searchInput = page
+            .locator([
+              'input[name="q"]',
+              'input[type="search"]',
+              'input[placeholder*="earch"]',
+              'input[aria-label*="earch"]',
+              'input[role="searchbox"]',
+            ].join(','))
+            .first();
+          await searchInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => null);
+          const inputCount = await page.locator('input[name="q"], input[type="search"]').count();
+          if (inputCount === 0) {
+            console.warn(`    ⚠️  ${a.product_slug}: no search input found.`);
+            // No explicit context.close() here — finally is the sole closer.
+            break;
+          }
+          await searchInput.fill(a.title);
+          await Promise.all([
+            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => null),
+            searchInput.press('Enter'),
+          ]);
+          await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => null);
+
+          // Score every result-page <a> by bigram Jaccard overlap with the
+          // anchor's handle_hint and title. This replaces the brittle
+          // firstToken=split('-')[len≥4] heuristic which missed handles like
+          // `falabella-tote-mini` (every token ≤ 4 chars) and couldn't handle
+          // transpositions like `organic-cotton-tee` vs variant form
+          // `organic-cotton-tee-rope-jade`. Also: 0 selectors means 0 race
+          // conditions on `waitForNavigation` after `click()` (Chromium push-
+          // state vs. real nav race was the cause of the previous timeout).
+          const allLinks: { href: string }[] = await page
+            .locator('a[href]')
+            .evaluateAll((els) =>
+              els
+                .map((el) => ({
+                  href: (el as HTMLAnchorElement).getAttribute('href') ?? '',
+                }))
+                .filter((x) => !!x.href)
+            );
+          const hintBi = bigrams(a.handle_hint);
+          const titleBi = bigrams(a.title);
+          let bestLink: { href: string; score: number } | null = null;
+          for (const { href } of allLinks) {
+            const lower = href.toLowerCase();
+            if (lowerPathHasNoise(href)) continue;
+            if (!lower.startsWith('http') && !lower.startsWith('/')) continue;
+            // PDP-ish path marker. SFCC / Shopify / Armedangels all serve
+            // products under one of these patterns.
+            if (!/\/p\/|\/products?\/|\/shop\/|\/item\/|\/[a-z0-9-]{6,}-p-/i.test(lower)) continue;
+            const tail = lastPathTail(lower);
+            if (!tail) continue;
+            const score = Math.max(
+              bigramJaccard(hintBi, bigrams(tail)),
+              bigramJaccard(titleBi, bigrams(tail))
+            );
+            if (score >= 0.25 && (!bestLink || score > bestLink.score)) {
+              bestLink = { href, score };
+            }
+          }
+          if (!bestLink) {
+            console.warn(
+              `    ⚠️  ${a.product_slug}: no result link matched bigram overlap (hint=${a.handle_hint}, title=${a.title}).`
+            );
+            // No explicit context.close() — finally is the sole closer.
+            break;
+          }
+          // Navigate directly to the best-matching PDP rather than relying on
+          // click + waitForNavigation (which races with chrome push-state).
+          const targetUrl = new URL(bestLink.href, page.url()).href;
+          await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => null);
+          await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => null);
+          console.log(`    🔎 ${a.product_slug}: navigated to ${targetUrl} (score ${bestLink.score.toFixed(2)})`);
+
+          // Prefer the canonical link declared on the PDP; fallback to current URL.
+          const canonical = await page
+            .locator('link[rel="canonical"]')
+            .first()
+            .getAttribute('href', { timeout: 4000 })
+            .catch(() => null);
+          resolvedUrl = canonical || page.url();
+          resolvedUrl = resolvedUrl.split('?')[0]!; // strip trackers
+        } catch (err) {
+          console.warn(
+            `    ⚠️  ${a.product_slug}: ${(err as Error).message.split('\n')[0]}`
+          );
+        } finally {
+          // Idempotent close: the page/context may already be torn down by
+          // CF WAF disconnects or by the locator query that already failed
+          // inside the try block. `Target.disposeBrowserContext: Failed to
+          // find context` is harmless when we just retry the next anchor —
+          // so swallow it instead of crashing the whole script.
+          await context.close().catch(() => null);
+        }
+      }
+
+      if (resolvedUrl) fixes[a.product_slug] = resolvedUrl;
+    }
+  } finally {
+    if (browser) await browser.close().catch(() => null);
+  }
+
   return fixes;
 }
 
@@ -389,9 +820,93 @@ async function main() {
       }
       console.log(`  fixes: ${Object.keys(fixes).length}/${anchors.length}`);
     } else if (cfg.strategy === 'playwright_search') {
+      if (!SITEMAP_ONLY) {
+        const anchors = ANCHORS[merchantSlug] ?? [];
+        // 1) Pre-flight plain-HTTP /search?q= — fast path for merchants that
+        //    server-render their search results (Reformation Algolia, often
+        //    Stella for some locales). No chromium, no CF WAF dance.
+        const preflightBase =
+          merchantSlug === 'stella-mccartney'
+            ? `${cfg.url.replace(/\/$/, '')}/en-gb`
+            : cfg.url;
+        const preflight = await preflightSearch(merchantSlug, preflightBase, anchors);
+        // 2) Playwright chromium — slow path for CF WAF (armedangels) and
+        //    JS-only SPAs that don't server-render the /search?q= response.
+        //    a) Skip anchors already resolved by preflight (saves ~30s/anchor
+        //       of chromium time). b) Wrap the call in try/catch so a dead
+        //       browser inside playwrightSearch doesn't abort the outer
+        //       merchant loop — reformation & stella MUST be attempted even
+        //       if armedangels' chromium session collapses after CF WAF
+        //       tears down the page during locator.fill timeouts.
+        const unresolvedAnchors = anchors.filter(
+          (x) => !preflight?.[x.product_slug]
+        );
+        let playwrightFixes: Record<string, string> | null = null;
+        if (unresolvedAnchors.length > 0) {
+          try {
+            playwrightFixes = await playwrightSearch(
+              merchantSlug,
+              cfg,
+              unresolvedAnchors
+            );
+          } catch (err) {
+            console.warn(
+              `  ⚠️  ${merchantSlug}: playwright crashed: ${(err as Error).message.split('\n')[0]}. Continuing with preflight-only fixes.`
+            );
+          }
+        }
+        // 3) Merge. Pre-flight wins on ties (faster + already verified).
+        const combined: Record<string, string> = {
+          ...(playwrightFixes ?? {}),
+          ...(preflight ?? {}),
+        };
+        if (Object.keys(combined).length > 0 || preflight !== null || playwrightFixes !== null) {
+          allSitemapFixes[merchantSlug] = combined;
+          for (const a of anchors) {
+            const url = combined[a.product_slug];
+            const source =
+              preflight?.[a.product_slug]
+                ? '📡'
+                : playwrightFixes?.[a.product_slug]
+                  ? '✓ '
+                  : '✗';
+            console.log(`  ${source} ${a.product_slug.padEnd(35)} -> ${url ?? 'NO MATCH'}`);
+          }
+          const totalResolved = Object.keys(combined).length;
+          console.log(
+            `  fixes: ${totalResolved}/${anchors.length} (preflight ${Object.keys(preflight ?? {}).length}, playwright ${Object.keys(playwrightFixes ?? {}).length})`
+          );
+          // Emit only the unresolved anchors to pending-playwright.json so
+          // the operator can sweep the stragglers via browse.ai / firecrawl
+          // / apify one-shots.
+          const stillPending = anchors.filter((a) => !combined[a.product_slug]);
+          if (stillPending.length > 0) {
+            const pending: Record<string, PendingRow> = {};
+            for (const a of stillPending) {
+              pending[a.product_slug] = {
+                home: cfg.url,
+                merchant_slug: merchantSlug,
+                title: a.title,
+                product_slug: a.product_slug,
+              };
+            }
+            allPlaywrightPending[merchantSlug] = pending;
+            console.log(
+              `  stub: ${stillPending.length} URLs still pending (browse.ai fallback)`
+            );
+          }
+          continue;
+        }
+      }
+      // Fallback: emit to pending-playwright.json when both preflight and
+      // Playwright couldn't run (deps missing, chromium launch failed,
+      // SITEMAP_ONLY passed, no playwright-core). Operator resolves via
+      // browse.ai / firecrawl / apify one-shots.
       const pending = emitPlaywrightPending(merchantSlug, cfg);
       allPlaywrightPending[merchantSlug] = pending;
-      console.log(`  stub: ${Object.keys(pending).length} URLs pending (Playwright or browse.ai)`);
+      console.log(
+        `  stub: ${Object.keys(pending).length} URLs pending (Playwright or browse.ai)`
+      );
     }
   }
 
