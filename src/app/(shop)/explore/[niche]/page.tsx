@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { ProductGrid } from '@/components/product/ProductGrid';
+import { CollectionSpotlight } from '@/components/collection/CollectionSpotlight';
 import { NICHE_LABEL, NicheId, SITE_CONFIG } from '@/lib/config';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
@@ -79,6 +80,14 @@ export default async function ExploreNichePage({
           ))}
         </nav>
       </header>
+
+      {/* Editorial spotlight — only the iluminacion niche has curated
+          Verano 2026 capsules for now; other niches re-use the default
+          ProductGrid without a spotlight band. Conditional render keeps
+          /explore/<other> free of empty-state spotlight. */}
+      {niche === 'iluminacion' && (
+        <CollectionSpotlight niche={niche} />
+      )}
 
       <ProductGrid
         products={products}
