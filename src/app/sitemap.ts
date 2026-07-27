@@ -82,20 +82,57 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Vercel's Edge function memory just to throw it away after we read
   // 2 columns.
   //
+  // CHUNKED PAGINATION (PostgREST hard cap): PostgREST enforces a
+  // 1000-row hard cap per request — no Range: 0-9999 bypass works; the
+  // server returns `content-range: 0-999/<total>` and an empty body
+  // for offset > 999. Without chunking, our sitemap silently capped at
+  // the first 1000 products (today: 1009 entries vs expected ~1452).
+  // We loop with PAGE_SIZE = 1000 row chunks until the body is empty.
+  //
+  // Safety cap of 100 pages (100k rows) is 2x the sitemap protocol's
+  // 50k limit. If we exceed, we abort and log — never infinite-loop.
+  //
   // updated_at drives changeFrequency: Google re-crawls when our
   // sitemap signals this date advanced since last fetch, which is what
   // we want for stock flips.
-  //
-  // .range(0, 9999) — supabase-js v2 has a default response cap of
-  // 1000 rows when no range is set. Without this, we ship silently-
-  // truncated sitemaps (today: 1009 entries vs ~1449 expected). 9999
-  // is far below the sitemap protocol's 50,000-URL limit so we stay
-  // a single file.
-  const productsRes = await sb
-    .from('products')
-    .select('slug, updated_at')
-    .eq('in_stock', true)
-    .range(0, 9999);
+  const PAGE_SIZE = 1000;
+  const MAX_PAGES = 100; // hard stop — protects against infinite loops
+  const allProducts: Array<{ slug: string; updated_at: string | null }> = [];
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const offset = page * PAGE_SIZE;
+    const chunk = await sb
+      .from('products')
+      .select('slug, updated_at')
+      .eq('in_stock', true)
+      .range(offset, offset + PAGE_SIZE - 1);
+    if (chunk.error) {
+      console.error(
+        '[sitemap] products read failed at page',
+        page,
+        'offset',
+        offset,
+        ':',
+        chunk.error.message
+      );
+      break;
+    }
+    const rows = (chunk.data ?? []) as Array<{
+      slug: string;
+      updated_at: string | null;
+    }>;
+    if (rows.length === 0) break;
+    allProducts.push(...rows);
+    if (rows.length < PAGE_SIZE) break; // last partial page
+  }
+
+  for (const p of allProducts) {
+    routes.push({
+      url: `${baseUrl}/product/${p.slug}`,
+      lastModified: p.updated_at ? new Date(p.updated_at) : today,
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    });
+  }
 
   if (productsRes.error) {
     console.error('[sitemap] products read failed:', productsRes.error.message);
