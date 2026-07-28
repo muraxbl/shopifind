@@ -149,6 +149,14 @@ export default async function ComparePage({
           Comparamos los artículos que has elegido. Pueden ser alternativas
           distintas; Shopifind no afirma que sean el mismo modelo.
         </p>
+        <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+          Los botones &quot;Ver en tienda&quot; son enlaces afiliados: podemos
+          recibir una comisión si compras, sin coste adicional para ti.{' '}
+          <Link href="/legal" className="underline">
+            Más información
+          </Link>
+          .
+        </p>
       </header>
 
       <div className="overflow-x-auto rounded-2xl border bg-card shadow-sm">
@@ -291,7 +299,10 @@ export default async function ComparePage({
               {products.map((product) => (
                 <td key={product.id} className="border-l p-4">
                   <Button asChild className="w-full gap-2">
-                    <a href={`/go/${product.slug}`} rel="nofollow sponsored">
+                    <a
+                      href={`/go/${product.slug}`}
+                      rel="nofollow sponsored noopener noreferrer"
+                    >
                       Ver en {product.store_name}{" "}
                       <ExternalLink className="h-4 w-4" />
                     </a>

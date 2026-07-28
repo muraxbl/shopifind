@@ -523,6 +523,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **M-1** | **Corregir Supabase Auth** | Site URL `https://shopifind.app`; allowlist del callback; plantilla magic link con `ConfirmationURL`. Google OAuth además requiere OAuth Client y provider habilitado. Bloquea el smoke E2E real de perfiles. |
 | **M-2** | **Submit sitemap a Google Search Console** | Quick win manual: registrar dominio y enviar `https://shopifind.app/sitemap.xml`. |
 | **M-3** | **Conectar webhook Skimlinks** | Configurar secret, salt y CIDRs en Vercel; registrar `/api/webhooks/skimlinks` en Skimlinks y enviar evento de prueba. El receiver ya existe. |
+| **M-4** | **Completar identidad legal y privacidad** | El sitio live aún usa scaffolds. Facilitar/decidir los datos y bases de `docs/launch-compliance-checklist.md` antes de escalar tráfico, AdSense o newsletters. |
 
 ### 🟠 Desarrollo inmediato (por dependencias)
 
@@ -632,6 +633,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - [ ] Google Search Console: registrar `https://shopifind.app` → verificación DNS TXT → Sitemaps > Add → `https://shopifind.app/sitemap.xml`.
 - [ ] Bing Webmaster Tools (opcional pero gratis): mismo proceso.
 - [ ] Plausible analytics: verificar que el dominio `shopifind.app` está añadido y `<script>` en `layout.tsx` carga.
+- [ ] Legal/privacidad: proporcionar identidad pública, NIF, domicilio/datos registrales si aplican, bases y retenciones; completar `docs/launch-compliance-checklist.md` antes de activar más tracking o adquisición.
 - [ ] Confirmar el eco-score `78` para masterled con curación humana (es el único valor auto-asignado en el seed; el resto vieram del seed.sql).
 - [ ] Rotar el `SKIMLINKS_DOMAIN_ID` placeholder en `.env.local` (real key ya está en Vercel env, ¿OK?).
 - [ ] Segundo merchant iluminación: comprobar primero GreenIce y después Barcelona LED en el dashboard real de Skimlinks; sólo entonces solicitar/usar un feed autorizado (`docs/merchant-sourcing-lighting.md`).
