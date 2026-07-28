@@ -42,6 +42,7 @@ export function AiSearchBox({ compact = false, initialValue }: { compact?: boole
       </div>
       <Input
         type="search"
+        aria-label="Qué producto estás buscando"
         placeholder="Busca con tus palabras, p.ej. “mochila sostenible <80€”"
         value={q}
         onChange={(e) => setQ(e.target.value)}

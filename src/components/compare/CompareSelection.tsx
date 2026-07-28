@@ -55,7 +55,7 @@ export function CompareSelectionProvider({
       {selectedIds.length > 0 && (
         <div className="fixed bottom-4 left-1/2 z-50 w-[min(92vw,560px)] -translate-x-1/2 rounded-2xl border bg-background/95 p-3 shadow-2xl backdrop-blur">
           <div className="flex items-center gap-3">
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1" aria-live="polite">
               <p className="text-sm font-medium">
                 {selectedIds.length} de {MAX_COMPARE_PRODUCTS} seleccionados
               </p>

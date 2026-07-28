@@ -10,6 +10,7 @@
     "test": "tsx --test tests/*.test.ts",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "check": "pnpm lint && pnpm test && pnpm typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,json}\"",
     "db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/types/database.types.ts",
     "scripts:seed:collection": "tsx scripts/seed-editorial-collection.ts",

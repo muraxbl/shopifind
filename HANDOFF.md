@@ -570,6 +570,7 @@ pnpm dev                    # http://localhost:3000
 
 # cosas adicionales que querrás
 pnpm test                   # node:test sobre tests/*.test.ts
+pnpm check                  # lint + tests + typecheck, sin prompts
 pnpm typecheck              # tsc --noEmit
 pnpm scripts:seed:collection
 pnpm scripts:seed:products

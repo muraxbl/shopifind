@@ -15,7 +15,7 @@ export default function LegalPage() {
           íntegramente por esa tienda.
         </p>
 
-        <h2>2. Aviso sobre la marca "Shopify"</h2>
+        <h2>2. Aviso sobre la marca &quot;Shopify&quot;</h2>
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm">
           <strong>Aviso importante:</strong> {SITE_CONFIG.legalDisclaimer}
           <br />
