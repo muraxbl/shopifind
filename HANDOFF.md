@@ -134,7 +134,7 @@
 | Lenguaje | **TypeScript** | 5.4.5 | `strict` + `noUncheckedIndexedAccess`. Genera `.tsbuildinfo` cacheado. |
 | UI | **Tailwind** + **shadcn/ui** + **Radix** + **Lucide** | 3.4 / latest | Radix primitives para dialog/popover/tabs/toast. shadcn wrapper. |
 | Auth + DB | **Supabase** (`@supabase/ssr` + `supabase-js`) | ssr 0.12 / js 2.43 | Service-role key SOLO server-side. |
-| AI | **OpenAI** (`OPENAI_SEARCH_MODEL`, default `gpt-4o-mini`) | 4.47 | Chat Completions + Structured Outputs. 4s timeout, sin retry, fallback literal. |
+| AI | **OpenAI** (`OPENAI_SEARCH_MODEL`, default `gpt-4o-mini`) | 4.47 | Chat Completions + Structured Outputs. 4s timeout, sin retry, caché de intent válido 1h, kill switch y fallback literal. |
 | Affiliate | **Skimlinks** (publisher `306854X1795120`) | — | `go.redirectingat.com` con `xcust=shopifind-<slug>`. |
 | Email | **Resend HTTP API** (prepared) | REST | Builder HTML/text, idempotency key y sender preparados sin SDK; falta configuración y E2E real. |
 | CRM email | **react-hook-form** + **zod** | 7.51 / 3.23 | Formularios de captura + validación. |
@@ -322,7 +322,7 @@ Structured Outputs schema (strict, Zod-validated):
 }
 ```
 
-Si OpenAI está caído, tarda más de 4s o schema validation falla → fallback literal. **URL params siempre ganan**, incluido `sort`. Las queries se limitan a 240 caracteres y los valores del `.or()` PostgREST se entrecomillan para que comas/paréntesis no alteren la gramática. `attributes` se retiró del intent hasta que exista ejecución SQL real para ese campo.
+Si OpenAI está caído, tarda más de 4s o schema validation falla → fallback literal. Sólo las respuestas válidas entran una hora en el Data Cache, con query normalizada + modelo como clave; `OPENAI_SEARCH_ENABLED=false` desactiva llamadas sin perder búsqueda literal. **URL params siempre ganan**, incluido `sort`. Las queries se limitan a 240 caracteres y los valores del `.or()` PostgREST se entrecomillan para que comas/paréntesis no alteren la gramática. `attributes` se retiró del intent hasta que exista ejecución SQL real para ese campo.
 
 ---
 
@@ -454,6 +454,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **26** | Upgrade de seguridad Next.js 15 | `package.json` + `pnpm-workspace.yaml` + migración de APIs dinámicas | Next 15.5.22, pnpm 11.17 fijado, dependencias transitivas vulnerables parcheadas por override; build de producción y 39 tests pasan y `pnpm audit` completo reporta 0 vulnerabilidades. |
 | **27** | Smoke de release automatizado | `scripts/smoke-production.ts` | 15 checks read-only descubren una PDP desde sitemap y validan navegación, paginación, auth, cabeceras, robots, SEO, imágenes, Skimlinks, cron y ocultación de APIs de test. |
 | **28** | Hardening de cabeceras web | `next.config.mjs` + `docs/security-headers.md` | CSP compatible con ISR, Permissions-Policy, anti-frame estricto y COOP; `X-Powered-By` eliminado y el smoke ampliado para impedir regresiones. |
+| **29** | Control operativo de AI search | `queryIntent.ts` + `docs/ai-search-operations.md` | Caché compartida 1h sólo para intents válidos, kill switch, telemetría de tokens sin query y fallback literal; control puro cubierto por tests. |
 
 ### Métricas post-deploy
 
@@ -465,9 +466,9 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 39/39 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 41/41 · rc=0 · rc=0 |
 | `pnpm audit` completo | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28) |
-| `pnpm smoke:production` | **14/14** contra `shopifind.app` (snapshot 2026-07-28) |
+| `pnpm smoke:production` | **15/15** contra `shopifind.app` (snapshot 2026-07-28) |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---
@@ -531,6 +532,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **M-2** | **Submit sitemap a Google Search Console** | Quick win manual: registrar dominio y enviar `https://shopifind.app/sitemap.xml`. |
 | **M-3** | **Conectar webhook Skimlinks** | Configurar secret, salt y CIDRs en Vercel; registrar `/api/webhooks/skimlinks` en Skimlinks y enviar evento de prueba. El receiver ya existe. |
 | **M-4** | **Completar identidad legal y privacidad** | El sitio live aún usa scaffolds. Facilitar/decidir los datos y bases de `docs/launch-compliance-checklist.md` antes de escalar tráfico, AdSense o newsletters. |
+| **M-5** | **Fijar presupuesto de OpenAI** | En el proyecto API de producción: alertas de gasto + hard spend limit mensual. El código ya tiene caché, telemetría y `OPENAI_SEARCH_ENABLED=false`; falta el tope externo que impida una factura inesperada. |
 
 ### 🟠 Desarrollo inmediato (por dependencias)
 
@@ -642,6 +644,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - [ ] Google Search Console: registrar `https://shopifind.app` → verificación DNS TXT → Sitemaps > Add → `https://shopifind.app/sitemap.xml`.
 - [ ] Bing Webmaster Tools (opcional pero gratis): mismo proceso.
 - [ ] Plausible analytics: verificar que el dominio `shopifind.app` está añadido y `<script>` en `layout.tsx` carga.
+- [ ] OpenAI: configurar alertas de gasto y hard spend limit en el proyecto API de producción (`docs/ai-search-operations.md`).
 - [ ] Legal/privacidad: proporcionar identidad pública, NIF, domicilio/datos registrales si aplican, bases y retenciones; completar `docs/launch-compliance-checklist.md` antes de activar más tracking o adquisición.
 - [ ] Confirmar el eco-score `78` para masterled con curación humana (es el único valor auto-asignado en el seed; el resto vieram del seed.sql).
 - [ ] Rotar el `SKIMLINKS_DOMAIN_ID` placeholder en `.env.local` (real key ya está en Vercel env, ¿OK?).

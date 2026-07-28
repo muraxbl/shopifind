@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   normalizeEcoTagFilters,
   normalizeSearchQuery,
+  isAiSearchEnabled,
   parseQueryIntent,
 } from '@/lib/ai/queryIntent';
 import { buildProductTextOrFilter } from '@/lib/search/postgrest';
@@ -88,7 +89,7 @@ export async function searchProducts(
     sort: requestedSort ?? 'relevance',
   };
 
-  if (q && process.env.OPENAI_API_KEY) {
+  if (q && isAiSearchEnabled()) {
     try {
       const intent = await parseQueryIntent(q);
       const hasStructuredIntent =

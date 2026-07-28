@@ -2,11 +2,21 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   MAX_SEARCH_QUERY_LENGTH,
+  isAiSearchEnabled,
   normalizeEcoTagFilters,
   normalizeSearchQuery,
   parseQueryIntent,
   parseQueryFiltersJson,
 } from '../src/lib/ai/queryIntent';
+
+test('AI search requires a key and honors the emergency kill switch', () => {
+  assert.equal(isAiSearchEnabled(undefined, undefined), false);
+  assert.equal(isAiSearchEnabled('  ', 'true'), false);
+  assert.equal(isAiSearchEnabled('sk-test', undefined), true);
+  assert.equal(isAiSearchEnabled('sk-test', ' TRUE '), true);
+  assert.equal(isAiSearchEnabled('sk-test', ' false '), false);
+  assert.equal(isAiSearchEnabled('sk-test', 'FALSE'), false);
+});
 
 test('query filter contract accepts lighting and catalog-backed tags', () => {
   assert.deepEqual(
@@ -86,5 +96,27 @@ test('intent parser falls back to bounded literal text without an API key', asyn
   } finally {
     if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
     else process.env.OPENAI_API_KEY = previousKey;
+  }
+});
+
+test('intent parser kill switch bypasses OpenAI even when a key exists', async () => {
+  const previousKey = process.env.OPENAI_API_KEY;
+  const previousFlag = process.env.OPENAI_SEARCH_ENABLED;
+  process.env.OPENAI_API_KEY = 'sk-must-not-be-used';
+  process.env.OPENAI_SEARCH_ENABLED = 'false';
+  try {
+    assert.deepEqual(await parseQueryIntent('  lámpara    de mesa  '), {
+      text: 'lámpara de mesa',
+      niche: null,
+      eco_tags_any: [],
+      max_price_cents: null,
+      min_price_cents: null,
+      sort: 'relevance',
+    });
+  } finally {
+    if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previousKey;
+    if (previousFlag === undefined) delete process.env.OPENAI_SEARCH_ENABLED;
+    else process.env.OPENAI_SEARCH_ENABLED = previousFlag;
   }
 });

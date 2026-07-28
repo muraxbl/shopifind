@@ -1,7 +1,9 @@
 import OpenAI from 'openai';
+import { unstable_cache } from 'next/cache';
 import { z } from 'zod';
 
 export const MAX_SEARCH_QUERY_LENGTH = 240;
+export const AI_INTENT_CACHE_TTL_SECONDS = 60 * 60;
 
 // Keep this list synchronized with tags produced by the active seed scripts.
 // Structured Outputs can then choose only filters that can actually match rows.
@@ -137,19 +139,20 @@ export function parseQueryFiltersJson(raw: string): QueryFilters {
   return QueryFiltersSchema.parse(JSON.parse(raw));
 }
 
-/**
- * Parse a user query into typed filters. Returns graceful fallback
- * (just the literal text) if OpenAI is unavailable or schema fails.
- */
-export async function parseQueryIntent(query: string): Promise<QueryFilters> {
-  const trimmed = normalizeSearchQuery(query);
-  if (!trimmed || !process.env.OPENAI_API_KEY) {
-    return { ...FALLBACK, text: trimmed };
-  }
+export function isAiSearchEnabled(
+  apiKey = process.env.OPENAI_API_KEY,
+  enabledFlag = process.env.OPENAI_SEARCH_ENABLED,
+): boolean {
+  return (
+    Boolean(apiKey?.trim()) &&
+    enabledFlag?.trim().toLowerCase() !== 'false'
+  );
+}
 
-  try {
+const getCachedQueryIntent = unstable_cache(
+  async (trimmed: string, model: string): Promise<QueryFilters> => {
     const completion = await getOpenAI().chat.completions.create({
-      model: process.env.OPENAI_SEARCH_MODEL ?? 'gpt-4o-mini',
+      model,
       temperature: 0,
       response_format: {
         type: 'json_schema',
@@ -217,7 +220,35 @@ export async function parseQueryIntent(query: string): Promise<QueryFilters> {
         `incomplete_intent_response:${choice?.finish_reason ?? 'missing'}`,
       );
     }
-    return parseQueryFiltersJson(choice.message.content);
+    const filters = parseQueryFiltersJson(choice.message.content);
+    console.info('[ai/queryIntent] OpenAI usage', {
+      model,
+      promptTokens: completion.usage?.prompt_tokens ?? null,
+      completionTokens: completion.usage?.completion_tokens ?? null,
+      totalTokens: completion.usage?.total_tokens ?? null,
+    });
+    return filters;
+  },
+  ['shopifind-query-intent-v1'],
+  { revalidate: AI_INTENT_CACHE_TTL_SECONDS },
+);
+
+/**
+ * Parse a user query into typed filters. Returns graceful fallback
+ * (just the literal text) if OpenAI is unavailable or schema fails. Only
+ * successful structured responses enter the one-hour shared Data Cache.
+ */
+export async function parseQueryIntent(query: string): Promise<QueryFilters> {
+  const trimmed = normalizeSearchQuery(query);
+  if (!trimmed || !isAiSearchEnabled()) {
+    return { ...FALLBACK, text: trimmed };
+  }
+
+  try {
+    return await getCachedQueryIntent(
+      trimmed,
+      process.env.OPENAI_SEARCH_MODEL ?? 'gpt-4o-mini',
+    );
   } catch (err) {
     console.warn('[ai/queryIntent] Falling back to literal text:', err);
     return { ...FALLBACK, text: trimmed };
