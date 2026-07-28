@@ -278,8 +278,13 @@ async function main(): Promise<void> {
         expectStatus(response, 200);
         sitemapXml = await response.text();
         expectText(sitemapXml, "<urlset", "urlset");
+        expectText(
+          sitemapXml,
+          `<loc>${siteUrl(baseUrl, "/store/masterled-es").toString()}</loc>`,
+          "tienda activa en sitemap",
+        );
         productUrl = productUrlFromSitemap(sitemapXml, baseUrl);
-        return `PDP descubierta: ${productUrl.pathname}`;
+        return `tienda activa + PDP descubierta: ${productUrl.pathname}`;
       },
     },
     {

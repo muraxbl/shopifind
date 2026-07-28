@@ -283,7 +283,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/wishlist` | ✅ live | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto. |
 | `/account` | ✅ código listo | Perfil owner-only: nombre, preferencias de nicho, plan visible y logout local. Falta smoke E2E con sesión real tras corregir M-1. |
 | `/login` + `/api/auth/callback` | ⚠ código live / config externa pendiente | Middleware protege `/wishlist`, `/account`, `/settings`; magic link necesita corregir redirects/plantilla en Supabase y Google requiere habilitar su provider. |
-| `/sitemap.xml` | ✅ live | 1461 URLs verificadas el 2026-07-28. Sólo productos in-stock de stores activas. ISR `revalidate=3600`; loop 1000/page. |
+| `/sitemap.xml` | ✅ live | 1465 URLs verificadas el 2026-07-28. Incluye tiendas activas y sólo productos in-stock de stores activas. ISR `revalidate=3600`; loop 1000/page. |
 | `/robots.txt` | ✅ live | Allow `/` + disallow `/api/`, `/admin/`, `/auth/`, `/go/`, `/search` + sitemap reference. |
 | `/legal` / `/privacy` / `/about` | ✅ Markdown scaffold | Páginas-estatic SEO/disclaimer. |
 | `/api/products/*` + `/api/auth/*` | ✅ implementado | Handlers server-side desplegados; los providers OAuth siguen dependiendo de configuración externa. |
@@ -363,7 +363,7 @@ Si OpenAI está caído, tarda más de 4s o schema validation falla → fallback 
     │   ├── layout.tsx                     # root layout + metadataBase + Plausible
     │   ├── page.tsx                       # home con AiSearchBox + 4 nicho chips + 8 featured
     │   ├── globals.css
-    │   ├── sitemap.ts                     # ← chunked loop, 1461 URLs
+    │   ├── sitemap.ts                     # ← chunked loop, 1465 URLs
     │   ├── robots.ts                      # ← disallow /api + /go + /search
     │   ├── (shop)/
     │   │   ├── explore/[niche]/page.tsx   # pagination + spotlight + DRY-up facet hidden
@@ -458,6 +458,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **30** | Allowlist de imágenes remotas | `next.config.mjs` + smoke de release | El wildcard HTTPS se sustituye por `masterled.es` y `placehold.co`, los dos hosts presentes en 1452 productos activos; el smoke exige ambos y rechaza un host ajeno. |
 | **31** | ISR del catálogo público | `src/lib/supabase/public.ts` + páginas públicas | Las lecturas sin sesión ya no llaman a `cookies()`: home, colecciones y tiendas recuperan ISR de 60s, sitemap conserva 1h y las lecturas request-time declaran `no-store`; 43 tests cubren la política de fetch. `/explore` mantiene respuesta dinámica por su paginación en query string, pero comparte el Data Cache de catálogo durante 60s. |
 | **32** | SEO de hubs públicos | metadata de `/explore/[niche]` y `/store/[slug]` | Cada nicho y tienda indexable publica título/descripción propios, canonical estable y tarjetas Open Graph/Twitter; slugs inválidos declaran `noindex` y el smoke live cubre los dos tipos de página. |
+| **33** | Tiendas activas en sitemap | `src/app/sitemap.ts` + smoke de release | Los cuatro perfiles reales pasan a ser descubribles por buscadores con `lastModified`; el filtro `active=true` evita reactivar merchants placeholder y el smoke exige Masterled en el XML. |
 
 ### Métricas post-deploy
 
@@ -467,7 +468,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Productos activos expuestos por sitemap | **1452** (snapshot live 2026-07-28; el total físico en DB puede incluir seeds/inactivos) |
 | Nichos activos | **4** |
 | Colecciones publicado = true | **4** |
-| `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
+| `<loc>` URLs en sitemap.xml | **1465** (1 home + 4 explore + 4 stores + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
 | `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 43/43 · rc=0 · rc=0 |
 | `pnpm audit` completo | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28) |

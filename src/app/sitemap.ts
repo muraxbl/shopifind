@@ -49,7 +49,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
-  // ---- 2. Editorial collections (curated capsules) ----
+  // ---- 2. Active merchant profiles ----
+  // Store pages are indexable catalog hubs, so they belong in the sitemap.
+  // Filtering on active is essential: historical placeholder merchants must
+  // not regain a public discovery path just because their row still exists.
+  const storesRes = await sb
+    .from('stores')
+    .select('slug, updated_at')
+    .eq('active', true);
+
+  if (storesRes.error) {
+    console.error('[sitemap] stores read failed:', storesRes.error.message);
+  } else {
+    const rows = (storesRes.data ?? []) as Array<{
+      slug: string;
+      updated_at: string | null;
+    }>;
+    for (const store of rows) {
+      routes.push({
+        url: `${baseUrl}/store/${store.slug}`,
+        lastModified: store.updated_at ? new Date(store.updated_at) : today,
+        changeFrequency: 'weekly',
+        priority: 0.7,
+      });
+    }
+  }
+
+  // ---- 3. Editorial collections (curated capsules) ----
   // Power-store pages — they convert browsers into buyers via the
   // editorial framing. Monthly changeFrequency because they're curated,
   // not data-driven.
@@ -75,7 +101,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  // ---- 3. Products (in-stock and belonging to an active store) ----
+  // ---- 4. Products (in-stock and belonging to an active store) ----
   // EXPLICIT field projection — DO NOT use select('*') here.
   // The enriched view filters out inactive stores as well as unavailable
   // products. Project only the two fields needed by the sitemap.
