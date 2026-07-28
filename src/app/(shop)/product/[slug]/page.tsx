@@ -2,7 +2,7 @@ import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Leaf, ExternalLink, Truck, RotateCcw } from 'lucide-react';
+import { Leaf, ExternalLink, Globe, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatPrice, formatEcoScore, cn } from '@/lib/utils';
@@ -268,22 +268,24 @@ export default async function ProductPage({
 
           <div className="mt-8 grid grid-cols-2 gap-3 rounded-2xl border border-border/60 bg-secondary/30 p-4 text-sm">
             <div className="flex items-start gap-2">
-              <Truck className="mt-0.5 h-4 w-4 text-primary" />
+              <Globe className="mt-0.5 h-4 w-4 text-primary" />
               <div>
                 <div className="font-medium">
-                  Envío desde {product.country ?? 'no especificado'}
+                  {product.country
+                    ? `Marca de ${product.country}`
+                    : 'Origen no especificado'}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Política del merchant
+                  Procedencia declarada de la tienda
                 </div>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <RotateCcw className="mt-0.5 h-4 w-4 text-primary" />
               <div>
-                <div className="font-medium">Devoluciones</div>
+                <div className="font-medium">Envíos y devoluciones</div>
                 <div className="text-xs text-muted-foreground">
-                  Política del merchant
+                  Consulta las condiciones en {product.store_name}
                 </div>
               </div>
             </div>

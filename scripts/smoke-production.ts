@@ -305,7 +305,15 @@ async function main(): Promise<void> {
           'aria-label="Compartir producto"',
           "control de compartir",
         );
-        return "canonical + Product JSON-LD + share";
+        expectText(
+          productHtml,
+          "Procedencia declarada de la tienda",
+          "copy factual de procedencia",
+        );
+        if (productHtml.includes("Envío desde")) {
+          throw new Error("la PDP confunde país de marca con origen del envío");
+        }
+        return "canonical + Product JSON-LD + share + procedencia";
       },
     },
     {

@@ -459,6 +459,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **31** | ISR del catálogo público | `src/lib/supabase/public.ts` + páginas públicas | Las lecturas sin sesión ya no llaman a `cookies()`: home, colecciones y tiendas recuperan ISR de 60s, sitemap conserva 1h y las lecturas request-time declaran `no-store`; 43 tests cubren la política de fetch. `/explore` mantiene respuesta dinámica por su paginación en query string, pero comparte el Data Cache de catálogo durante 60s. |
 | **32** | SEO de hubs públicos | metadata de `/explore/[niche]` y `/store/[slug]` | Cada nicho y tienda indexable publica título/descripción propios, canonical estable y tarjetas Open Graph/Twitter; slugs inválidos declaran `noindex` y el smoke live cubre los dos tipos de página. |
 | **33** | Tiendas activas en sitemap | `src/app/sitemap.ts` + smoke de release | Los cuatro perfiles reales pasan a ser descubribles por buscadores con `lastModified`; el filtro `active=true` evita reactivar merchants placeholder y el smoke exige Masterled en el XML. |
+| **34** | Copy factual de procedencia | PDP + `SITE_CONFIG.description` | La PDP deja de presentar el país de la marca como origen del envío, deriva logística/devoluciones al merchant y el smoke impide que reaparezca esa afirmación; la descripción global ya incluye iluminación. |
 
 ### Métricas post-deploy
 
