@@ -287,6 +287,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/robots.txt` | ✅ live | Allow `/` + disallow `/api/`, `/admin/`, `/auth/`, `/go/`, `/search` + sitemap reference. |
 | `/legal` / `/privacy` / `/about` | ✅ Markdown scaffold | Páginas-estatic SEO/disclaimer. |
 | `/api/products/*` + `/api/auth/*` | ✅ implementado | Handlers server-side desplegados; los providers OAuth siguen dependiendo de configuración externa. |
+| `/api/cron/refresh-masterled` | ✅ live / inactivo | Bearer auth, preflight real de `price_history`, feed allowlisted/acotado y guardias de integridad. Sin schedule ni secretos de activación; 401 anónimo verificado. |
 | `/api/webhooks/skimlinks` | ⚠ receiver live / E2E pendiente | Valida tamaño, CIDR, HMAC, payload y replay; inserta con dedupe. Falta conectar Skimlinks y probar evento real. |
 | `/api/test/*` | ✅ restringido | Gate default-deny y bloqueo absoluto en `NODE_ENV=production`; GET/POST verificados con 404 en `shopifind.app`. |
 
@@ -301,7 +302,8 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | **Skimlinks affiliate redirect** | `src/app/go/[id]/route.ts` + `src/lib/skimlinks.ts` | ✅ publisher `306854X1795120`. |
 | **Eco-score badges en cards** | `src/components/product/ProductCard.tsx` | ✅ muestra `store_eco_score` + `eco_tags[..n]`. |
 | **Wishlist JSONB** | `src/actions/wishlist.ts` + `src/app/(shop)/wishlist/` | ✅ read/write · RLS owner-only · corazones reales y precio/URL resueltos server-side. |
-| **Pricing alerts email** | `src/lib/email/resend.ts` (template) | ⚠ only stub; cron + sender pending (backlog). |
+| **Gestión de price alerts** | `src/actions/priceAlerts.ts` + PDP + `/account` | 🟡 tres modos, owner-only y cursor de baseline preparados; UI se auto-desactiva mientras B-2 falte. Worker/email aún pendientes. |
+| **Pricing alerts email** | `src/lib/email/resend.ts` (template) | ⚠ template only; evaluator + outbox sender pending. |
 | **Comparador manual** | `src/components/compare/CompareSelection.tsx` + `src/app/(shop)/compare/page.tsx` | ✅ picker de 2-5 cards y tabla comparativa sin afirmar equivalencia de modelo. La comparación automática fuerte en iluminación sigue necesitando otro merchant. |
 
 ### AI search semantics (`parseQueryIntent`)
@@ -442,6 +444,8 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **17** | AI search contract hardening | `src/lib/ai/queryIntent.ts` + `src/lib/search/postgrest.ts` | Iluminación soportada, tags catalog-backed, filtros puros, URL precedence, límite/timeout, escape PostgREST y fallback cubiertos; 16 tests y consulta read-only real validada. |
 | **18** | Comparador manual MVP | `src/components/compare` + `/(shop)/compare` | Selección de 2-5 cards, URL validada y acotada, tabla `noindex`, atributos agrupados, comparativa de precios segura por moneda y CTAs `/go`; 19 tests totales y build limpio. |
 | **19** | Search filter-only + URL hardening | `src/lib/search/input.ts` + `/(shop)/search` | Nicho/eco-tag/precio funcionan sin texto, enums y cifras se validan en runtime, eco-tag rápido respaldado por catálogo y toggle para limpiar; 21 tests totales. |
+| **20** | Guarded Masterled refresh | `373d38d` | Parser único CLI/cron, 1.563 filas reales validadas, Bearer auth, preflight, lotes y stale-stock; endpoint live devuelve 401 y no tiene schedule. |
+| **21** | Price-alert management UI | `src/actions/priceAlerts.ts` + `PriceAlertCard` + `PriceAlertList` | Tres modos validados, baseline/cursor autoritativos, PDP/cuenta y fallback honesto si falta schema; worker de envío sigue pendiente. |
 
 ### Métricas post-deploy
 
@@ -453,7 +457,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 21/21 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 27/27 · rc=0 · rc=0 |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---
@@ -502,6 +506,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 
 24. **Cambios mecánicos**: al reemplazar un bloque, revisar también consumidores y referencias. Ejecutar `pnpm test`, typecheck, build y `git diff --check`; el typecheck por sí solo no detecta fallos de comportamiento.
 25. **Verificación post-deploy**: esperar el estado `success` de Vercel y hacer smoke contra `shopifind.app`; el hash enviado a Git no demuestra por sí solo qué versión está sirviendo el dominio.
+26. **Preflight de tablas PostgREST**: no usar `select(..., { head: true })` para comprobar que una tabla existe; puede devolver 204 aunque falte del schema cache. Usar un GET acotado con `.select('id').limit(1)` y comprobar `error`.
 
 ---
 
@@ -522,7 +527,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **B-1** | ✅ **Completar `/account` + profiles** | M-1 sólo para E2E real | Código y validación completados; falta probar lectura/escritura con una sesión real después de corregir Supabase Auth. |
 | **B-2** | 🟡 **Modelo relacional de precios y alertas** | aprobación/aplicación de migración | Schema, trigger, RLS, ledger idempotente y tipos preparados localmente; NO aplicado aún a Cloud. |
 | **B-3** | 🟡 **Refresh incremental + snapshots de precio** | B-2 + secretos/schedule en Vercel | Handler, parser compartido, auth, guardias de feed, lotes y stale-stock preparados. No programado ni ejecutado contra Cloud. |
-| **B-4** | **Alertas de bajada** | B-1, B-2, B-3 + Resend | UI en PDP/cuenta, modos any-drop/target/percentage, cron y email idempotente. |
+| **B-4** | 🟡 **Alertas de bajada** | B-2 + activar B-3 + Resend | Gestión owner-only de los 3 modos y UI PDP/cuenta preparadas. Faltan evaluator, outbox sender y E2E; hoy muestra fallback hasta que exista el schema. |
 | **B-5** | ✅ **Corregir AI search actual** | nada | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship. |
 | **B-6** | ✅ **Comparador manual MVP** | nada | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado. |
 | **B-7** | **Segundo merchant de iluminación** | sourcing/onboarding owner | Desbloquea comparación automática y cobertura real de precios en el vertical principal. |

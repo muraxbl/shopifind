@@ -8,7 +8,9 @@ import { formatPrice, formatEcoScore, cn } from '@/lib/utils';
 import { SITE_CONFIG } from '@/lib/config';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { AddToWishlistButton } from '@/components/product/AddToWishlistButton';
+import { PriceAlertCard } from '@/components/product/PriceAlertCard';
 import { hasWishlistItem, normalizeWishlistItems } from '@/lib/wishlist/items';
+import { readPriceAlertState } from '@/lib/alerts/read';
 
 type ProductDetail = {
   id: string;
@@ -38,7 +40,7 @@ async function fetchProduct(slug: string): Promise<ProductDetail | null> {
   const { data } = await sb
     .from('v_products_with_store')
     .select(
-      'id, slug, title, description, price_cents, currency, image_url, source_url, affiliate_url, attributes, eco_tags, in_stock, store_name, store_slug, store_eco_score, store_values, country, short_description, verified, niche'
+      'id, slug, title, description, price_cents, currency, image_url, source_url, affiliate_url, attributes, eco_tags, in_stock, store_name, store_slug, store_eco_score, store_values, country, short_description, verified, niche',
     )
     .eq('slug', slug)
     .eq('in_stock', true)
@@ -85,12 +87,19 @@ async function fetchInitialWishlistState(productId: string): Promise<boolean> {
   return hasWishlistItem(normalizeWishlistItems(row?.items), productId);
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}) {
   const p = await fetchProduct(params.slug);
   if (!p) return { title: 'Producto no encontrado' };
   return {
     title: `${p.title} — ${p.store_name}`,
-    description: (p.description ?? `${p.title} en ${p.store_name}`).slice(0, 160),
+    description: (p.description ?? `${p.title} en ${p.store_name}`).slice(
+      0,
+      160,
+    ),
     openGraph: {
       title: p.title,
       description: p.description ?? '',
@@ -99,25 +108,34 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function ProductPage({ params }: { params: { slug: string } }) {
+export default async function ProductPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
   const product = await fetchProduct(params.slug);
   if (!product) notFound();
 
-  const initiallyInWishlist = await fetchInitialWishlistState(product.id);
+  const [initiallyInWishlist, priceAlertState] = await Promise.all([
+    fetchInitialWishlistState(product.id),
+    readPriceAlertState(product.id),
+  ]);
   const eco = formatEcoScore(product.store_eco_score);
 
   return (
     <div className="container py-10">
       <nav className="mb-6 text-sm text-muted-foreground">
-        <Link href="/" className="hover:text-primary">Inicio</Link> {' / '}
+        <Link href="/" className="hover:text-primary">
+          Inicio
+        </Link>{' '}
+        {' / '}
         <Link
           href={`/explore/${product.niche}`}
           className="capitalize hover:text-primary"
         >
           {product.niche.replace('-', ' ')}
         </Link>{' '}
-        /{' '}
-        <span className="text-foreground">{product.title}</span>
+        / <span className="text-foreground">{product.title}</span>
       </nav>
 
       <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr]">
@@ -132,7 +150,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
             className="object-cover"
           />
           <div className="absolute right-3 top-3 flex flex-col gap-2">
-            <Button size="icon" variant="secondary" className="rounded-full" aria-label="Compartir">
+            <Button
+              size="icon"
+              variant="secondary"
+              className="rounded-full"
+              aria-label="Compartir"
+            >
               <Share2 className="h-4 w-4" />
             </Button>
           </div>
@@ -142,12 +165,17 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{product.store_name}</Badge>
-            <Badge variant="eco" className={cn('border-transparent', eco.variant)}>
+            <Badge
+              variant="eco"
+              className={cn('border-transparent', eco.variant)}
+            >
               Eco-score {product.store_eco_score}/100 · {eco.label}
             </Badge>
           </div>
 
-          <h1 className="mt-4 font-display text-3xl md:text-4xl">{product.title}</h1>
+          <h1 className="mt-4 font-display text-3xl md:text-4xl">
+            {product.title}
+          </h1>
 
           <div className="mt-4 flex items-baseline gap-3">
             <span className="font-display text-3xl text-primary">
@@ -155,7 +183,10 @@ export default async function ProductPage({ params }: { params: { slug: string }
             </span>
             {product.attributes?.['old_price_cents'] && (
               <span className="text-sm text-muted-foreground line-through">
-                {formatPrice(Number(product.attributes['old_price_cents']), product.currency)}
+                {formatPrice(
+                  Number(product.attributes['old_price_cents']),
+                  product.currency,
+                )}
               </span>
             )}
           </div>
@@ -174,12 +205,18 @@ export default async function ProductPage({ params }: { params: { slug: string }
           )}
 
           {product.description && (
-            <p className="mt-6 leading-relaxed text-muted-foreground">{product.description}</p>
+            <p className="mt-6 leading-relaxed text-muted-foreground">
+              {product.description}
+            </p>
           )}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="flex-1 gap-2">
-              <a href={`/go/${product.slug}`} target="_blank" rel="sponsored noopener noreferrer">
+              <a
+                href={`/go/${product.slug}`}
+                target="_blank"
+                rel="sponsored noopener noreferrer"
+              >
                 Ver en {product.store_name} <ExternalLink className="h-4 w-4" />
               </a>
             </Button>
@@ -192,25 +229,43 @@ export default async function ProductPage({ params }: { params: { slug: string }
             />
           </div>
 
+          <PriceAlertCard
+            productId={product.id}
+            productSlug={product.slug}
+            currentPriceCents={product.price_cents}
+            currency={product.currency}
+            initialState={priceAlertState}
+          />
+
           <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-            Al hacer click en &quot;Ver en {product.store_name}&quot; podemos recibir una pequeña comisión
-            de afiliado. <strong>No tiene coste extra para ti.</strong> Lee más en nuestra{' '}
-            <Link href="/legal" className="underline">divulgación FTC / UE</Link>.
+            Al hacer click en &quot;Ver en {product.store_name}&quot; podemos
+            recibir una pequeña comisión de afiliado.{' '}
+            <strong>No tiene coste extra para ti.</strong> Lee más en nuestra{' '}
+            <Link href="/legal" className="underline">
+              divulgación FTC / UE
+            </Link>
+            .
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-3 rounded-2xl border border-border/60 bg-secondary/30 p-4 text-sm">
             <div className="flex items-start gap-2">
               <Truck className="mt-0.5 h-4 w-4 text-primary" />
               <div>
-                <div className="font-medium">Envío desde {product.country ?? 'no especificado'}</div>
-                <div className="text-xs text-muted-foreground">Política del merchant</div>
+                <div className="font-medium">
+                  Envío desde {product.country ?? 'no especificado'}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Política del merchant
+                </div>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <RotateCcw className="mt-0.5 h-4 w-4 text-primary" />
               <div>
                 <div className="font-medium">Devoluciones</div>
-                <div className="text-xs text-muted-foreground">Política del merchant</div>
+                <div className="text-xs text-muted-foreground">
+                  Política del merchant
+                </div>
               </div>
             </div>
           </div>
@@ -218,23 +273,38 @@ export default async function ProductPage({ params }: { params: { slug: string }
           {/* Store block */}
           <div className="mt-8 rounded-2xl border border-border/60 bg-card p-5">
             <div className="flex items-baseline justify-between gap-3">
-              <Link href={`/store/${product.store_slug}`} className="font-display text-lg hover:underline">
+              <Link
+                href={`/store/${product.store_slug}`}
+                className="font-display text-lg hover:underline"
+              >
                 {product.store_name}
                 {product.verified && (
-                  <span className="ml-1.5 inline-block h-4 w-4 align-middle text-primary" aria-label="Verified">✓</span>
+                  <span
+                    className="ml-1.5 inline-block h-4 w-4 align-middle text-primary"
+                    aria-label="Verified"
+                  >
+                    ✓
+                  </span>
                 )}
               </Link>
-              <Link href={`/store/${product.store_slug}`} className="text-xs text-muted-foreground hover:text-primary">
+              <Link
+                href={`/store/${product.store_slug}`}
+                className="text-xs text-muted-foreground hover:text-primary"
+              >
                 Ver tienda →
               </Link>
             </div>
             {product.short_description && (
-              <p className="mt-1 text-sm text-muted-foreground">{product.short_description}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {product.short_description}
+              </p>
             )}
             {product.store_values.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1">
                 {product.store_values.map((v) => (
-                  <Badge key={v} variant="secondary">{v}</Badge>
+                  <Badge key={v} variant="secondary">
+                    {v}
+                  </Badge>
                 ))}
               </div>
             )}

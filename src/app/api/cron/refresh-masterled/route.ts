@@ -45,7 +45,9 @@ export async function GET(request: NextRequest) {
   const sb = createAdminSupabaseClient();
   const historyCheck = await sb
     .from('price_history')
-    .select('id', { count: 'exact', head: true })
+    // Do not use HEAD here: PostgREST may return 204 even when the relation is
+    // missing from its schema cache. A one-row GET fails reliably with PGRST205.
+    .select('id')
     .limit(1);
   if (historyCheck.error) {
     return NextResponse.json(

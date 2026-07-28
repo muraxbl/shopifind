@@ -8,6 +8,11 @@ import { Input } from '@/components/ui/input';
 import { NICHE_LABEL, SITE_CONFIG, type NicheId } from '@/lib/config';
 import { MAX_PROFILE_NAME_LENGTH } from '@/lib/profile/input';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import {
+  PriceAlertList,
+  type AccountPriceAlert,
+} from '@/components/account/PriceAlertList';
+import type { PriceAlertMode } from '@/lib/alerts/input';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +30,14 @@ type ProfileRow = {
   full_name: string | null;
   plan: 'free' | 'plus' | 'pro';
   niche_prefs: string[];
+};
+
+type AlertRow = {
+  product_id: string;
+  mode: PriceAlertMode;
+  baseline_price_cents: number;
+  target_price_cents: number | null;
+  percentage_drop: number | null;
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -51,9 +64,48 @@ export default async function AccountPage({
     .eq('id', user.id)
     .maybeSingle();
   const profile = data as ProfileRow | null;
+  const alertResult = await sb
+    .from('price_alerts')
+    .select(
+      'product_id, mode, baseline_price_cents, target_price_cents, percentage_drop',
+    )
+    .eq('user_id', user.id)
+    .eq('active', true)
+    .order('updated_at', { ascending: false });
+  const alertRows = (alertResult.data ?? []) as AlertRow[];
+  const alertProductIds = alertRows.map((alert) => alert.product_id);
+  const alertProductsResult = alertProductIds.length
+    ? await sb
+        .from('v_products_with_store')
+        .select('id, slug, title, price_cents, currency')
+        .in('id', alertProductIds)
+    : { data: [], error: null };
+  const alertProducts = (alertProductsResult.data ?? []) as Array<{
+    id: string;
+    slug: string;
+    title: string;
+    price_cents: number;
+    currency: string;
+  }>;
+  const accountAlerts: AccountPriceAlert[] = alertRows.map((alert) => {
+    const product = alertProducts.find(
+      (candidate) => candidate.id === alert.product_id,
+    );
+    return {
+      productId: alert.product_id,
+      productSlug: product?.slug ?? null,
+      productTitle: product?.title ?? 'Producto no disponible',
+      currency: product?.currency ?? 'EUR',
+      currentPriceCents: product?.price_cents ?? null,
+      baselinePriceCents: alert.baseline_price_cents,
+      mode: alert.mode,
+      targetPriceCents: alert.target_price_cents,
+      percentageDrop: alert.percentage_drop,
+    };
+  });
   const selectedNiches = new Set(profile?.niche_prefs ?? []);
   const errorMessage = searchParams.error
-    ? ERROR_MESSAGES[searchParams.error] ?? ERROR_MESSAGES.save_failed
+    ? (ERROR_MESSAGES[searchParams.error] ?? ERROR_MESSAGES.save_failed)
     : null;
 
   return (
@@ -90,8 +142,12 @@ export default async function AccountPage({
             <UserRound className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <p className="truncate font-medium">{profile?.full_name || 'Tu cuenta Shopifind'}</p>
-            <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+            <p className="truncate font-medium">
+              {profile?.full_name || 'Tu cuenta Shopifind'}
+            </p>
+            <p className="truncate text-sm text-muted-foreground">
+              {user.email}
+            </p>
           </div>
         </div>
 
@@ -109,7 +165,9 @@ export default async function AccountPage({
           </label>
 
           <fieldset>
-            <legend className="text-sm font-medium">Nichos que te interesan</legend>
+            <legend className="text-sm font-medium">
+              Nichos que te interesan
+            </legend>
             <p className="mt-1 text-xs text-muted-foreground">
               Los usaremos para personalizar recomendaciones futuras.
             </p>
@@ -146,10 +204,17 @@ export default async function AccountPage({
         </form>
       </section>
 
+      <PriceAlertList
+        available={!alertResult.error && !alertProductsResult.error}
+        initialAlerts={accountAlerts}
+      />
+
       <section className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-5">
         <div>
           <p className="text-sm font-medium">Sesión actual</p>
-          <p className="mt-1 text-xs text-muted-foreground">Cerrar sesión sólo en este dispositivo.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Cerrar sesión sólo en este dispositivo.
+          </p>
         </div>
         <form action={signOut}>
           <Button type="submit" variant="outline" className="gap-2">
