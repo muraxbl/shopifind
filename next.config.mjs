@@ -28,8 +28,9 @@ const nextConfig = {
   },
   images: {
     remotePatterns: [
-      // Skimlinks / merchants comunes — wildcard '**' acepta cualquier dominio HTTPS
-      { protocol: "https", hostname: "**" },
+      // Keep this allowlist synchronized with active catalog image hosts.
+      { protocol: "https", hostname: "masterled.es" },
+      { protocol: "https", hostname: "placehold.co" },
     ],
     // placehold.co y otros placeholders devuelven SVG; next/image los rechaza por defecto.
     // dangerouslyAllowSVG los deja pasar + CSP sándbox evita ejecución de scripts embebidos.

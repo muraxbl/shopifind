@@ -455,6 +455,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **27** | Smoke de release automatizado | `scripts/smoke-production.ts` | 15 checks read-only descubren una PDP desde sitemap y validan navegación, paginación, auth, cabeceras, robots, SEO, imágenes, Skimlinks, cron y ocultación de APIs de test. |
 | **28** | Hardening de cabeceras web | `next.config.mjs` + `docs/security-headers.md` | CSP compatible con ISR, Permissions-Policy, anti-frame estricto y COOP; `X-Powered-By` eliminado y el smoke ampliado para impedir regresiones. |
 | **29** | Control operativo de AI search | `queryIntent.ts` + `docs/ai-search-operations.md` | Caché compartida 1h sólo para intents válidos, kill switch, telemetría de tokens sin query y fallback literal; control puro cubierto por tests. |
+| **30** | Allowlist de imágenes remotas | `next.config.mjs` + smoke de release | El wildcard HTTPS se sustituye por `masterled.es` y `placehold.co`, los dos hosts presentes en 1452 productos activos; el smoke exige ambos y rechaza un host ajeno. |
 
 ### Métricas post-deploy
 

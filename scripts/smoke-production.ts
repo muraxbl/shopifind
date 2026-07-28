@@ -62,13 +62,31 @@ function productPaths(html: string): Set<string> {
   return new Set(html.match(/\/product\/[a-z0-9-]+/g) ?? []);
 }
 
-function firstProductUrl(sitemap: string, baseUrl: URL): URL {
-  const match = sitemap.match(/<loc>([^<]+\/product\/[a-z0-9-]+)<\/loc>/);
-  if (!match?.[1]) throw new Error("el sitemap no contiene ninguna PDP");
+function productUrlFromSitemap(
+  sitemap: string,
+  baseUrl: URL,
+  slugPrefix = "",
+): URL {
+  const locations = [
+    ...sitemap.matchAll(/<loc>([^<]+\/product\/[a-z0-9-]+)<\/loc>/g),
+  ];
+  const location = locations
+    .map((match) => match[1])
+    .find((value) => {
+      if (!value) return false;
+      return new URL(value).pathname.startsWith(`/product/${slugPrefix}`);
+    });
+  if (!location) {
+    throw new Error(
+      slugPrefix
+        ? `el sitemap no contiene una PDP con prefijo ${slugPrefix}`
+        : "el sitemap no contiene ninguna PDP",
+    );
+  }
 
-  const productUrl = new URL(match[1]);
+  const productUrl = new URL(location);
   if (productUrl.origin !== baseUrl.origin) {
-    throw new Error("la primera PDP del sitemap apunta fuera del sitio");
+    throw new Error("una PDP del sitemap apunta fuera del sitio");
   }
   return productUrl;
 }
@@ -223,7 +241,7 @@ async function main(): Promise<void> {
         expectStatus(response, 200);
         sitemapXml = await response.text();
         expectText(sitemapXml, "<urlset", "urlset");
-        productUrl = firstProductUrl(sitemapXml, baseUrl);
+        productUrl = productUrlFromSitemap(sitemapXml, baseUrl);
         return `PDP descubierta: ${productUrl.pathname}`;
       },
     },
@@ -252,14 +270,43 @@ async function main(): Promise<void> {
       name: "optimizador de imágenes",
       run: async () => {
         if (!productHtml) throw new Error("dependencia PDP no disponible");
-        const imageUrl = firstOptimizedImageUrl(productHtml, baseUrl);
-        const response = await request(imageUrl);
-        expectStatus(response, 200);
-        const contentType = response.headers.get("content-type") ?? "";
-        if (!contentType.startsWith("image/")) {
-          throw new Error(`content-type inesperado: ${contentType || "vacío"}`);
+        if (!sitemapXml) throw new Error("dependencia sitemap no disponible");
+        const masterledUrl = productUrlFromSitemap(
+          sitemapXml,
+          baseUrl,
+          "masterled-",
+        );
+        const masterledPage = await request(masterledUrl);
+        expectStatus(masterledPage, 200);
+        const masterledHtml = await masterledPage.text();
+        const imageUrls = [
+          firstOptimizedImageUrl(productHtml, baseUrl),
+          firstOptimizedImageUrl(masterledHtml, baseUrl),
+        ];
+        const [firstImage, masterledImage, blockedHost] = await Promise.all([
+          request(imageUrls[0]!),
+          request(imageUrls[1]!),
+          request(
+            siteUrl(
+              baseUrl,
+              "/_next/image?url=https%3A%2F%2Fexample.com%2Fblocked.jpg&w=640&q=75",
+            ),
+          ),
+        ]);
+        const allowedImages = [firstImage, masterledImage];
+        for (const response of allowedImages) {
+          expectStatus(response, 200);
+          const contentType = response.headers.get("content-type") ?? "";
+          if (!contentType.startsWith("image/")) {
+            throw new Error(
+              `content-type inesperado: ${contentType || "vacío"}`,
+            );
+          }
         }
-        return contentType;
+        expectStatus(blockedHost, 400);
+        return `${allowedImages
+          .map((response) => response.headers.get("content-type"))
+          .join(" + ")}; host ajeno bloqueado`;
       },
     },
     {

@@ -16,6 +16,9 @@
 
 La CSP específica de `next/image` sigue siendo más estricta
 (`script-src 'none'; sandbox`) porque el catálogo admite SVG remotos.
+`remotePatterns` sólo admite los hosts observados en el catálogo activo:
+`masterled.es` y `placehold.co`. Al activar un merchant nuevo hay que añadir
+su host de imágenes explícitamente después de inspeccionar el feed.
 
 ## Por qué no usamos nonce por petición
 
