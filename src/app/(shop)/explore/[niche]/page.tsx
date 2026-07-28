@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { Badge } from '@/components/ui/badge';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { CollectionSpotlight } from '@/components/collection/CollectionSpotlight';
@@ -52,6 +53,45 @@ export const dynamicParams = true;
 // visitors without needing a full Vercel redeploy.
 export const revalidate = 60;
 
+function normalizeNicheSlug(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ niche: string }>;
+}): Promise<Metadata> {
+  const { niche: rawNiche } = await params;
+  const normalized = normalizeNicheSlug(rawNiche ?? '');
+  if (!SITE_CONFIG.primaryNiches.includes(normalized as NicheId)) {
+    return { title: 'Nicho no encontrado', robots: { index: false } };
+  }
+
+  const niche = normalized as NicheId;
+  const meta = NICHE_LABEL[niche];
+  const title = `${meta.label}: productos y tiendas independientes`;
+  const description = `${meta.tagline} Descubre una selección curada en Shopifind.`;
+  const url = `${SITE_CONFIG.url}/explore/${niche}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'website',
+      title,
+      description,
+      url,
+      siteName: SITE_CONFIG.name,
+      locale: 'es_ES',
+    },
+    twitter: { card: 'summary_large_image', title, description },
+  };
+}
+
 export default async function ExploreNichePage({
   params,
   searchParams,
@@ -69,10 +109,7 @@ export default async function ExploreNichePage({
   // When the typed form differs from the canonical form, 301-redirect so
   // Google sees ONE canonical URL (no duplicate-content split) and visitors
   // land on the form that matches `generateStaticParams()`.
-  const normalized = (resolvedParams.niche ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+  const normalized = normalizeNicheSlug(resolvedParams.niche ?? '');
   if (normalized !== resolvedParams.niche) {
     redirect(`/explore/${normalized}`);
   }

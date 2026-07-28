@@ -457,6 +457,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **29** | Control operativo de AI search | `queryIntent.ts` + `docs/ai-search-operations.md` | Caché compartida 1h sólo para intents válidos, kill switch, telemetría de tokens sin query y fallback literal; control puro cubierto por tests. |
 | **30** | Allowlist de imágenes remotas | `next.config.mjs` + smoke de release | El wildcard HTTPS se sustituye por `masterled.es` y `placehold.co`, los dos hosts presentes en 1452 productos activos; el smoke exige ambos y rechaza un host ajeno. |
 | **31** | ISR del catálogo público | `src/lib/supabase/public.ts` + páginas públicas | Las lecturas sin sesión ya no llaman a `cookies()`: home, colecciones y tiendas recuperan ISR de 60s, sitemap conserva 1h y las lecturas request-time declaran `no-store`; 43 tests cubren la política de fetch. `/explore` mantiene respuesta dinámica por su paginación en query string, pero comparte el Data Cache de catálogo durante 60s. |
+| **32** | SEO de hubs públicos | metadata de `/explore/[niche]` y `/store/[slug]` | Cada nicho y tienda indexable publica título/descripción propios, canonical estable y tarjetas Open Graph/Twitter; slugs inválidos declaran `noindex` y el smoke live cubre los dos tipos de página. |
 
 ### Métricas post-deploy
 
@@ -470,7 +471,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | HTTP 200 en smoke | 100% de rutas navegables |
 | `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 43/43 · rc=0 · rc=0 |
 | `pnpm audit` completo | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28) |
-| `pnpm smoke:production` | **15/15** contra `shopifind.app` (snapshot 2026-07-28) |
+| `pnpm smoke:production` | **16/16** contra `shopifind.app` (snapshot 2026-07-28) |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---

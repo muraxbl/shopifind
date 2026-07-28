@@ -218,6 +218,32 @@ async function main(): Promise<void> {
       },
     },
     {
+      name: "SEO hubs públicos",
+      run: async () => {
+        const paths = ["/explore/iluminacion", "/store/masterled-es"];
+        const responses = await Promise.all(
+          paths.map((path) => request(siteUrl(baseUrl, path))),
+        );
+        for (const [index, response] of responses.entries()) {
+          expectStatus(response, 200);
+          const path = paths[index]!;
+          const url = siteUrl(baseUrl, path).toString();
+          const html = await response.text();
+          expectText(
+            html,
+            `<link rel="canonical" href="${url}"`,
+            `canonical de ${path}`,
+          );
+          expectText(
+            html,
+            `<meta property="og:url" content="${url}"`,
+            `og:url de ${path}`,
+          );
+        }
+        return "canonical + Open Graph";
+      },
+    },
+    {
       name: "login",
       run: async () => {
         const response = await request(siteUrl(baseUrl, "/login"));

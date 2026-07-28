@@ -1,9 +1,11 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { BadgeCheck, Globe, Leaf } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { formatEcoScore, cn } from '@/lib/utils';
+import { SITE_CONFIG } from '@/lib/config';
 import { createPublicSupabaseClient } from '@/lib/supabase/public';
 
 export const revalidate = 60;
@@ -51,11 +53,39 @@ async function fetchStore(slug: string): Promise<(StoreRow & { products: Product
   return { ...store, products: (productsRes.data ?? []) as unknown as ProductHit[] };
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const s = await fetchStore(slug);
-  if (!s) return { title: 'Tienda no encontrada' };
-  return { title: s.name, description: s.short_description ?? `${s.name} en Shopifind` };
+  if (!s) return { title: 'Tienda no encontrada', robots: { index: false } };
+
+  const title = `${s.name}: productos de una tienda independiente`;
+  const description = s.short_description ?? `Descubre los productos de ${s.name} en Shopifind.`;
+  const url = `${SITE_CONFIG.url}/store/${s.slug}`;
+  const shareImage = s.products[0]?.image_url;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'website',
+      title,
+      description,
+      url,
+      siteName: SITE_CONFIG.name,
+      locale: 'es_ES',
+      images: shareImage ? [{ url: shareImage, alt: s.name }] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: shareImage ? [shareImage] : [],
+    },
+  };
 }
 
 export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
