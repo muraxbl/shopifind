@@ -10,7 +10,7 @@
 |---|---|
 | **Qué es** | Buscador B2C de tiendas independientes reales. Indexa 4 nichos curados (sustainable-fashion, indie-gadgets, home-deco, **iluminacion**), permite búsqueda conversacional con IA, wishlist universal cross-store. |
 | **Quién monetiza** | Affiliate (Skimlinks publisher `306854X1795120`). CTR al merchant → join transaction automático vía JS loader. Comparador manual live; Display AdSense planned. |
-| **Stack core** | Next.js 14 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (region `fra1`) · Skimlinks · Resend · OpenAI · Plausible · Tailwind + shadcn/ui |
+| **Stack core** | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (region `fra1`) · Skimlinks · Resend · OpenAI · Plausible · Tailwind + shadcn/ui |
 | **Live URL** | https://shopifind.app |
 | **Status** | MVP público. Ingest masiva en iluminación completada (masterled.es, 1563 productos · 1452 in-stock). |
 
@@ -46,7 +46,7 @@
                            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                  VERCEL EDGE  ·  region fra1                        │
-│    Next.js 14 App Router  ·  ISR (revalidate=60s por ruta)          │
+│    Next.js 15 App Router  ·  ISR (revalidate=60s por ruta)          │
 │                              ·  RSC + Server Actions                │
 └──────────────────────┬──────────────────────┬───────────────────────┘
                        │                      │
@@ -130,7 +130,7 @@
 
 | Capa | Tech | Versión | Comentario |
 |---|---|---|---|
-| Framework | **Next.js** App Router | 14.2.35 | RSC + Server Actions. `experimental.serverActions.bodySizeLimit = 2mb`. |
+| Framework | **Next.js** App Router | 15.5.22 | RSC + Server Actions. `cookies()`, `params` y `searchParams` se consumen como APIs asíncronas. `experimental.serverActions.bodySizeLimit = 2mb`. |
 | Lenguaje | **TypeScript** | 5.4.5 | `strict` + `noUncheckedIndexedAccess`. Genera `.tsbuildinfo` cacheado. |
 | UI | **Tailwind** + **shadcn/ui** + **Radix** + **Lucide** | 3.4 / latest | Radix primitives para dialog/popover/tabs/toast. shadcn wrapper. |
 | Auth + DB | **Supabase** (`@supabase/ssr` + `supabase-js`) | ssr 0.12 / js 2.43 | Service-role key SOLO server-side. |
@@ -138,7 +138,7 @@
 | Affiliate | **Skimlinks** (publisher `306854X1795120`) | — | `go.redirectingat.com` con `xcust=shopifind-<slug>`. |
 | Email | **Resend HTTP API** (prepared) | REST | Builder HTML/text, idempotency key y sender preparados sin SDK; falta configuración y E2E real. |
 | CRM email | **react-hook-form** + **zod** | 7.51 / 3.23 | Formularios de captura + validación. |
-| Build | **tsx** (scripts), **pnpm** | 4.16 / 11.3 | Scripts en `/scripts/*.ts` corren vía `tsx`, no `next`. pnpm 11 lee permisos de builds en `pnpm-workspace.yaml`. |
+| Build | **tsx** (scripts), **pnpm** | 4.16 / 11.17 | Scripts en `/scripts/*.ts` corren vía `tsx`, no `next`. La versión queda fijada en `packageManager`; pnpm 11 lee permisos, overrides y excepciones de antigüedad en `pnpm-workspace.yaml`. |
 | Testing | **playwright-core** (devDep) | 1.62 | Solo instalado si activamos Playwright para fix-source-urls SFCC. |
 
 ### Hosting
@@ -451,6 +451,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **23** | Sourcing del segundo merchant de iluminación | `docs/merchant-sourcing-lighting.md` | GreenIce recomendado y Barcelona LED como fallback; catálogos públicos viables, pero cero SKU exactos cross-store. Ingest bloqueada hasta verificar Skimlinks y obtener feed/permiso. |
 | **24** | Telemetría interna fiable | `src/lib/analytics/*` | Búsquedas y click-outs se escriben con cliente anónimo y operación esperada; eventos estructurados, total real y paginación. Plausible sigue sin configurar. |
 | **25** | PDP SEO + share real | `src/lib/seo/jsonLd.ts` + `ShareButton` | Canonical/OG URL, Product/Offer con seller honesto, serialización anti-`</script>` y Web Share/clipboard; JSON-LD de colecciones corregido. |
+| **26** | Upgrade de seguridad Next.js 15 | `package.json` + `pnpm-workspace.yaml` + migración de APIs dinámicas | Next 15.5.22, pnpm 11.17 fijado, PostCSS/Sharp parcheados por override; build de producción y 39 tests pasan y `pnpm audit --prod` reporta 0 vulnerabilidades. |
 
 ### Métricas post-deploy
 
@@ -463,6 +464,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
 | `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 39/39 · rc=0 · rc=0 |
+| `pnpm audit --prod` | **0** vulnerabilidades (0 low/moderate/high/critical; snapshot 2026-07-28) |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---
@@ -472,7 +474,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 ### Infra / Vercel
 
 1. **Vercel silent rollback**: si `pnpm build` rompe después de un commit, Vercel no falla loudly — promotes la versión anterior cacheada. **Por eso cada push va seguido de un `curl <URL>` smoke test.** Confiar en el commit hash ≠ saber qué versión está viva.
-2. **pnpm 11 build scripts**: `allowBuilds` vive en `pnpm-workspace.yaml`; `true` permite el build del paquete y `false` lo bloquea. No volver a añadir `pnpm.onlyBuiltDependencies` a `package.json`, porque pnpm 11 lo ignora.
+2. **pnpm 11 build scripts y overrides**: usar la versión fijada por `packageManager` (`corepack pnpm …` si el binario global difiere). `allowBuilds`, `overrides` y `minimumReleaseAgeExclude` viven en `pnpm-workspace.yaml`; no volver a añadir `pnpm.onlyBuiltDependencies` a `package.json`, porque pnpm 11 lo ignora. Los overrides de `postcss` y `sharp` cierran advisories transitivos; validar siempre build y `/_next/image` tras cambiarlos.
 3. **Region `fra1`**: DB en lituania + Vercel en Frankfurt. Round-trip ~30ms. Si añades region `iad1` (US east), dobla latencia para usuarios EU.
 4. **Cron en Vercel Hobby**: admite hasta 100 cron jobs por proyecto, pero cada job sólo puede ejecutarse una vez al día y puede dispararse en cualquier momento de la hora indicada. Para el objetivo de alertas cada 12h hace falta Pro u otro scheduler; ver `docs/cron-pattern.md`.
 
@@ -493,25 +495,26 @@ tests/                                     # node:test: redirects, wishlist y Sk
 14. **`dangerouslyAllowSVG: true`** en `next.config.mjs` permite `placehold.co/...svg` — necesario porque masterled images llegan como SVG en el seed. CSP sandbox embebida evita ejecución de scripts.
 15. **`SEARCH` bloqueado en robots.txt** porque `?q=*&niche=*&tag=*&page=*` genera infinite permutation → crawler trap.
 16. **Middleware con `src/app`**: el archivo activo es `src/middleware.ts`. Una copia en la raíz puede compilar sin proteger rutas en este layout; comprobar siempre `/wishlist` anónimo (307) y una ruta lookalike (no redirect).
+17. **APIs dinámicas de Next 15**: `cookies()`, `params` y `searchParams` son asíncronas. `createServerSupabaseClient()` devuelve una promesa y todos sus consumidores deben hacer `await`; un reemplazo incompleto puede compilar partes del árbol y fallar sólo en una ruta dinámica.
 
 ### Affiliate / Skimlinks
 
-17. **`xcust=shopifind-<slug>` es la palanca de atribución**. Tiene que ser único por producto. Si dos slugs generan el mismo xcust, los reportes de Skimlinks los confunden.
-18. **Bloquear `/go/` en robots.txt** — **obligatorio**. Sin esto, Googlebot ejecuta el 302 como click válido, infla las comisiones "visit" en el dashboard y distorsiona el funnel.
-19. **Skimlinks JS loader**: si ad-blocker lo bloquea, el user va directo al merchant sin tracking. Aceptamos esa pérdida (es lo mismo que cualquier affiliate network, ~5-10% lost-to-blockers).
-20. **`/go/[id]` degrada con seguridad**: si falta `SKIMLINKS_DOMAIN_ID` usa `affiliate_url` y después `source_url`; el route param se llama `id` por historia, pero contiene el slug.
+18. **`xcust=shopifind-<slug>` es la palanca de atribución**. Tiene que ser único por producto. Si dos slugs generan el mismo xcust, los reportes de Skimlinks los confunden.
+19. **Bloquear `/go/` en robots.txt** — **obligatorio**. Sin esto, Googlebot ejecuta el 302 como click válido, infla las comisiones "visit" en el dashboard y distorsiona el funnel.
+20. **Skimlinks JS loader**: si ad-blocker lo bloquea, el user va directo al merchant sin tracking. Aceptamos esa pérdida (es lo mismo que cualquier affiliate network, ~5-10% lost-to-blockers).
+21. **`/go/[id]` degrada con seguridad**: si falta `SKIMLINKS_DOMAIN_ID` usa `affiliate_url` y después `source_url`; el route param se llama `id` por historia, pero contiene el slug.
 
 ### Masterled / PrestaShop
 
-21. **masterled.es NO expone `products.json`** — PrestaShop 1.6 con módulo `mlexportproducts` que sirve **CSV solo via token firmado** (`/module/mlexportproducts/export?token=…`). Cache CSV por 30 min en su origin; nuestro ingest respeta ese TTL.
-22. **CSV delimitador `;`** + encoding `UTF-8 with BOM`. El parser de `seed-lighting-v1.ts` trim BOM antes de split.
-23. **Slugs se normalizan**: `normalize('NFD').replace(/\p{Diacritic}/gu,'')` + `[^\w\s-] → '-'` → lowercase → strip leading/trailing hyphens. Sin esto, masterled "Bombilla LED GU10 5W" generaría slug roto.
+22. **masterled.es NO expone `products.json`** — PrestaShop 1.6 con módulo `mlexportproducts` que sirve **CSV solo via token firmado** (`/module/mlexportproducts/export?token=…`). Cache CSV por 30 min en su origin; nuestro ingest respeta ese TTL.
+23. **CSV delimitador `;`** + encoding `UTF-8 with BOM`. El parser de `seed-lighting-v1.ts` trim BOM antes de split.
+24. **Slugs se normalizan**: `normalize('NFD').replace(/\p{Diacritic}/gu,'')` + `[^\w\s-] → '-'` → lowercase → strip leading/trailing hyphens. Sin esto, masterled "Bombilla LED GU10 5W" generaría slug roto.
 
 ### Revisión / proceso propio
 
-24. **Cambios mecánicos**: al reemplazar un bloque, revisar también consumidores y referencias. Ejecutar `pnpm test`, typecheck, build y `git diff --check`; el typecheck por sí solo no detecta fallos de comportamiento.
-25. **Verificación post-deploy**: esperar el estado `success` de Vercel y hacer smoke contra `shopifind.app`; el hash enviado a Git no demuestra por sí solo qué versión está sirviendo el dominio.
-26. **Preflight de tablas PostgREST**: no usar `select(..., { head: true })` para comprobar que una tabla existe; puede devolver 204 aunque falte del schema cache. Usar un GET acotado con `.select('id').limit(1)` y comprobar `error`.
+25. **Cambios mecánicos**: al reemplazar un bloque, revisar también consumidores y referencias. Ejecutar `pnpm test`, typecheck, build y `git diff --check`; el typecheck por sí solo no detecta fallos de comportamiento.
+26. **Verificación post-deploy**: esperar el estado `success` de Vercel y hacer smoke contra `shopifind.app`; el hash enviado a Git no demuestra por sí solo qué versión está sirviendo el dominio.
+27. **Preflight de tablas PostgREST**: no usar `select(..., { head: true })` para comprobar que una tabla existe; puede devolver 204 aunque falte del schema cache. Usar un GET acotado con `.select('id').limit(1)` y comprobar `error`.
 
 ---
 

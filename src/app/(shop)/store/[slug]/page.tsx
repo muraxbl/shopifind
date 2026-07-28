@@ -23,7 +23,7 @@ type StoreRow = {
 type ProductHit = Parameters<typeof ProductGrid>[0]['products'][number];
 
 async function fetchStore(slug: string): Promise<(StoreRow & { products: ProductHit[] }) | null> {
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const storeRes = await sb
     .from('stores')
     .select('id, slug, name, country, eco_score, values, short_description, long_description, niche, verified, featured')
@@ -43,14 +43,16 @@ async function fetchStore(slug: string): Promise<(StoreRow & { products: Product
   return { ...store, products: (productsRes.data ?? []) as unknown as ProductHit[] };
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const s = await fetchStore(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const s = await fetchStore(slug);
   if (!s) return { title: 'Tienda no encontrada' };
   return { title: s.name, description: s.short_description ?? `${s.name} en Shopifind` };
 }
 
-export default async function StorePage({ params }: { params: { slug: string } }) {
-  const store = await fetchStore(params.slug);
+export default async function StorePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const store = await fetchStore(slug);
   if (!store) notFound();
   const eco = formatEcoScore(store.eco_score);
 

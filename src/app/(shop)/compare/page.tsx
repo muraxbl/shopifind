@@ -97,12 +97,13 @@ function EmptyComparison() {
 export default async function ComparePage({
   searchParams,
 }: {
-  searchParams: { ids?: string | string[] };
+  searchParams: Promise<{ ids?: string | string[] }>;
 }) {
-  const ids = parseCompareIds(searchParams.ids);
+  const resolvedSearchParams = await searchParams;
+  const ids = parseCompareIds(resolvedSearchParams.ids);
   if (ids.length < MIN_COMPARE_PRODUCTS) return <EmptyComparison />;
 
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const { data, error } = await sb
     .from("v_products_with_store")
     .select(

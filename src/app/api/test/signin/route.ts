@@ -63,7 +63,7 @@ export async function POST() {
     );
   }
 
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error || !data.session) {
     return NextResponse.json(

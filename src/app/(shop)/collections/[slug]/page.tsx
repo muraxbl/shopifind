@@ -38,7 +38,7 @@ type CollectionProduct = {
 type ProductHit = CollectionProduct;
 
 async function fetchCollection(slug: string): Promise<(CollectionRow & { products: ProductHit[] }) | null> {
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const collectionRes = await sb
     .from('editorial_collections')
     .select('id, slug, title, subtitle, description, cover_image_url, niche, product_ids, published_at')
@@ -130,8 +130,9 @@ function buildItemListJsonLd(
   };
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const c = await fetchCollection(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const c = await fetchCollection(slug);
   if (!c) return { title: 'Colección' };
   const url = `${SITE_CONFIG.url}/collections/${c.slug}`;
   const description = c.description ?? c.subtitle ?? c.title;
@@ -163,8 +164,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function CollectionPage({ params }: { params: { slug: string } }) {
-  const c = await fetchCollection(params.slug);
+export default async function CollectionPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const c = await fetchCollection(slug);
   if (!c) notFound();
 
   const jsonLd = buildItemListJsonLd(c, c.products);

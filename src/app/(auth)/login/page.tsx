@@ -5,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { SITE_CONFIG } from '@/lib/config';
 import { safeNextPath } from '@/lib/auth/redirect';
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string; error?: string; sent?: string; signed_out?: string };
+  searchParams: Promise<{ next?: string; error?: string; sent?: string; signed_out?: string }>;
 }) {
-  const next = safeNextPath(searchParams.next, '/wishlist');
+  const resolvedSearchParams = await searchParams;
+  const next = safeNextPath(resolvedSearchParams.next, '/wishlist');
   const oauthUrl = (provider: string) =>
     `/api/auth/oauth/${provider}?next=${encodeURIComponent(next)}`;
 
@@ -22,17 +23,17 @@ export default function LoginPage({
           Inicia sesión para guardar tu wishlist, recibir alertas y personalizar tus nichos.
         </p>
 
-        {searchParams.error && (
+        {resolvedSearchParams.error && (
           <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-            {searchParams.error}
+            {resolvedSearchParams.error}
           </div>
         )}
-        {searchParams.sent && (
+        {resolvedSearchParams.sent && (
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-            Te hemos enviado un magic link a <strong>{searchParams.sent}</strong>. Revisa tu bandeja.
+            Te hemos enviado un magic link a <strong>{resolvedSearchParams.sent}</strong>. Revisa tu bandeja.
           </div>
         )}
-        {searchParams.signed_out && (
+        {resolvedSearchParams.signed_out && (
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
             Has cerrado sesión correctamente.
           </div>

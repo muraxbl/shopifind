@@ -53,7 +53,7 @@
 
 | Capa | Elección | Por qué |
 |---|---|---|
-| Frontend | **Next.js 14** (App Router) + TypeScript | SSR para SEO, server actions, Vercel-ready |
+| Frontend | **Next.js 15** (App Router) + TypeScript | SSR para SEO, server actions, Vercel-ready |
 | DB + Auth | **Supabase** (Postgres + RLS + Auth) | Auth + DB gratis hasta 500MB; RLS para seguridad por usuario |
 | UI | **Tailwind CSS** + **shadcn/ui** + **Lucide** | Diseño rápido, accesible, customizable |
 | Affiliate | **Skimlinks** | Conecta >60k programas; nos olvidamos del plumbing |

@@ -49,9 +49,10 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams: AccountSearchParams;
+  searchParams: Promise<AccountSearchParams>;
 }) {
-  const sb = createServerSupabaseClient();
+  const resolvedSearchParams = await searchParams;
+  const sb = await createServerSupabaseClient();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -104,8 +105,8 @@ export default async function AccountPage({
     };
   });
   const selectedNiches = new Set(profile?.niche_prefs ?? []);
-  const errorMessage = searchParams.error
-    ? (ERROR_MESSAGES[searchParams.error] ?? ERROR_MESSAGES.save_failed)
+  const errorMessage = resolvedSearchParams.error
+    ? (ERROR_MESSAGES[resolvedSearchParams.error] ?? ERROR_MESSAGES.save_failed)
     : null;
 
   return (
@@ -125,7 +126,7 @@ export default async function AccountPage({
         </Badge>
       </header>
 
-      {searchParams.saved && (
+      {resolvedSearchParams.saved && (
         <div className="mb-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           <CheckCircle2 className="h-4 w-4" /> Perfil guardado.
         </div>

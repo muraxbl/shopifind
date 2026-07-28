@@ -29,7 +29,7 @@ export const revalidate = 3600; // 1h ISR — see comment above.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_CONFIG.url.replace(/\/+$/, '');
   const today = new Date();
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
 
   // ---- 1. Static routes ----
   const routes: MetadataRoute.Sitemap = [

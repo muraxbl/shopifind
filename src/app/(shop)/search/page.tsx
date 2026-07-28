@@ -68,27 +68,30 @@ function buildQueryParams(
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
-  const q = (searchParams.q ?? '').trim();
-  const page = normalizePageNumber(searchParams.page);
+  const resolvedSearchParams = await searchParams;
+  const q = (resolvedSearchParams.q ?? '').trim();
+  const page = normalizePageNumber(resolvedSearchParams.page);
   const pageSize = clampInt(
-    searchParams.page_size,
+    resolvedSearchParams.page_size,
     DEFAULT_PAGE_SIZE,
     MIN_PAGE_SIZE,
     MAX_PAGE_SIZE,
   );
-  const niche = normalizeNicheFilter(searchParams.niche);
+  const niche = normalizeNicheFilter(resolvedSearchParams.niche);
   const ecoTags = normalizeEcoTagFilters(
-    searchParams.tag ? [searchParams.tag] : [],
+    resolvedSearchParams.tag ? [resolvedSearchParams.tag] : [],
   );
   const minPrice = normalizePriceCents(
-    searchParams.min ? Number(searchParams.min) * 100 : null,
+    resolvedSearchParams.min ? Number(resolvedSearchParams.min) * 100 : null,
   );
   const maxPrice = normalizePriceCents(
-    searchParams.max ? Number(searchParams.max) * 100 : null,
+    resolvedSearchParams.max ? Number(resolvedSearchParams.max) * 100 : null,
   );
-  const sort = isSearchSort(searchParams.sort) ? searchParams.sort : undefined;
+  const sort = isSearchSort(resolvedSearchParams.sort)
+    ? resolvedSearchParams.sort
+    : undefined;
   const hasSearchCriteria =
     Boolean(q) ||
     niche !== null ||
@@ -202,9 +205,9 @@ export default async function SearchPage({
                 <a
                   key={sort}
                   href={sortHref(sort)}
-                  aria-current={searchParams.sort === sort ? 'page' : undefined}
+                  aria-current={resolvedSearchParams.sort === sort ? 'page' : undefined}
                   className={`block rounded-md px-2 py-1.5 text-sm hover:bg-accent ${
-                    searchParams.sort === sort
+                    resolvedSearchParams.sort === sort
                       ? 'bg-accent font-medium text-primary'
                       : ''
                   }`}
@@ -289,7 +292,7 @@ export default async function SearchPage({
             pageSize={pageSize}
             total={total}
             basePath="/search"
-            queryParams={buildQueryParams(searchParams)}
+            queryParams={buildQueryParams(resolvedSearchParams)}
           />
 
           <div className="mt-8">

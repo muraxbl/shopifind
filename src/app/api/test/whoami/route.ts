@@ -25,7 +25,7 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 });
   }
 
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const { data: userData, error: userErr } = await sb.auth.getUser();
   // getSession() returns { data: { session }, error }; destructure the
   // wrapper so we read Session fields off the inner record.

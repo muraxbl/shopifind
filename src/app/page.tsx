@@ -23,7 +23,7 @@ type FeaturedProduct = {
 };
 
 async function fetchFeatured(limit = 8): Promise<FeaturedProduct[]> {
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const { data } = await sb
     .from('v_products_with_store')
     .select('id, slug, title, price_cents, currency, image_url, store_name, store_slug, niche, eco_tags, store_eco_score')

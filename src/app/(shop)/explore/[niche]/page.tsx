@@ -22,7 +22,7 @@ async function fetchProductsByNiche(
   pageSize: number,
   offset: number
 ): Promise<{ products: ProductHit[]; total: number }> {
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const { data, count } = await sb
     .from('v_products_with_store')
     .select(
@@ -56,20 +56,24 @@ export default async function ExploreNichePage({
   params,
   searchParams,
 }: {
-  params: { niche: string };
-  searchParams: { page?: string; page_size?: string };
+  params: Promise<{ niche: string }>;
+  searchParams: Promise<{ page?: string; page_size?: string }>;
 }) {
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([
+    params,
+    searchParams,
+  ]);
   // Spanish speakers naturally type the URL with a tilde ("iluminación").
   // Strip diacritics via Unicode NFD decomposition + remove combining marks
   // so "iluminación" resolves to the canonical ASCII slug "iluminacion".
   // When the typed form differs from the canonical form, 301-redirect so
   // Google sees ONE canonical URL (no duplicate-content split) and visitors
   // land on the form that matches `generateStaticParams()`.
-  const normalized = (params.niche ?? '')
+  const normalized = (resolvedParams.niche ?? '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
-  if (normalized !== params.niche) {
+  if (normalized !== resolvedParams.niche) {
     redirect(`/explore/${normalized}`);
   }
   if (!SITE_CONFIG.primaryNiches.includes(normalized as NicheId)) notFound();
@@ -77,9 +81,9 @@ export default async function ExploreNichePage({
   const meta = NICHE_LABEL[niche];
 
   // Pagination (server-clamped so users can't pass page=-1 or page_size=9999).
-  const page = normalizePageNumber(searchParams.page);
+  const page = normalizePageNumber(resolvedSearchParams.page);
   const pageSize = (() => {
-    const n = Number(searchParams.page_size);
+    const n = Number(resolvedSearchParams.page_size);
     if (!Number.isFinite(n) || n < MIN_PAGE_SIZE) return DEFAULT_PAGE_SIZE;
     return Math.min(MAX_PAGE_SIZE, Math.floor(n));
   })();

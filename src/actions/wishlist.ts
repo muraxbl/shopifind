@@ -22,13 +22,16 @@ const ProductIdSchema = z.string().uuid();
  * Centralised so we can swap in proper inference later.
  */
 type WishlistRow = { items: unknown } | null;
-async function readWishlist(sb: ReturnType<typeof createServerSupabaseClient>, userId: string): Promise<WishlistRow> {
+async function readWishlist(
+  sb: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  userId: string,
+): Promise<WishlistRow> {
   const res = await sb.from('wishlists').select('items').eq('user_id', userId).maybeSingle();
   return res.data as WishlistRow;
 }
 
 async function requireUser() {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

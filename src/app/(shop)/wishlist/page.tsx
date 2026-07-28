@@ -12,7 +12,7 @@ type WishlistRow = { items: unknown } | null;
 type WishlistProductHit = Parameters<typeof ProductCard>[0]['product'];
 
 export default async function WishlistPage() {
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const {
     data: { user },
   } = await sb.auth.getUser();

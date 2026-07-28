@@ -6,7 +6,7 @@
  * Why this is its own component:
  * - ProductCard.tsx is rendered as a Server Component (inside `/`, `/explore/*`,
  *   and `/store/[slug]`), and Server Components cannot receive onClick handlers
- *   in Next.js 14's App Router.
+ *   in Next.js 15's App Router.
  * - Extracting ONLY this icon keeps the entire card as server-rendered HTML
  *   (great for SEO + image optimization), and ships only the tiny client JS
  *   needed to react to the click.

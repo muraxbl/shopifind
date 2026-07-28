@@ -18,8 +18,8 @@ import type { Database } from '@/types/database.types';
  * refreshed tokens. In Server Actions and Route Handlers `cookies()`
  * is writable and writes propagate to the response automatically.
  */
-export function createServerSupabaseClient() {
-  const cookieStore = cookies();
+export async function createServerSupabaseClient() {
+  const cookieStore = await cookies();
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

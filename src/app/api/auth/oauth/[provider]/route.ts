@@ -12,14 +12,14 @@ const VALID_PROVIDERS = new Set(['google', 'github', 'apple', 'twitter', 'facebo
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { provider: string } }
+  { params }: { params: Promise<{ provider: string }> }
 ) {
-  const provider = params.provider;
+  const { provider } = await params;
   if (!VALID_PROVIDERS.has(provider)) {
     return NextResponse.redirect(new URL('/login?error=invalid_provider', request.url));
   }
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const next = safeNextPath(request.nextUrl.searchParams.get('next'), '/');
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? request.nextUrl.origin;
   const redirectTo = `${baseUrl}/api/auth/callback?next=${encodeURIComponent(next)}`;

@@ -15,7 +15,7 @@ export type PriceAlertState = {
 export async function readPriceAlertState(
   productId: string,
 ): Promise<PriceAlertState> {
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const availability = await sb
     .from('price_history')
     // PostgREST can return 204 for HEAD even when a relation is absent from

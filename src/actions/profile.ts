@@ -6,7 +6,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { normalizeProfileInput } from '@/lib/profile/input';
 
 export async function updateProfile(formData: FormData) {
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -41,7 +41,7 @@ export async function updateProfile(formData: FormData) {
 }
 
 export async function signOut() {
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   await sb.auth.signOut({ scope: 'local' });
   redirect('/login?signed_out=1');
 }

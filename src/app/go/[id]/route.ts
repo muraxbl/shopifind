@@ -15,13 +15,14 @@ type GoProduct = { id: string; slug: string; source_url: string; affiliate_url: 
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const sb = createServerSupabaseClient();
+  const { id } = await params;
+  const sb = await createServerSupabaseClient();
   const res = await sb
     .from('v_products_with_store')
     .select('id, slug, source_url, affiliate_url')
-    .eq('slug', params.id)
+    .eq('slug', id)
     .eq('in_stock', true)
     .maybeSingle();
 

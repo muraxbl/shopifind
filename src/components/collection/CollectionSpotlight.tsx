@@ -38,7 +38,7 @@ type CollectionWithCover = CollectionRow & {
 };
 
 async function fetchCollectionsForNiche(niche: string, limit = 4): Promise<CollectionWithCover[]> {
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   // Pull editorial_collections rows (published=true, ordered by newest).
   const collRes = await sb
     .from('editorial_collections')

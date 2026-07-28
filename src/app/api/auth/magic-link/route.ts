@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=invalid_email', url.origin));
   }
 
-  const supabase = createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? url.origin;
 
   const { error } = await supabase.auth.signInWithOtp({

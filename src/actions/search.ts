@@ -76,7 +76,7 @@ export async function searchProducts(
     return { products: [], total: 0 };
   }
 
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
 
   // 1. Run the AI intent parser if needed.
   let parsed = {

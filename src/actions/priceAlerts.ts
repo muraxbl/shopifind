@@ -25,7 +25,7 @@ export async function savePriceAlert(
   const parsed = normalizePriceAlertInput(input);
   if (!parsed.success) return { ok: false, error: parsed.error };
 
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -95,7 +95,7 @@ export async function disablePriceAlert(
   const parsed = normalizePriceAlertInput({ productId, mode: 'any_drop' });
   if (!parsed.success) return { ok: false, error: 'invalid_input' };
 
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const {
     data: { user },
   } = await sb.auth.getUser();

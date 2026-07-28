@@ -39,7 +39,7 @@ type ProductDetail = {
 };
 
 const fetchProduct = cache(async (slug: string): Promise<ProductDetail | null> => {
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const { data } = await sb
     .from('v_products_with_store')
     .select(
@@ -75,7 +75,7 @@ const fetchProduct = cache(async (slug: string): Promise<ProductDetail | null> =
 });
 
 async function fetchInitialWishlistState(productId: string): Promise<boolean> {
-  const sb = createServerSupabaseClient();
+  const sb = await createServerSupabaseClient();
   const {
     data: { user },
   } = await sb.auth.getUser();
@@ -93,9 +93,10 @@ async function fetchInitialWishlistState(productId: string): Promise<boolean> {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const p = await fetchProduct(params.slug);
+  const { slug } = await params;
+  const p = await fetchProduct(slug);
   if (!p) return { title: 'Producto no encontrado' };
   const canonicalUrl = `${SITE_CONFIG.url.replace(/\/+$/, '')}/product/${p.slug}`;
   return {
@@ -117,9 +118,10 @@ export async function generateMetadata({
 export default async function ProductPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const product = await fetchProduct(params.slug);
+  const { slug } = await params;
+  const product = await fetchProduct(slug);
   if (!product) notFound();
 
   const [initiallyInWishlist, priceAlertState] = await Promise.all([
