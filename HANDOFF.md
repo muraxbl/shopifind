@@ -275,6 +275,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/go/[id]` | ✅ live | Server-side 302 a Skimlinks con `xcust=shopifind-<slug>` · bloqueado en robots. |
 | `/product/<slug>` | ✅ live | PDP verificada: metadatos, CTA afiliado, información de tienda y wishlist real. |
 | `/wishlist` | ✅ live | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto. |
+| `/account` | ✅ código listo | Perfil owner-only: nombre, preferencias de nicho, plan visible y logout local. Falta smoke E2E con sesión real tras corregir M-1. |
 | `/login` + `/api/auth/callback` | ⚠ código live / config externa pendiente | Middleware protege `/wishlist`, `/account`, `/settings`; magic link necesita corregir redirects/plantilla en Supabase y Google requiere habilitar su provider. |
 | `/sitemap.xml` | ✅ live | 1461 URLs verificadas el 2026-07-28. Sólo productos in-stock de stores activas. ISR `revalidate=3600`; loop 1000/page. |
 | `/robots.txt` | ✅ live | Allow `/` + disallow `/api/`, `/admin/`, `/auth/`, `/go/`, `/search` + sitemap reference. |
@@ -431,6 +432,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **13** | 3rd merchant SEO curation: `seed-lighting-collections-v1.ts` (verano-techos-led, exterior-solar, enchufes-deslizantes) | seed iluminacion v1 | 3 cápsulas curadas para verano 2026. |
 | **14** | Domain final enlazado Vercel | `shopifind.app` | DNS A + TXT configured. |
 | **15** | Auth/wishlist/PDP hardening + tests | `fcad59b`, `98189ff` | Redirects internos saneados, middleware activo en `src/`, wishlist real, datos autoritativos server-side, sitemap y `/go` excluyen catálogo inactivo; 7 tests y smoke live. |
+| **16** | Account + profiles | `src/app/(shop)/account` + `src/actions/profile.ts` | `/account` owner-only, edición validada de nombre/nichos, plan visible, logout local, navegación responsive; 10 tests totales y build limpio. |
 
 ### Métricas post-deploy
 
@@ -508,7 +510,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 
 | # | Item | Bloqueado por | Alcance |
 |---|---|---|---|
-| **B-1** | **Completar `/account` + profiles** | M-1 sólo para E2E real | Editar `full_name` y `niche_prefs`, mostrar plan y sesión, logout; RLS ya existe. |
+| **B-1** | ✅ **Completar `/account` + profiles** | M-1 sólo para E2E real | Código y validación completados; falta probar lectura/escritura con una sesión real después de corregir Supabase Auth. |
 | **B-2** | **Modelo relacional de precios y alertas** | aprobación/aplicación de migración | `price_history`, `price_alerts`, constraints, RLS e idempotencia. No construir cron sobre `wishlists.items` JSONB. |
 | **B-3** | **Refresh incremental + snapshots de precio** | B-2 + decisión de scheduler | Actualizar feed masterled y registrar cambios sin duplicar histórico. |
 | **B-4** | **Alertas de bajada** | B-1, B-2, B-3 + Resend | UI en PDP/cuenta, modos any-drop/target/percentage, cron y email idempotente. |

@@ -8,7 +8,7 @@ import { safeNextPath } from '@/lib/auth/redirect';
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string; error?: string; sent?: string };
+  searchParams: { next?: string; error?: string; sent?: string; signed_out?: string };
 }) {
   const next = safeNextPath(searchParams.next, '/wishlist');
   const oauthUrl = (provider: string) =>
@@ -30,6 +30,11 @@ export default function LoginPage({
         {searchParams.sent && (
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
             Te hemos enviado un magic link a <strong>{searchParams.sent}</strong>. Revisa tu bandeja.
+          </div>
+        )}
+        {searchParams.signed_out && (
+          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            Has cerrado sesión correctamente.
           </div>
         )}
 

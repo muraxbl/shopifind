@@ -42,8 +42,8 @@ export function Header() {
             <Heart className="h-5 w-5" />
           </Link>
           <Link
-            href="/login"
-            className="hidden rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground md:inline-block"
+            href="/account"
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             aria-label="Account"
           >
             <User className="h-5 w-5" />
