@@ -5,8 +5,8 @@ import { isProtectedPath } from '@/lib/auth/redirect';
 const PROTECTED_PATHS = ['/wishlist', '/account', '/settings'];
 
 /**
- * Refresh Supabase Auth session on every request and protect specific routes.
- * See: https://supabase.com/docs/guides/auth/server-side/nextjs
+ * Refresh Supabase Auth sessions and protect account-specific routes.
+ * This file lives in src/ because the application itself uses src/app.
  */
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -27,9 +27,7 @@ export async function middleware(request: NextRequest) {
           for (const { name, value } of cookiesToSet) {
             request.cookies.set(name, value);
           }
-          response = NextResponse.next({
-            request,
-          });
+          response = NextResponse.next({ request });
           for (const { name, value, options } of cookiesToSet) {
             response.cookies.set(name, value, options);
           }
@@ -38,7 +36,6 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Validate and refresh the session before reading the authenticated user.
   let user = null;
   try {
     const result = await supabase.auth.getUser();
@@ -49,7 +46,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Gate /wishlist (and other protected paths) for unauthenticated users.
   const pathname = request.nextUrl.pathname;
   const isProtected = isProtectedPath(pathname, PROTECTED_PATHS);
 
@@ -69,13 +65,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     *  - _next/static (static files)
-     *  - _next/image (image optimization)
-     *  - favicon.ico (favicon)
-     *  - go (merchant redirect; keep affiliate click latency minimal)
-     */
     '/((?!_next/static|_next/image|favicon.ico|go(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };
