@@ -451,7 +451,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **23** | Sourcing del segundo merchant de iluminación | `docs/merchant-sourcing-lighting.md` | GreenIce recomendado y Barcelona LED como fallback; catálogos públicos viables, pero cero SKU exactos cross-store. Ingest bloqueada hasta verificar Skimlinks y obtener feed/permiso. |
 | **24** | Telemetría interna fiable | `src/lib/analytics/*` | Búsquedas y click-outs se escriben con cliente anónimo y operación esperada; eventos estructurados, total real y paginación. Plausible sigue sin configurar. |
 | **25** | PDP SEO + share real | `src/lib/seo/jsonLd.ts` + `ShareButton` | Canonical/OG URL, Product/Offer con seller honesto, serialización anti-`</script>` y Web Share/clipboard; JSON-LD de colecciones corregido. |
-| **26** | Upgrade de seguridad Next.js 15 | `package.json` + `pnpm-workspace.yaml` + migración de APIs dinámicas | Next 15.5.22, pnpm 11.17 fijado, PostCSS/Sharp parcheados por override; build de producción y 39 tests pasan y `pnpm audit --prod` reporta 0 vulnerabilidades. |
+| **26** | Upgrade de seguridad Next.js 15 | `package.json` + `pnpm-workspace.yaml` + migración de APIs dinámicas | Next 15.5.22, pnpm 11.17 fijado, dependencias transitivas vulnerables parcheadas por override; build de producción y 39 tests pasan y `pnpm audit` completo reporta 0 vulnerabilidades. |
 
 ### Métricas post-deploy
 
@@ -464,7 +464,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
 | `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 39/39 · rc=0 · rc=0 |
-| `pnpm audit --prod` | **0** vulnerabilidades (0 low/moderate/high/critical; snapshot 2026-07-28) |
+| `pnpm audit` completo | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28) |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---
@@ -474,7 +474,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 ### Infra / Vercel
 
 1. **Vercel silent rollback**: si `pnpm build` rompe después de un commit, Vercel no falla loudly — promotes la versión anterior cacheada. **Por eso cada push va seguido de un `curl <URL>` smoke test.** Confiar en el commit hash ≠ saber qué versión está viva.
-2. **pnpm 11 build scripts y overrides**: usar la versión fijada por `packageManager` (`corepack pnpm …` si el binario global difiere). `allowBuilds`, `overrides` y `minimumReleaseAgeExclude` viven en `pnpm-workspace.yaml`; no volver a añadir `pnpm.onlyBuiltDependencies` a `package.json`, porque pnpm 11 lo ignora. Los overrides de `postcss` y `sharp` cierran advisories transitivos; validar siempre build y `/_next/image` tras cambiarlos.
+2. **pnpm 11 build scripts y overrides**: usar la versión fijada por `packageManager` (`corepack pnpm …` si el binario global difiere). `allowBuilds`, `overrides` y `minimumReleaseAgeExclude` viven en `pnpm-workspace.yaml`; no volver a añadir `pnpm.onlyBuiltDependencies` a `package.json`, porque pnpm 11 lo ignora. Los overrides de `postcss`, `sharp` y el `brace-expansion` transitivo cierran advisories; validar siempre lint/build y `/_next/image` tras cambiarlos.
 3. **Region `fra1`**: DB en lituania + Vercel en Frankfurt. Round-trip ~30ms. Si añades region `iad1` (US east), dobla latencia para usuarios EU.
 4. **Cron en Vercel Hobby**: admite hasta 100 cron jobs por proyecto, pero cada job sólo puede ejecutarse una vez al día y puede dispararse en cualquier momento de la hora indicada. Para el objetivo de alertas cada 12h hace falta Pro u otro scheduler; ver `docs/cron-pattern.md`.
 
