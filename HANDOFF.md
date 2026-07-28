@@ -161,10 +161,11 @@
 
 ## 5. DB schema
 
-> 3 migraciones en `supabase/migrations/`:
+> 3 migraciones aplicadas conocidas + 1 migración preparada en `supabase/migrations/`:
 > 1. `00000000000000_init.sql` (núcleo + RLS + view)
 > 2. `00000000000001_click_attribution.sql` (target Skimlinks webhook)
 > 3. `00000000000002_add_iluminacion_niche.sql` (cuarto nicho)
+> 4. `20260728190000_price_history_alerts.sql` (**pendiente de aplicar en Cloud**)
 
 ### Tabla por tabla
 
@@ -229,6 +230,10 @@ FK a `auth.users(id)`. `plan user_plan ENUM('free','plus','pro')`. `niche_prefs 
 #### `search_history` — funnels + AI context
 
 Insert permitido a anónimos (`auth.uid() IS NULL OR auth.uid() = user_id`). RLS solo owner-scoped read. Hoy captura eventos/búsquedas (incluido click-out), pero `parseQueryIntent` **no consulta** el histórico: no existe todavía un self-feedback loop.
+
+#### `price_history` + `price_alerts` + `price_alert_deliveries` — preparado, no aplicado
+
+La migración `20260728190000_price_history_alerts.sql` registra únicamente cambios reales de precio/stock mediante trigger, separa una alerta configurable por usuario-producto y añade un ledger de entregas con `UNIQUE (alert_id, price_history_id)` para impedir emails duplicados en reintentos. Incluye RLS owner-only para alertas, lectura pública del histórico y escrituras del ledger reservadas al service role. Falta dry-run/aplicación contra Supabase Cloud.
 
 #### `editorial_collections` — cápsulas SEO
 
@@ -338,7 +343,8 @@ Si OpenAI está caído o schema validation falla → fallback a `{ text: <litera
 │   ├── migrations/
 │   │   ├── 00000000000000_init.sql        # users/stores/products/wishlists/collections + RLS + view
 │   │   ├── 00000000000001_click_attribution.sql   # Skimlinks webhook target
-│   │   └── 00000000000002_add_iluminacion_niche.sql # 4º vertical
+│   │   ├── 00000000000002_add_iluminacion_niche.sql # 4º vertical
+│   │   └── 20260728190000_price_history_alerts.sql  # preparado; NO aplicado aún
 │   └── scripts/                           # (vacío — los *.ts en /scripts/ del repo son los reales)
 │
 ├── scripts/                                # ⭐ CLI entry points (todos idempotentes con --dry-run / --write)
@@ -511,7 +517,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | # | Item | Bloqueado por | Alcance |
 |---|---|---|---|
 | **B-1** | ✅ **Completar `/account` + profiles** | M-1 sólo para E2E real | Código y validación completados; falta probar lectura/escritura con una sesión real después de corregir Supabase Auth. |
-| **B-2** | **Modelo relacional de precios y alertas** | aprobación/aplicación de migración | `price_history`, `price_alerts`, constraints, RLS e idempotencia. No construir cron sobre `wishlists.items` JSONB. |
+| **B-2** | 🟡 **Modelo relacional de precios y alertas** | aprobación/aplicación de migración | Schema, trigger, RLS, ledger idempotente y tipos preparados localmente; NO aplicado aún a Cloud. |
 | **B-3** | **Refresh incremental + snapshots de precio** | B-2 + decisión de scheduler | Actualizar feed masterled y registrar cambios sin duplicar histórico. |
 | **B-4** | **Alertas de bajada** | B-1, B-2, B-3 + Resend | UI en PDP/cuenta, modos any-drop/target/percentage, cron y email idempotente. |
 | **B-5** | **Corregir AI search actual** | nada | Añadir `iluminacion`, aplicar/retirar `attributes`, limitar filtros y añadir tests de intención/fallback antes de embeddings. |

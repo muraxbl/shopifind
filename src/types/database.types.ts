@@ -191,6 +191,85 @@ export interface Database {
           updated_at?: string;
         };
       };
+      price_history: {
+        Row: {
+          id: number;
+          product_id: string;
+          price_cents: number;
+          currency: string;
+          in_stock: boolean;
+          observed_at: string;
+        };
+        Insert: {
+          id?: number;
+          product_id: string;
+          price_cents: number;
+          currency?: string;
+          in_stock: boolean;
+          observed_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['price_history']['Insert']>;
+      };
+      price_alerts: {
+        Row: {
+          id: string;
+          user_id: string;
+          product_id: string;
+          mode: 'any_drop' | 'target_price' | 'percentage_drop';
+          baseline_price_cents: number;
+          target_price_cents: number | null;
+          percentage_drop: number | null;
+          active: boolean;
+          last_evaluated_history_id: number | null;
+          last_notified_price_cents: number | null;
+          last_notified_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          product_id: string;
+          mode?: 'any_drop' | 'target_price' | 'percentage_drop';
+          baseline_price_cents: number;
+          target_price_cents?: number | null;
+          percentage_drop?: number | null;
+          active?: boolean;
+          last_evaluated_history_id?: number | null;
+          last_notified_price_cents?: number | null;
+          last_notified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['price_alerts']['Insert']>;
+      };
+      price_alert_deliveries: {
+        Row: {
+          id: string;
+          alert_id: string;
+          price_history_id: number;
+          status: 'pending' | 'sent' | 'failed';
+          provider_message_id: string | null;
+          error_message: string | null;
+          attempt_count: number;
+          created_at: string;
+          attempted_at: string | null;
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          alert_id: string;
+          price_history_id: number;
+          status?: 'pending' | 'sent' | 'failed';
+          provider_message_id?: string | null;
+          error_message?: string | null;
+          attempt_count?: number;
+          created_at?: string;
+          attempted_at?: string | null;
+          sent_at?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['price_alert_deliveries']['Insert']>;
+      };
       search_history: {
         Row: {
           id: number;
