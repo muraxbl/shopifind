@@ -14,6 +14,8 @@ import {
   type SearchSort,
 } from '@/lib/search/input';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from '@/lib/config';
+import { buildSearchHistoryEvent } from '@/lib/analytics/history';
+import { recordHistoryEvent } from '@/lib/analytics/record';
 
 export type SearchInput = {
   q: string;
@@ -159,18 +161,17 @@ export async function searchProducts(
     return { products: [], total: 0 };
   }
 
-  // 3. Best-effort history capture (fire-and-forget — non-critical).
-  void sb
-    .from('search_history')
-    .insert({
-      query: q.slice(0, 200),
-      filters: parsed,
-      results_count: data?.length ?? 0,
-    } as never)
-    .then(({ error: histErr }) => {
-      if (histErr)
-        console.warn('[search] history insert skipped:', histErr.message);
-    });
+  // 3. Best-effort anonymous history capture. Awaiting it matters on Vercel:
+  // work left running after the response is not guaranteed to complete.
+  await recordHistoryEvent(
+    buildSearchHistoryEvent({
+      query: q,
+      intent: parsed,
+      total: typeof count === 'number' ? count : (data?.length ?? 0),
+      page,
+      pageSize,
+    }),
+  );
 
   // No revalidatePath('/search') here — the page already uses
   // `export const dynamic = 'force-dynamic'` and is filtered per-request.

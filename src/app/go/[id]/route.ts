@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { buildSkimlinksUrl } from '@/lib/skimlinks';
+import { buildClickOutHistoryEvent } from '@/lib/analytics/history';
+import { recordHistoryEvent } from '@/lib/analytics/record';
 
 type GoProduct = { id: string; slug: string; source_url: string; affiliate_url: string | null };
 
@@ -41,13 +43,9 @@ export async function GET(
     targetUrl = product.source_url;
   }
 
-  // Best-effort click tracking (fire-and-forget).
-  void sb
-    .from('search_history')
-    .insert({ query: `[click-out] /product/${product.slug}`, results_count: 1 } as never)
-    .then(({ error }) => {
-      if (error) console.warn('[click-out] history insert skipped:', error.message);
-    });
+  // Await the best-effort event so the serverless invocation cannot terminate
+  // before the write has been handed to Supabase.
+  await recordHistoryEvent(buildClickOutHistoryEvent(product.slug));
 
   return NextResponse.redirect(targetUrl, {
     status: 302,

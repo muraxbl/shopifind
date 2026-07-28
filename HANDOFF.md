@@ -9,7 +9,7 @@
 | | |
 |---|---|
 | **Qué es** | Buscador B2C de tiendas independientes reales. Indexa 4 nichos curados (sustainable-fashion, indie-gadgets, home-deco, **iluminacion**), permite búsqueda conversacional con IA, wishlist universal cross-store. |
-| **Quién monetiza** | Affiliate (Skimlinks publisher `306854X1795120`). CTR al merchant → join transaction automático vía JS loader. Display AdSense (planned). Comparador (planned). |
+| **Quién monetiza** | Affiliate (Skimlinks publisher `306854X1795120`). CTR al merchant → join transaction automático vía JS loader. Comparador manual live; Display AdSense planned. |
 | **Stack core** | Next.js 14 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (region `fra1`) · Skimlinks · Resend · OpenAI · Plausible · Tailwind + shadcn/ui |
 | **Live URL** | https://shopifind.app |
 | **Status** | MVP público. Ingest masiva en iluminación completada (masterled.es, 1563 productos · 1452 in-stock). |
@@ -136,7 +136,7 @@
 | Auth + DB | **Supabase** (`@supabase/ssr` + `supabase-js`) | ssr 0.12 / js 2.43 | Service-role key SOLO server-side. |
 | AI | **OpenAI** (`OPENAI_SEARCH_MODEL`, default `gpt-4o-mini`) | 4.47 | Chat Completions + Structured Outputs. 4s timeout, sin retry, fallback literal. |
 | Affiliate | **Skimlinks** (publisher `306854X1795120`) | — | `go.redirectingat.com` con `xcust=shopifind-<slug>`. |
-| Email | **Resend** (planned) | 3.2 | Templates pendientes — wireup ya creado (`src/lib/email/resend.ts`). |
+| Email | **Resend HTTP API** (prepared) | REST | Builder HTML/text, idempotency key y sender preparados sin SDK; falta configuración y E2E real. |
 | CRM email | **react-hook-form** + **zod** | 7.51 / 3.23 | Formularios de captura + validación. |
 | Build | **tsx** (scripts), **pnpm** | 4.16 / 11.3 | Scripts en `/scripts/*.ts` corren vía `tsx`, no `next`. pnpm 11 lee permisos de builds en `pnpm-workspace.yaml`. |
 | Testing | **playwright-core** (devDep) | 1.62 | Solo instalado si activamos Playwright para fix-source-urls SFCC. |
@@ -288,7 +288,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/legal` / `/privacy` / `/about` | ✅ Markdown scaffold | Páginas-estatic SEO/disclaimer. |
 | `/api/products/*` + `/api/auth/*` | ✅ implementado | Handlers server-side desplegados; los providers OAuth siguen dependiendo de configuración externa. |
 | `/api/cron/refresh-masterled` | ✅ live / inactivo | Bearer auth, preflight real de `price_history`, feed allowlisted/acotado y guardias de integridad. Sin schedule ni secretos de activación; 401 anónimo verificado. |
-| `/api/cron/process-price-alerts` | ✅ código listo / inactivo | Evaluator + outbox con claim, retries, skip de avisos obsoletos e idempotencia Resend. Sin schedule; depende de B-2 y secretos Resend. |
+| `/api/cron/process-price-alerts` | ✅ live / inactivo | Evaluator + outbox con claim, retries, skip de avisos obsoletos e idempotencia Resend. Sin schedule; 401 anónimo verificado; depende de B-2 y secretos Resend. |
 | `/api/webhooks/skimlinks` | ⚠ receiver live / E2E pendiente | Valida tamaño, CIDR, HMAC, payload y replay; inserta con dedupe. Falta conectar Skimlinks y probar evento real. |
 | `/api/test/*` | ✅ restringido | Gate default-deny y bloqueo absoluto en `NODE_ENV=production`; GET/POST verificados con 404 en `shopifind.app`. |
 
@@ -303,7 +303,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | **Skimlinks affiliate redirect** | `src/app/go/[id]/route.ts` + `src/lib/skimlinks.ts` | ✅ publisher `306854X1795120`. |
 | **Eco-score badges en cards** | `src/components/product/ProductCard.tsx` | ✅ muestra `store_eco_score` + `eco_tags[..n]`. |
 | **Wishlist JSONB** | `src/actions/wishlist.ts` + `src/app/(shop)/wishlist/` | ✅ read/write · RLS owner-only · corazones reales y precio/URL resueltos server-side. |
-| **Gestión de price alerts** | `src/actions/priceAlerts.ts` + PDP + `/account` | 🟡 tres modos, owner-only y cursor de baseline preparados; UI se auto-desactiva mientras B-2 falte. Worker/email aún pendientes. |
+| **Gestión de price alerts** | `src/actions/priceAlerts.ts` + PDP + `/account` | 🟡 tres modos, owner-only y cursor de baseline preparados; UI se auto-desactiva mientras B-2 falte. Worker/email listos pero inactivos. |
 | **Pricing alerts email** | `src/lib/email/resend.ts` + `/api/cron/process-price-alerts` | 🟡 evaluator/outbox/sender preparados; falta migración Cloud, secretos, schedule y E2E real. |
 | **Comparador manual** | `src/components/compare/CompareSelection.tsx` + `src/app/(shop)/compare/page.tsx` | ✅ picker de 2-5 cards y tabla comparativa sin afirmar equivalencia de modelo. La comparación automática fuerte en iluminación sigue necesitando otro merchant. |
 
@@ -446,20 +446,22 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **18** | Comparador manual MVP | `src/components/compare` + `/(shop)/compare` | Selección de 2-5 cards, URL validada y acotada, tabla `noindex`, atributos agrupados, comparativa de precios segura por moneda y CTAs `/go`; 19 tests totales y build limpio. |
 | **19** | Search filter-only + URL hardening | `src/lib/search/input.ts` + `/(shop)/search` | Nicho/eco-tag/precio funcionan sin texto, enums y cifras se validan en runtime, eco-tag rápido respaldado por catálogo y toggle para limpiar; 21 tests totales. |
 | **20** | Guarded Masterled refresh | `373d38d` | Parser único CLI/cron, 1.563 filas reales validadas, Bearer auth, preflight, lotes y stale-stock; endpoint live devuelve 401 y no tiene schedule. |
-| **21** | Price-alert management UI | `src/actions/priceAlerts.ts` + `PriceAlertCard` + `PriceAlertList` | Tres modos validados, baseline/cursor autoritativos, PDP/cuenta y fallback honesto si falta schema; worker de envío sigue pendiente. |
+| **21** | Price-alert management UI | `src/actions/priceAlerts.ts` + `PriceAlertCard` + `PriceAlertList` | Tres modos validados, baseline/cursor autoritativos, PDP/cuenta y fallback honesto si falta schema. |
 | **22** | Price-alert evaluator + idempotent sender | `/api/cron/process-price-alerts` + `src/lib/alerts/evaluate.ts` | Estado final del ciclo, outbox con claim/recovery, precio de referencia congelado, stale skip, Resend idempotency y HTML escapado; 33 tests totales. |
+| **23** | Sourcing del segundo merchant de iluminación | `docs/merchant-sourcing-lighting.md` | GreenIce recomendado y Barcelona LED como fallback; catálogos públicos viables, pero cero SKU exactos cross-store. Ingest bloqueada hasta verificar Skimlinks y obtener feed/permiso. |
+| **24** | Telemetría interna fiable | `src/lib/analytics/*` | Búsquedas y click-outs se escriben con cliente anónimo y operación esperada; eventos estructurados, total real y paginación. Plausible sigue sin configurar. |
 
 ### Métricas post-deploy
 
 | Métrica | Valor |
 |---|---|
-| Tiendas catalogadas | **7** (6 seed + masterled-es) |
+| Tiendas históricas en seeds/DB | **7**; sólo **4 merchants reales** están expuestos públicamente |
 | Productos activos expuestos por sitemap | **1452** (snapshot live 2026-07-28; el total físico en DB puede incluir seeds/inactivos) |
 | Nichos activos | **4** |
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 33/33 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 36/36 · rc=0 · rc=0 |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---
@@ -471,7 +473,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 1. **Vercel silent rollback**: si `pnpm build` rompe después de un commit, Vercel no falla loudly — promotes la versión anterior cacheada. **Por eso cada push va seguido de un `curl <URL>` smoke test.** Confiar en el commit hash ≠ saber qué versión está viva.
 2. **pnpm 11 build scripts**: `allowBuilds` vive en `pnpm-workspace.yaml`; `true` permite el build del paquete y `false` lo bloquea. No volver a añadir `pnpm.onlyBuiltDependencies` a `package.json`, porque pnpm 11 lo ignora.
 3. **Region `fra1`**: DB en lituania + Vercel en Frankfurt. Round-trip ~30ms. Si añades region `iad1` (US east), dobla latencia para usuarios EU.
-4. **Cron en Vercel Hobby**: 1 cron job, timezone `UTC`, max 60s por ejecución. Si quieres refresh diario de 1452 productos → plan Pro (50 crons + 300s).
+4. **Cron en Vercel Hobby**: admite hasta 100 cron jobs por proyecto, pero cada job sólo puede ejecutarse una vez al día y puede dispararse en cualquier momento de la hora indicada. Para el objetivo de alertas cada 12h hace falta Pro u otro scheduler; ver `docs/cron-pattern.md`.
 
 ### Supabase / Postgres
 
@@ -532,7 +534,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **B-4** | 🟡 **Alertas de bajada** | B-2 + activar crons + secretos Resend | UI, tres modos, evaluator, outbox y sender idempotente preparados. Falta aplicar schema, configurar/ejecutar y completar E2E con email real. |
 | **B-5** | ✅ **Corregir AI search actual** | nada | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship. |
 | **B-6** | ✅ **Comparador manual MVP** | nada | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado. |
-| **B-7** | **Segundo merchant de iluminación** | sourcing/onboarding owner | Desbloquea comparación automática y cobertura real de precios en el vertical principal. |
+| **B-7** | 🟡 **Segundo merchant de iluminación** | verificación Skimlinks + feed/permiso del owner | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`. |
 
 ### 🟡 Después del núcleo
 
@@ -632,7 +634,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - [ ] Plausible analytics: verificar que el dominio `shopifind.app` está añadido y `<script>` en `layout.tsx` carga.
 - [ ] Confirmar el eco-score `78` para masterled con curación humana (es el único valor auto-asignado en el seed; el resto vieram del seed.sql).
 - [ ] Rotar el `SKIMLINKS_DOMAIN_ID` placeholder en `.env.local` (real key ya está en Vercel env, ¿OK?).
-- [ ] Onboarding manual: outreach a 2-3 merchants iluminación adicionales antes de activar el comparador en ese vertical.
+- [ ] Segundo merchant iluminación: comprobar primero GreenIce y después Barcelona LED en el dashboard real de Skimlinks; sólo entonces solicitar/usar un feed autorizado (`docs/merchant-sourcing-lighting.md`).
 
 ---
 
@@ -643,7 +645,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - **¿Cómo se cambia un nicho?** Editar `src/lib/config.ts → primaryNiches + NICHE_LABEL`. Vercel auto-redeploy.
 - **¿Cómo se añade un producto?** Vía `pnpm scripts:seed:products` (multi-merchant) o `pnpm scripts:seed:lighting` (masterled) → usar `--dry-run` primero.
 - **¿Cómo se mide?** Plausible (setup pendiente de verificar) + `click_attribution`; el receiver existe, falta conexión y prueba E2E con Skimlinks.
-- **¿Cuál es el siguiente milestone live pendiente?** Owner: corregir Supabase Auth y enviar sitemap a GSC. Dev: completar `/account` + profiles; después normalizar precios/alertas antes del cron.
+- **¿Cuál es el siguiente milestone live pendiente?** Owner: aplicar la migración de alertas y configurar secretos para activar refresh/email; en paralelo, corregir Supabase Auth, enviar sitemap a GSC y validar el segundo merchant en Skimlinks.
 
 ---
 
