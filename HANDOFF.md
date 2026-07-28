@@ -145,15 +145,15 @@
 
 | Servicio | Plan | Región | Notas |
 |---|---|---|---|
-| **Vercel** | Hobby (auto-upgrade si Pro necesario) | `fra1` (Frankfurt) | `pnpm build` es el comando. ISR por defecto. Cron jobs (cuando se activen). |
+| **Vercel** | Hobby (auto-upgrade si Pro necesario) | `fra1` (Frankfurt) | `pnpm build` es el comando. Hobby admite hasta 100 cron jobs, pero cada uno como máximo una vez al día y con precisión horaria. |
 | **Supabase Cloud** | Free tier → evaluar upgrade | EU region (default) | DB en lituania-eu-west; auth/pg_net/realtime listos. |
 
 ### Crons / scheduled jobs
 
-> **Hoy:** ninguno (ingest es one-shot vía scripts en CLI).
+> **Hoy:** endpoint seguro de refresh preparado, pero ningún schedule activo.
 >
 > **Pendientes** (backlog):
-> - Refresh diario de feeds (Vercel Cron o Supabase pg_cron).
+> - Activar refresh diario de Masterled después de aplicar B-2 y configurar secretos.
 > - Scanner de precios 12h (price-alerts MVP).
 > - Configuración externa + prueba end-to-end del webhook Skimlinks. El receiver y el INSERT ya están implementados.
 
@@ -521,7 +521,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 |---|---|---|---|
 | **B-1** | ✅ **Completar `/account` + profiles** | M-1 sólo para E2E real | Código y validación completados; falta probar lectura/escritura con una sesión real después de corregir Supabase Auth. |
 | **B-2** | 🟡 **Modelo relacional de precios y alertas** | aprobación/aplicación de migración | Schema, trigger, RLS, ledger idempotente y tipos preparados localmente; NO aplicado aún a Cloud. |
-| **B-3** | **Refresh incremental + snapshots de precio** | B-2 + decisión de scheduler | Actualizar feed masterled y registrar cambios sin duplicar histórico. |
+| **B-3** | 🟡 **Refresh incremental + snapshots de precio** | B-2 + secretos/schedule en Vercel | Handler, parser compartido, auth, guardias de feed, lotes y stale-stock preparados. No programado ni ejecutado contra Cloud. |
 | **B-4** | **Alertas de bajada** | B-1, B-2, B-3 + Resend | UI en PDP/cuenta, modos any-drop/target/percentage, cron y email idempotente. |
 | **B-5** | ✅ **Corregir AI search actual** | nada | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship. |
 | **B-6** | ✅ **Comparador manual MVP** | nada | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado. |
@@ -533,7 +533,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 |---|---|---|
 | **B-8** | **Comparación automática cross-store** | Requiere segundo merchant y una estrategia explícita de matching/canonical SKU. |
 | **B-9** | **Embeddings / similarity search** | Sólo después de medir la búsqueda estructurada corregida; estimar coste y latencia con datos reales. |
-| **B-10** | **Sustituir merchants/URLs placeholder** | Ocultar inmediatamente cualquier fila no real; reactivar tras sourcing. |
+| **B-10** | ✅ **Ocultar merchants/URLs placeholder** | Sólo cuatro merchants reales son visibles por API; las cinco rutas placeholder históricas devuelven 404. Sustituir/reactivar sólo tras sourcing. |
 | **B-11** | ✅ **Restringir `/api/test/*`** | Ya existe gate absoluto de producción y ambas rutas devuelven 404 en live. |
 | **B-12** | **AdSense** | `/search` está bloqueado en robots; no describirlo como página indexable. Esperar tráfico y revisar CWV/UX. |
 | **B-13** | Gift finder, featured stores, newsletter, marca EUIPO | Expansión una vez medidos search → PDP → click-out y retención. |
