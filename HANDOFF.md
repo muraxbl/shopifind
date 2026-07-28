@@ -278,7 +278,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/search` | ✅ live | DRY-up facet (NICHE_FACET, 4 niches + "Todos") · AI intent parser · filtros sin texto · parámetros URL validados · pagination · selector de comparación. |
 | `/collections/<slug>` | ✅ live | 4 colecciones (1 SF + 3 iluminación verano) · JSON-LD `ItemList` + `Product/ Offer` schema · rich snippets Google. |
 | `/go/[id]` | ✅ live | Server-side 302 a Skimlinks con `xcust=shopifind-<slug>` · bloqueado en robots. |
-| `/product/<slug>` | ✅ live | PDP verificada: metadatos, CTA afiliado, información de tienda y wishlist real. |
+| `/product/<slug>` | ✅ live | Canonical + Product/Offer JSON-LD seguro, compartir funcional, CTA afiliado, información de tienda, wishlist y alertas con fallback. |
 | `/compare?ids=...` | ✅ live | Comparador manual de 2-5 productos, `noindex`, atributos normalizados, mejor precio sólo entre monedas iguales y CTA afiliado por producto; smoke E2E con dos filas reales. |
 | `/wishlist` | ✅ live | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto. |
 | `/account` | ✅ código listo | Perfil owner-only: nombre, preferencias de nicho, plan visible y logout local. Falta smoke E2E con sesión real tras corregir M-1. |
@@ -450,6 +450,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **22** | Price-alert evaluator + idempotent sender | `/api/cron/process-price-alerts` + `src/lib/alerts/evaluate.ts` | Estado final del ciclo, outbox con claim/recovery, precio de referencia congelado, stale skip, Resend idempotency y HTML escapado; 33 tests totales. |
 | **23** | Sourcing del segundo merchant de iluminación | `docs/merchant-sourcing-lighting.md` | GreenIce recomendado y Barcelona LED como fallback; catálogos públicos viables, pero cero SKU exactos cross-store. Ingest bloqueada hasta verificar Skimlinks y obtener feed/permiso. |
 | **24** | Telemetría interna fiable | `src/lib/analytics/*` | Búsquedas y click-outs se escriben con cliente anónimo y operación esperada; eventos estructurados, total real y paginación. Plausible sigue sin configurar. |
+| **25** | PDP SEO + share real | `src/lib/seo/jsonLd.ts` + `ShareButton` | Canonical/OG URL, Product/Offer con seller honesto, serialización anti-`</script>` y Web Share/clipboard; JSON-LD de colecciones corregido. |
 
 ### Métricas post-deploy
 
@@ -461,7 +462,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 37/37 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 39/39 · rc=0 · rc=0 |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---

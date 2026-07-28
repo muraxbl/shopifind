@@ -1,7 +1,8 @@
+import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Leaf, ExternalLink, Share2, Truck, RotateCcw } from 'lucide-react';
+import { Leaf, ExternalLink, Truck, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatPrice, formatEcoScore, cn } from '@/lib/utils';
@@ -11,6 +12,8 @@ import { AddToWishlistButton } from '@/components/product/AddToWishlistButton';
 import { PriceAlertCard } from '@/components/product/PriceAlertCard';
 import { hasWishlistItem, normalizeWishlistItems } from '@/lib/wishlist/items';
 import { readPriceAlertState } from '@/lib/alerts/read';
+import { ShareButton } from '@/components/product/ShareButton';
+import { buildProductJsonLd, serializeJsonLd } from '@/lib/seo/jsonLd';
 
 type ProductDetail = {
   id: string;
@@ -35,7 +38,7 @@ type ProductDetail = {
   niche: string;
 };
 
-async function fetchProduct(slug: string): Promise<ProductDetail | null> {
+const fetchProduct = cache(async (slug: string): Promise<ProductDetail | null> => {
   const sb = createServerSupabaseClient();
   const { data } = await sb
     .from('v_products_with_store')
@@ -69,7 +72,7 @@ async function fetchProduct(slug: string): Promise<ProductDetail | null> {
     verified: d.verified ?? false,
     niche: d.niche,
   };
-}
+});
 
 async function fetchInitialWishlistState(productId: string): Promise<boolean> {
   const sb = createServerSupabaseClient();
@@ -94,16 +97,19 @@ export async function generateMetadata({
 }) {
   const p = await fetchProduct(params.slug);
   if (!p) return { title: 'Producto no encontrado' };
+  const canonicalUrl = `${SITE_CONFIG.url.replace(/\/+$/, '')}/product/${p.slug}`;
   return {
     title: `${p.title} — ${p.store_name}`,
     description: (p.description ?? `${p.title} en ${p.store_name}`).slice(
       0,
       160,
     ),
+    alternates: { canonical: canonicalUrl },
     openGraph: {
       title: p.title,
       description: p.description ?? '',
       images: [p.image_url],
+      url: canonicalUrl,
     },
   };
 }
@@ -121,9 +127,26 @@ export default async function ProductPage({
     readPriceAlertState(product.id),
   ]);
   const eco = formatEcoScore(product.store_eco_score);
+  const canonicalUrl = `${SITE_CONFIG.url.replace(/\/+$/, '')}/product/${product.slug}`;
+  const jsonLd = buildProductJsonLd({
+    slug: product.slug,
+    title: product.title,
+    description: product.description,
+    imageUrl: product.image_url,
+    priceCents: product.price_cents,
+    currency: product.currency,
+    inStock: product.in_stock,
+    storeName: product.store_name,
+    storeSlug: product.store_slug,
+    siteUrl: SITE_CONFIG.url,
+  });
 
   return (
     <div className="container py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link href="/" className="hover:text-primary">
           Inicio
@@ -150,14 +173,7 @@ export default async function ProductPage({
             className="object-cover"
           />
           <div className="absolute right-3 top-3 flex flex-col gap-2">
-            <Button
-              size="icon"
-              variant="secondary"
-              className="rounded-full"
-              aria-label="Compartir"
-            >
-              <Share2 className="h-4 w-4" />
-            </Button>
+            <ShareButton title={product.title} url={canonicalUrl} />
           </div>
         </div>
 

@@ -5,14 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { SITE_CONFIG } from '@/lib/config';
-
-/**
- * `priceValidUntil` is computed once at module-load to avoid drift between
- * server-rendered JSON-LD payloads (a 30-day rolling window). Pricing here is
- * editorial — the value is a marker of freshness, not a hard expiry. Re-deploy
- * to refresh the date.
- */
-const PRICE_VALID_UNTIL = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+import { serializeJsonLd } from '@/lib/seo/jsonLd';
 
 type CollectionRow = {
   id: string;
@@ -118,10 +111,6 @@ function buildItemListJsonLd(
         image: p.image_url,
         url: `${SITE_CONFIG.url}/product/${p.slug}`,
         sku: p.slug,
-        brand: {
-          '@type': 'Brand',
-          name: p.store_name,
-        },
         offers: {
           '@type': 'Offer',
           price: (p.price_cents / 100).toFixed(2),
@@ -130,7 +119,11 @@ function buildItemListJsonLd(
             ? 'https://schema.org/InStock'
             : 'https://schema.org/OutOfStock',
           url: `${SITE_CONFIG.url}/product/${p.slug}`,
-          priceValidUntil: PRICE_VALID_UNTIL,
+          seller: {
+            '@type': 'Organization',
+            name: p.store_name,
+            url: `${SITE_CONFIG.url}/store/${p.store_slug}`,
+          },
         },
       },
     })),
@@ -180,7 +173,7 @@ export default async function CollectionPage({ params }: { params: { slug: strin
     <article className="container py-12">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <header className="mb-10 max-w-3xl">
         <Badge variant="eco" className="mb-3 inline-flex w-fit gap-1">
