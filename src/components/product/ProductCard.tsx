@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { WishlistHeartButton } from './WishlistHeartButton';
+import { CompareToggle } from '@/components/compare/CompareSelection';
 import { formatPrice, formatEcoScore, cn } from '@/lib/utils';
 
 export interface ProductCardProps {
@@ -21,16 +22,22 @@ export interface ProductCardProps {
   };
   featured?: boolean;
   wishlisted?: boolean;
+  compareEnabled?: boolean;
 }
 
-export function ProductCard({ product, featured = false, wishlisted = false }: ProductCardProps) {
+export function ProductCard({
+  product,
+  featured = false,
+  wishlisted = false,
+  compareEnabled = false,
+}: ProductCardProps) {
   const eco = formatEcoScore(product.store_eco_score);
 
   return (
     <article
       className={cn(
         'relative overflow-hidden rounded-2xl border border-border/60 bg-card transition-all duration-300',
-        'hover:-translate-y-0.5 hover:border-border hover:shadow-lg hover:shadow-stone-200/60'
+        'hover:-translate-y-0.5 hover:border-border hover:shadow-lg hover:shadow-stone-200/60',
       )}
     >
       {featured && (
@@ -38,8 +45,12 @@ export function ProductCard({ product, featured = false, wishlisted = false }: P
           <Badge variant="eco">Destacado</Badge>
         </div>
       )}
+      {compareEnabled && <CompareToggle productId={product.id} />}
 
-      <Link href={`/product/${product.slug}`} className="group flex h-full flex-col">
+      <Link
+        href={`/product/${product.slug}`}
+        className="group flex h-full flex-col"
+      >
         <div className="relative aspect-square overflow-hidden bg-secondary/50">
           <Image
             src={product.image_url}
@@ -57,7 +68,10 @@ export function ProductCard({ product, featured = false, wishlisted = false }: P
             </span>
             {product.store_eco_score > 0 && (
               <span
-                className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', eco.variant)}
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                  eco.variant,
+                )}
                 title={`Eco-score: ${product.store_eco_score}/100`}
               >
                 ● {eco.label}
@@ -93,7 +107,10 @@ export function ProductCard({ product, featured = false, wishlisted = false }: P
         </div>
       </Link>
 
-      <WishlistHeartButton productId={product.id} initiallyInWishlist={wishlisted} />
+      <WishlistHeartButton
+        productId={product.id}
+        initiallyInWishlist={wishlisted}
+      />
     </article>
   );
 }

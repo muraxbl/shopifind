@@ -279,6 +279,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/collections/<slug>` | ✅ live | 4 colecciones (1 SF + 3 iluminación verano) · JSON-LD `ItemList` + `Product/ Offer` schema · rich snippets Google. |
 | `/go/[id]` | ✅ live | Server-side 302 a Skimlinks con `xcust=shopifind-<slug>` · bloqueado en robots. |
 | `/product/<slug>` | ✅ live | PDP verificada: metadatos, CTA afiliado, información de tienda y wishlist real. |
+| `/compare?ids=...` | ✅ código listo | Comparador manual de 2-5 productos, `noindex`, atributos normalizados, mejor precio sólo entre monedas iguales y CTA afiliado por producto. Pendiente smoke live del primer deploy. |
 | `/wishlist` | ✅ live | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto. |
 | `/account` | ✅ código listo | Perfil owner-only: nombre, preferencias de nicho, plan visible y logout local. Falta smoke E2E con sesión real tras corregir M-1. |
 | `/login` + `/api/auth/callback` | ⚠ código live / config externa pendiente | Middleware protege `/wishlist`, `/account`, `/settings`; magic link necesita corregir redirects/plantilla en Supabase y Google requiere habilitar su provider. |
@@ -301,7 +302,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | **Eco-score badges en cards** | `src/components/product/ProductCard.tsx` | ✅ muestra `store_eco_score` + `eco_tags[..n]`. |
 | **Wishlist JSONB** | `src/actions/wishlist.ts` + `src/app/(shop)/wishlist/` | ✅ read/write · RLS owner-only · corazones reales y precio/URL resueltos server-side. |
 | **Pricing alerts email** | `src/lib/email/resend.ts` (template) | ⚠ only stub; cron + sender pending (backlog). |
-| **Comparador cross-store** | — | ❌ no implementado. El picker manual puede lanzarse con el catálogo actual; la comparación automática fuerte en iluminación sí necesita otro merchant. |
+| **Comparador manual** | `src/components/compare/CompareSelection.tsx` + `src/app/(shop)/compare/page.tsx` | ✅ picker de 2-5 cards y tabla comparativa sin afirmar equivalencia de modelo. La comparación automática fuerte en iluminación sigue necesitando otro merchant. |
 
 ### AI search semantics (`parseQueryIntent`)
 
@@ -439,6 +440,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **15** | Auth/wishlist/PDP hardening + tests | `fcad59b`, `98189ff` | Redirects internos saneados, middleware activo en `src/`, wishlist real, datos autoritativos server-side, sitemap y `/go` excluyen catálogo inactivo; 7 tests y smoke live. |
 | **16** | Account + profiles | `src/app/(shop)/account` + `src/actions/profile.ts` | `/account` owner-only, edición validada de nombre/nichos, plan visible, logout local, navegación responsive; 10 tests totales y build limpio. |
 | **17** | AI search contract hardening | `src/lib/ai/queryIntent.ts` + `src/lib/search/postgrest.ts` | Iluminación soportada, tags catalog-backed, filtros puros, URL precedence, límite/timeout, escape PostgREST y fallback cubiertos; 16 tests y consulta read-only real validada. |
+| **18** | Comparador manual MVP | `src/components/compare` + `/(shop)/compare` | Selección de 2-5 cards, URL validada y acotada, tabla `noindex`, atributos agrupados, comparativa de precios segura por moneda y CTAs `/go`; 19 tests totales y build limpio. |
 
 ### Métricas post-deploy
 
@@ -450,7 +452,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 16/16 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 19/19 · rc=0 · rc=0 |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---
@@ -520,8 +522,8 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **B-2** | 🟡 **Modelo relacional de precios y alertas** | aprobación/aplicación de migración | Schema, trigger, RLS, ledger idempotente y tipos preparados localmente; NO aplicado aún a Cloud. |
 | **B-3** | **Refresh incremental + snapshots de precio** | B-2 + decisión de scheduler | Actualizar feed masterled y registrar cambios sin duplicar histórico. |
 | **B-4** | **Alertas de bajada** | B-1, B-2, B-3 + Resend | UI en PDP/cuenta, modos any-drop/target/percentage, cron y email idempotente. |
-| **B-5** | ✅ **Corregir AI search actual** | verificar `OPENAI_API_KEY` en Vercel para E2E | Contrato corregido y validado; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship. |
-| **B-6** | **Comparador manual MVP** | nada para picker básico | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirmar “mismo producto”. |
+| **B-5** | ✅ **Corregir AI search actual** | nada | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship. |
+| **B-6** | ✅ **Comparador manual MVP** | nada | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”. Pendiente únicamente smoke live del primer deploy. |
 | **B-7** | **Segundo merchant de iluminación** | sourcing/onboarding owner | Desbloquea comparación automática y cobertura real de precios en el vertical principal. |
 
 ### 🟡 Después del núcleo

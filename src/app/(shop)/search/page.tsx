@@ -2,10 +2,16 @@ import { Suspense } from 'react';
 import { Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ProductGrid } from '@/components/product/ProductGrid';
+import { CompareSelectionProvider } from '@/components/compare/CompareSelection';
 import { Pagination } from '@/components/pagination/Pagination';
 import { AiSearchBox } from '@/components/search/AiSearchBox';
 import { searchProducts } from '@/actions/search';
-import { NICHE_FACET, DEFAULT_PAGE_SIZE, MIN_PAGE_SIZE, MAX_PAGE_SIZE } from '@/lib/config';
+import {
+  NICHE_FACET,
+  DEFAULT_PAGE_SIZE,
+  MIN_PAGE_SIZE,
+  MAX_PAGE_SIZE,
+} from '@/lib/config';
 
 // Search results are by definition user-specific (queries + filters vary
 // per visitor) — keep them out of the static cache so any change in
@@ -26,7 +32,12 @@ type SearchParams = {
 
 // Coerce a searchParams value to a clamped positive integer with a
 // fallback. Used for ?page= and ?page_size=.
-function clampInt(raw: string | undefined, fallback: number, min: number, max: number): number {
+function clampInt(
+  raw: string | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) return fallback;
   return Math.min(max, Math.max(min, Math.floor(n)));
@@ -34,7 +45,9 @@ function clampInt(raw: string | undefined, fallback: number, min: number, max: n
 
 // Persist filter state into the pagination hrefs so users don't lose
 // filters when they page through results.
-function buildQueryParams(sp: SearchParams): Record<string, string | undefined> {
+function buildQueryParams(
+  sp: SearchParams,
+): Record<string, string | undefined> {
   const out: Record<string, string | undefined> = {};
   if (sp.q) out.q = sp.q;
   if (sp.niche) out.niche = sp.niche;
@@ -45,14 +58,18 @@ function buildQueryParams(sp: SearchParams): Record<string, string | undefined> 
   return out;
 }
 
-export default async function SearchPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const q = (searchParams.q ?? '').trim();
   const page = clampInt(searchParams.page, 1, 1, Number.MAX_SAFE_INTEGER);
   const pageSize = clampInt(
     searchParams.page_size,
     DEFAULT_PAGE_SIZE,
     MIN_PAGE_SIZE,
-    MAX_PAGE_SIZE
+    MAX_PAGE_SIZE,
   );
 
   const filters = {
@@ -61,7 +78,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
     max_price_cents: searchParams.max ? Number(searchParams.max) * 100 : null,
     min_price_cents: searchParams.min ? Number(searchParams.min) * 100 : null,
     eco_tags: searchParams.tag ? [searchParams.tag] : [],
-    sort: (searchParams.sort as 'relevance' | 'price_asc' | 'price_desc' | 'newest') ?? 'relevance',
+    sort:
+      (searchParams.sort as
+        'relevance' | 'price_asc' | 'price_desc' | 'newest') ?? 'relevance',
     page,
     pageSize,
   };
@@ -112,7 +131,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
           <h1 className="font-display text-3xl md:text-4xl">
             {q ? (
               <>
-                Resultados para <span className="text-primary">&ldquo;{q}&rdquo;</span>
+                Resultados para{' '}
+                <span className="text-primary">&ldquo;{q}&rdquo;</span>
               </>
             ) : (
               '¿Qué estás buscando?'
@@ -122,7 +142,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
             {q
               ? `${total} producto${total === 1 ? '' : 's'} · página ${page} de ${Math.max(
                   1,
-                  Math.ceil(total / pageSize)
+                  Math.ceil(total / pageSize),
                 )}.`
               : 'Describe con tus palabras qué quieres encontrar — la IA traduce la intención a filtros.'}
           </p>
@@ -137,19 +157,19 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
               Filtros rápidos
             </h3>
             <div className="space-y-1">
-              {(
-                [
-                  { label: 'Recientes', sort: 'newest' as const },
-                  { label: 'Precio \u2191', sort: 'price_asc' as const },
-                  { label: 'Precio \u2193', sort: 'price_desc' as const },
-                ]
-              ).map(({ label, sort }) => (
+              {[
+                { label: 'Recientes', sort: 'newest' as const },
+                { label: 'Precio \u2191', sort: 'price_asc' as const },
+                { label: 'Precio \u2193', sort: 'price_desc' as const },
+              ].map(({ label, sort }) => (
                 <a
                   key={sort}
                   href={sortHref(sort)}
                   aria-current={searchParams.sort === sort ? 'page' : undefined}
                   className={`block rounded-md px-2 py-1.5 text-sm hover:bg-accent ${
-                    searchParams.sort === sort ? 'bg-accent font-medium text-primary' : ''
+                    searchParams.sort === sort
+                      ? 'bg-accent font-medium text-primary'
+                      : ''
                   }`}
                 >
                   {label}
@@ -188,7 +208,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
               Eco-tags
             </h3>
             <div className="flex flex-wrap gap-1.5">
-              {['vegan', 'eu-made', 'recycled', 'handmade', 'b-corp', 'female-founded'].map((t) => {
+              {[
+                'vegan',
+                'eu-made',
+                'recycled',
+                'handmade',
+                'b-corp',
+                'female-founded',
+              ].map((t) => {
                 const active = searchParams.tag === t;
                 return (
                   <a
@@ -211,12 +238,15 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
 
         {/* Results column */}
         <section>
-          <Suspense>
-            <ProductGrid
-              products={products}
-              emptyMessage="Nada coincide — prueba a quitar algún filtro o buscar con otras palabras."
-            />
-          </Suspense>
+          <CompareSelectionProvider>
+            <Suspense>
+              <ProductGrid
+                products={products}
+                compareEnabled
+                emptyMessage="Nada coincide — prueba a quitar algún filtro o buscar con otras palabras."
+              />
+            </Suspense>
+          </CompareSelectionProvider>
 
           <Pagination
             currentPage={page}
