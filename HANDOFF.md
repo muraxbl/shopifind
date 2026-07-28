@@ -452,6 +452,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **24** | Telemetría interna fiable | `src/lib/analytics/*` | Búsquedas y click-outs se escriben con cliente anónimo y operación esperada; eventos estructurados, total real y paginación. Plausible sigue sin configurar. |
 | **25** | PDP SEO + share real | `src/lib/seo/jsonLd.ts` + `ShareButton` | Canonical/OG URL, Product/Offer con seller honesto, serialización anti-`</script>` y Web Share/clipboard; JSON-LD de colecciones corregido. |
 | **26** | Upgrade de seguridad Next.js 15 | `package.json` + `pnpm-workspace.yaml` + migración de APIs dinámicas | Next 15.5.22, pnpm 11.17 fijado, dependencias transitivas vulnerables parcheadas por override; build de producción y 39 tests pasan y `pnpm audit` completo reporta 0 vulnerabilidades. |
+| **27** | Smoke de release automatizado | `scripts/smoke-production.ts` | 14 checks read-only descubren una PDP desde sitemap y validan navegación, paginación, auth, robots, SEO, imágenes, Skimlinks, cron y ocultación de APIs de test. |
 
 ### Métricas post-deploy
 
@@ -465,6 +466,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | HTTP 200 en smoke | 100% de rutas navegables |
 | `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 39/39 · rc=0 · rc=0 |
 | `pnpm audit` completo | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28) |
+| `pnpm smoke:production` | **14/14** contra `shopifind.app` (snapshot 2026-07-28) |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---
@@ -513,7 +515,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 ### Revisión / proceso propio
 
 25. **Cambios mecánicos**: al reemplazar un bloque, revisar también consumidores y referencias. Ejecutar `pnpm test`, typecheck, build y `git diff --check`; el typecheck por sí solo no detecta fallos de comportamiento.
-26. **Verificación post-deploy**: esperar el estado `success` de Vercel y hacer smoke contra `shopifind.app`; el hash enviado a Git no demuestra por sí solo qué versión está sirviendo el dominio.
+26. **Verificación post-deploy**: esperar el estado `success` de Vercel y ejecutar `pnpm smoke:production`; descubre una PDP desde el sitemap y valida rutas, auth, SEO, imágenes, Skimlinks, cron y APIs de test sin secretos. El hash enviado a Git no demuestra por sí solo qué versión está sirviendo el dominio.
 27. **Preflight de tablas PostgREST**: no usar `select(..., { head: true })` para comprobar que una tabla existe; puede devolver 204 aunque falte del schema cache. Usar un GET acotado con `.select('id').limit(1)` y comprobar `error`.
 
 ---
@@ -576,6 +578,7 @@ pnpm dev                    # http://localhost:3000
 pnpm test                   # node:test sobre tests/*.test.ts
 pnpm check                  # lint + tests + typecheck, sin prompts
 pnpm typecheck              # tsc --noEmit
+pnpm smoke:production       # smoke read-only contra https://shopifind.app
 pnpm scripts:seed:collection
 pnpm scripts:seed:products
 pnpm scripts:seed:lighting

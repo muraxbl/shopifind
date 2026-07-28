@@ -19,7 +19,8 @@
     "scripts:seed:lighting": "tsx scripts/seed-lighting-v1.ts",
     "scripts:seed:lighting:collections": "tsx scripts/seed-lighting-collections-v1.ts",
     "scripts:fix:urls": "tsx scripts/fix-source-urls.ts",
-    "scripts:hide:placeholder": "tsx scripts/hide-placeholder-rows.ts"
+    "scripts:hide:placeholder": "tsx scripts/hide-placeholder-rows.ts",
+    "smoke:production": "tsx scripts/smoke-production.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
