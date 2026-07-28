@@ -11,29 +11,56 @@
  *   (great for SEO + image optimization), and ships only the tiny client JS
  *   needed to react to the click.
  *
- * V1: stub (no-op handler that opens a future dialog or navigates to /wishlist).
- * V2: will wire to `addToWishlist` server action with optimistic UI, same as
- * the existing `AddToWishlistButton` on the product detail page.
+ * Uses the same server actions as the full PDP button while keeping the card
+ * itself server-rendered.
  */
 
+import { useState, useTransition } from 'react';
 import { Heart } from 'lucide-react';
+import { addToWishlist, removeFromWishlist } from '@/actions/wishlist';
+import { cn } from '@/lib/utils';
 
-export function WishlistHeartButton({ productId }: { productId: string }) {
+export function WishlistHeartButton({
+  productId,
+  initiallyInWishlist = false,
+}: {
+  productId: string;
+  initiallyInWishlist?: boolean;
+}) {
+  const [inWishlist, setInWishlist] = useState(initiallyInWishlist);
+  const [isPending, start] = useTransition();
+
   return (
     <button
       type="button"
-      aria-label="Guardar en wishlist"
+      aria-label={inWishlist ? 'Quitar de wishlist' : 'Guardar en wishlist'}
+      aria-pressed={inWishlist}
+      disabled={isPending}
       data-product-id={productId}
       onClick={(e) => {
-        // Stop propagation so the wrapping <Link> in ProductCard does not
-        // also navigate to the product page when the user clicks the heart.
-        // (preventDefault is a no-op on type="button" so it's omitted.)
+        e.preventDefault();
         e.stopPropagation();
-        // TODO (V2): wire to addToWishlist server action with optimistic UI.
+        start(async () => {
+          const previous = inWishlist;
+          setInWishlist(!previous);
+          try {
+            if (previous) {
+              await removeFromWishlist(productId);
+            } else {
+              await addToWishlist({ productId, notify: true });
+            }
+          } catch (error) {
+            setInWishlist(previous);
+            throw error;
+          }
+        });
       }}
-      className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-background/85 text-foreground/70 backdrop-blur transition-colors hover:bg-background hover:text-rose-500"
+      className={cn(
+        'absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-background/85 text-foreground/70 backdrop-blur transition-colors hover:bg-background hover:text-rose-500 disabled:cursor-wait disabled:opacity-70',
+        inWishlist && 'text-rose-500'
+      )}
     >
-      <Heart className="h-4 w-4" />
+      <Heart className={cn('h-4 w-4', inWishlist && 'fill-current')} />
     </button>
   );
 }

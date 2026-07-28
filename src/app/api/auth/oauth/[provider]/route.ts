@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { safeNextPath } from '@/lib/auth/redirect';
 
 // Keep this synchronized with what the login page advertises.
 const VALID_PROVIDERS = new Set(['google', 'github', 'apple', 'twitter', 'facebook', 'azure', 'bitbucket', 'gitlab', 'linkedin']);
@@ -19,7 +20,7 @@ export async function GET(
   }
 
   const supabase = createServerSupabaseClient();
-  const next = request.nextUrl.searchParams.get('next') ?? '/';
+  const next = safeNextPath(request.nextUrl.searchParams.get('next'), '/');
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? request.nextUrl.origin;
   const redirectTo = `${baseUrl}/api/auth/callback?next=${encodeURIComponent(next)}`;
 

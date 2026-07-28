@@ -8,6 +8,7 @@ import { formatPrice, formatEcoScore, cn } from '@/lib/utils';
 import { SITE_CONFIG } from '@/lib/config';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { AddToWishlistButton } from '@/components/product/AddToWishlistButton';
+import { hasWishlistItem, normalizeWishlistItems } from '@/lib/wishlist/items';
 
 type ProductDetail = {
   id: string;
@@ -68,6 +69,22 @@ async function fetchProduct(slug: string): Promise<ProductDetail | null> {
   };
 }
 
+async function fetchInitialWishlistState(productId: string): Promise<boolean> {
+  const sb = createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  if (!user) return false;
+
+  const { data } = await sb
+    .from('wishlists')
+    .select('items')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  const row = data as { items: unknown } | null;
+  return hasWishlistItem(normalizeWishlistItems(row?.items), productId);
+}
+
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const p = await fetchProduct(params.slug);
   if (!p) return { title: 'Producto no encontrado' };
@@ -86,6 +103,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const product = await fetchProduct(params.slug);
   if (!product) notFound();
 
+  const initiallyInWishlist = await fetchInitialWishlistState(product.id);
   const eco = formatEcoScore(product.store_eco_score);
 
   return (
@@ -167,8 +185,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
             </Button>
             <AddToWishlistButton
               productId={product.id}
-              priceWhenAdded={product.price_cents}
-              storeUrl={product.source_url}
+              initiallyInWishlist={initiallyInWishlist}
               className="flex-1"
               size="lg"
               variant="outline"

@@ -3,13 +3,14 @@ import { Chrome, Github, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SITE_CONFIG } from '@/lib/config';
+import { safeNextPath } from '@/lib/auth/redirect';
 
 export default function LoginPage({
   searchParams,
 }: {
   searchParams: { next?: string; error?: string; sent?: string };
 }) {
-  const next = searchParams.next ?? '/wishlist';
+  const next = safeNextPath(searchParams.next, '/wishlist');
   const oauthUrl = (provider: string) =>
     `/api/auth/oauth/${provider}?next=${encodeURIComponent(next)}`;
 
@@ -55,6 +56,7 @@ export default function LoginPage({
             method="POST"
             className="space-y-2"
           >
+            <input type="hidden" name="next" value={next} />
             <label className="block">
               <span className="text-xs text-muted-foreground">Email</span>
               <Input type="email" name="email" placeholder="tu@correo.com" required />

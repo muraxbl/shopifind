@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { safeNextPath } from '@/lib/auth/redirect';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,7 +17,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=invalid_form', url.origin));
   }
   const email = String(form.get('email') ?? '').trim().toLowerCase();
-  const next = form.get('next')?.toString() ?? '/';
+  const next = safeNextPath(
+    form.get('next')?.toString() ?? url.searchParams.get('next'),
+    '/'
+  );
 
   if (!EMAIL_REGEX.test(email)) {
     return NextResponse.redirect(new URL('/login?error=invalid_email', url.origin));

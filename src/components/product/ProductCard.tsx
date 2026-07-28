@@ -20,16 +20,16 @@ export interface ProductCardProps {
     store_eco_score: number;
   };
   featured?: boolean;
+  wishlisted?: boolean;
 }
 
-export function ProductCard({ product, featured = false }: ProductCardProps) {
+export function ProductCard({ product, featured = false, wishlisted = false }: ProductCardProps) {
   const eco = formatEcoScore(product.store_eco_score);
 
   return (
-    <Link
-      href={`/product/${product.slug}`}
+    <article
       className={cn(
-        'group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card transition-all duration-300',
+        'relative overflow-hidden rounded-2xl border border-border/60 bg-card transition-all duration-300',
         'hover:-translate-y-0.5 hover:border-border hover:shadow-lg hover:shadow-stone-200/60'
       )}
     >
@@ -39,58 +39,61 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
         </div>
       )}
 
-      <div className="relative aspect-square overflow-hidden bg-secondary/50">
-        <Image
-          src={product.image_url}
-          alt={product.title}
-          fill
-          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-        />
-        <WishlistHeartButton productId={product.id} />
-      </div>
+      <Link href={`/product/${product.slug}`} className="group flex h-full flex-col">
+        <div className="relative aspect-square overflow-hidden bg-secondary/50">
+          <Image
+            src={product.image_url}
+            alt={product.title}
+            fill
+            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          />
+        </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">
-            {product.store_name}
-          </span>
-          {product.store_eco_score > 0 && (
-            <span
-              className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', eco.variant)}
-              title={`Eco-score: ${product.store_eco_score}/100`}
-            >
-              ● {eco.label}
+        <div className="flex flex-1 flex-col gap-2 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
+              {product.store_name}
             </span>
-          )}
-        </div>
-
-        <h3 className="line-clamp-2 font-display text-base leading-tight text-foreground">
-          {product.title}
-        </h3>
-
-        {product.eco_tags?.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {product.eco_tags.slice(0, 3).map((t) => (
+            {product.store_eco_score > 0 && (
               <span
-                key={t}
-                className="rounded-md bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground"
+                className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', eco.variant)}
+                title={`Eco-score: ${product.store_eco_score}/100`}
               >
-                {t}
+                ● {eco.label}
               </span>
-            ))}
+            )}
           </div>
-        )}
 
-        <div className="mt-auto flex items-end justify-between pt-2">
-          <span className="font-display text-lg text-foreground">
-            {formatPrice(product.price_cents, product.currency)}
-          </span>
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors group-hover:text-primary">
-            Ver <ExternalLink className="h-3 w-3" />
-          </span>
+          <h3 className="line-clamp-2 font-display text-base leading-tight text-foreground">
+            {product.title}
+          </h3>
+
+          {product.eco_tags?.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {product.eco_tags.slice(0, 3).map((t) => (
+                <span
+                  key={t}
+                  className="rounded-md bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-auto flex items-end justify-between pt-2">
+            <span className="font-display text-lg text-foreground">
+              {formatPrice(product.price_cents, product.currency)}
+            </span>
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors group-hover:text-primary">
+              Ver <ExternalLink className="h-3 w-3" />
+            </span>
+          </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+
+      <WishlistHeartButton productId={product.id} initiallyInWishlist={wishlisted} />
+    </article>
   );
 }

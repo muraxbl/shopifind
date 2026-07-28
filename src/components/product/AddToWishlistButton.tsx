@@ -8,16 +8,12 @@ import { cn } from '@/lib/utils';
 
 interface Props extends Omit<ButtonProps, 'onClick'> {
   productId: string;
-  priceWhenAdded: number;
-  storeUrl?: string;
   /** Optional: pre-fill "in wishlist" state for SSR. */
   initiallyInWishlist?: boolean;
 }
 
 export function AddToWishlistButton({
   productId,
-  priceWhenAdded,
-  storeUrl,
   initiallyInWishlist = false,
   className,
   children,
@@ -28,22 +24,17 @@ export function AddToWishlistButton({
 
   const handleClick = () => {
     start(async () => {
+      const previous = inWishlist;
+      setInWishlist(!previous);
       try {
-        if (inWishlist) {
+        if (previous) {
           await removeFromWishlist(productId);
-          setInWishlist(false);
         } else {
-          await addToWishlist({
-            productId,
-            priceWhenAdded: priceWhenAdded,
-            storeUrl,
-            notify: true,
-          });
-          setInWishlist(true);
+          await addToWishlist({ productId, notify: true });
         }
       } catch (e) {
-        // V1: surface a toast.
-        console.error('Wishlist toggle failed', e);
+        setInWishlist(previous);
+        throw e;
       }
     });
   };

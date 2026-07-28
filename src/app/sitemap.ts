@@ -75,12 +75,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  // ---- 3. Products (in_stock=true) ----
+  // ---- 3. Products (in-stock and belonging to an active store) ----
   // EXPLICIT field projection — DO NOT use select('*') here.
-  // products table carries descriptions (~2KB each), attributes, and
-  // other heavy JSON columns. select('*') on 1441 rows pulls ~3MB into
-  // Vercel's Edge function memory just to throw it away after we read
-  // 2 columns.
+  // The enriched view filters out inactive stores as well as unavailable
+  // products. Project only the two fields needed by the sitemap.
   //
   // CHUNKED PAGINATION (PostgREST hard cap): PostgREST enforces a
   // 1000-row hard cap per request — no Range: 0-9999 bypass works; the
@@ -101,7 +99,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (let page = 0; page < MAX_PAGES; page++) {
     const offset = page * PAGE_SIZE;
     const chunk = await sb
-      .from('products')
+      .from('v_products_with_store')
       .select('slug, updated_at')
       .eq('in_stock', true)
       .range(offset, offset + PAGE_SIZE - 1);

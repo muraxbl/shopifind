@@ -4,22 +4,18 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { sendWishlistPriceAlert } from '@/lib/email/resend';
+import {
+  appendWishlistItem,
+  hasWishlistItem,
+  normalizeWishlistItems,
+  withoutWishlistItem,
+} from '@/lib/wishlist/items';
 
 const AddItemSchema = z.object({
   productId: z.string().uuid(),
-  storeUrl: z.string().url().optional(),
-  priceWhenAdded: z.number().int().nonnegative(),
   notify: z.boolean().default(true),
 });
-
-export type WishlistItem = {
-  product_id: string;
-  store_url?: string;
-  price_when_added: number;
-  notify: boolean;
-  added_at: string;
-};
+const ProductIdSchema = z.string().uuid();
 
 /**
  * Cast result of a typed Supabase query as our row shape.
@@ -44,36 +40,53 @@ export async function addToWishlist(input: z.infer<typeof AddItemSchema>) {
   const parsed = AddItemSchema.parse(input);
   const { supabase, user } = await requireUser();
 
+  // Price and merchant URL are authoritative catalogue data. Never trust
+  // client-supplied values for future price-drop calculations or redirects.
+  const productRes = await supabase
+    .from('v_products_with_store')
+    .select('id, slug, source_url, price_cents')
+    .eq('id', parsed.productId)
+    .eq('in_stock', true)
+    .maybeSingle();
+  const product = productRes.data as {
+    id: string;
+    slug: string;
+    source_url: string;
+    price_cents: number;
+  } | null;
+  if (productRes.error || !product) {
+    throw new Error('El producto ya no está disponible.');
+  }
+
   const row = await readWishlist(supabase, user.id);
-  const items = (row?.items ?? []) as WishlistItem[];
-  if (items.some((it) => it.product_id === parsed.productId)) {
+  const items = normalizeWishlistItems(row?.items);
+  if (hasWishlistItem(items, parsed.productId)) {
     return { ok: true, already: true };
   }
 
-  const next: WishlistItem[] = [
-    ...items,
-    {
-      product_id: parsed.productId,
-      store_url: parsed.storeUrl,
-      price_when_added: parsed.priceWhenAdded,
-      notify: parsed.notify,
-      added_at: new Date().toISOString(),
-    },
-  ];
+  const next = appendWishlistItem(items, {
+    product_id: product.id,
+    store_url: product.source_url,
+    price_when_added: product.price_cents,
+    notify: parsed.notify,
+    added_at: new Date().toISOString(),
+  });
 
   const { error } = await supabase
     .from('wishlists')
     .upsert({ user_id: user.id, items: next, updated_at: new Date().toISOString() } as never);
   if (error) throw new Error(`addToWishlist: ${error.message}`);
   revalidatePath('/wishlist');
+  revalidatePath(`/product/${product.slug}`);
   return { ok: true };
 }
 
 export async function removeFromWishlist(productId: string) {
+  const parsedProductId = ProductIdSchema.parse(productId);
   const { supabase, user } = await requireUser();
   const row = await readWishlist(supabase, user.id);
-  const items = (row?.items ?? []) as WishlistItem[];
-  const next = items.filter((it) => it.product_id !== productId);
+  const items = normalizeWishlistItems(row?.items);
+  const next = withoutWishlistItem(items, parsedProductId);
 
   const { error } = await supabase
     .from('wishlists')
@@ -82,5 +95,3 @@ export async function removeFromWishlist(productId: string) {
   revalidatePath('/wishlist');
   return { ok: true };
 }
-
-export { sendWishlistPriceAlert };

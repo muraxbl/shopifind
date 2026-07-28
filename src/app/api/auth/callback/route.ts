@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { safeNextPath } from '@/lib/auth/redirect';
 
 /**
  * OAuth callback — exchange provider `code` for session cookies and redirect.
@@ -10,7 +11,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
-  const next = url.searchParams.get('next') ?? '/';
+  const next = safeNextPath(url.searchParams.get('next'), '/');
 
   if (code) {
     const supabase = createServerSupabaseClient();
@@ -22,5 +23,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL(next.startsWith('/') ? next : '/', url.origin));
+  return NextResponse.redirect(new URL(next, url.origin));
 }

@@ -95,7 +95,7 @@ export default async function WishlistPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {drops.map(({ product, dropped }) => (
           <div key={product.id} className="relative">
-            <ProductCard product={product} />
+            <ProductCard product={product} wishlisted />
             {dropped && (
               <div className="absolute right-3 top-12 z-10 rounded-md bg-emerald-600 px-2 py-0.5 text-xs font-medium text-white shadow-md">
                 -{Math.round(((dropped.old - dropped.new) / dropped.old) * 100)}%

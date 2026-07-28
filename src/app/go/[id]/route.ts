@@ -17,9 +17,10 @@ export async function GET(
 ) {
   const sb = createServerSupabaseClient();
   const res = await sb
-    .from('products')
+    .from('v_products_with_store')
     .select('id, slug, source_url, affiliate_url')
     .eq('slug', params.id)
+    .eq('in_stock', true)
     .maybeSingle();
 
   const product = res.data as GoProduct | null;
