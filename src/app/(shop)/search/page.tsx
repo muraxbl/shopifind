@@ -6,6 +6,12 @@ import { CompareSelectionProvider } from '@/components/compare/CompareSelection'
 import { Pagination } from '@/components/pagination/Pagination';
 import { AiSearchBox } from '@/components/search/AiSearchBox';
 import { searchProducts } from '@/actions/search';
+import { normalizeEcoTagFilters } from '@/lib/ai/queryIntent';
+import {
+  isSearchSort,
+  normalizeNicheFilter,
+  normalizePriceCents,
+} from '@/lib/search/input';
 import {
   NICHE_FACET,
   DEFAULT_PAGE_SIZE,
@@ -71,32 +77,55 @@ export default async function SearchPage({
     MIN_PAGE_SIZE,
     MAX_PAGE_SIZE,
   );
+  const niche = normalizeNicheFilter(searchParams.niche);
+  const ecoTags = normalizeEcoTagFilters(
+    searchParams.tag ? [searchParams.tag] : [],
+  );
+  const minPrice = normalizePriceCents(
+    searchParams.min ? Number(searchParams.min) * 100 : null,
+  );
+  const maxPrice = normalizePriceCents(
+    searchParams.max ? Number(searchParams.max) * 100 : null,
+  );
+  const sort = isSearchSort(searchParams.sort) ? searchParams.sort : undefined;
+  const hasSearchCriteria =
+    Boolean(q) ||
+    niche !== null ||
+    ecoTags.length > 0 ||
+    minPrice !== null ||
+    maxPrice !== null;
 
   const filters = {
     q,
-    niche: searchParams.niche ?? null,
-    max_price_cents: searchParams.max ? Number(searchParams.max) * 100 : null,
-    min_price_cents: searchParams.min ? Number(searchParams.min) * 100 : null,
-    eco_tags: searchParams.tag ? [searchParams.tag] : [],
-    sort:
-      (searchParams.sort as
-        'relevance' | 'price_asc' | 'price_desc' | 'newest') ?? 'relevance',
+    niche,
+    max_price_cents: maxPrice,
+    min_price_cents: minPrice,
+    eco_tags: ecoTags,
+    sort,
     page,
     pageSize,
   };
 
-  // Run search (or empty list when no query).
-  const result = q ? await searchProducts(filters) : { products: [], total: 0 };
+  // Filter-only URLs are valid searches too (for example ?niche=iluminacion).
+  const result = hasSearchCriteria
+    ? await searchProducts(filters)
+    : { products: [], total: 0 };
   const products = result.products;
   const total = result.total;
+
+  function keepPriceFilters(params: URLSearchParams): void {
+    if (minPrice !== null) params.set('min', String(minPrice / 100));
+    if (maxPrice !== null) params.set('max', String(maxPrice / 100));
+  }
 
   // Sort links — set sort + clear page to 1 (so we land on the new sort's
   // first page instead of carrying over a stale page index).
   function sortHref(sort: 'newest' | 'price_asc' | 'price_desc'): string {
     const p = new URLSearchParams();
     if (q) p.set('q', q);
-    if (searchParams.niche) p.set('niche', searchParams.niche);
-    if (searchParams.tag) p.set('tag', searchParams.tag);
+    if (niche) p.set('niche', niche);
+    if (ecoTags[0]) p.set('tag', ecoTags[0]);
+    keepPriceFilters(p);
     p.set('sort', sort);
     return `/search?${p.toString()}`;
   }
@@ -105,8 +134,9 @@ export default async function SearchPage({
   function nicheHref(nicheId: string): string {
     const p = new URLSearchParams();
     if (q) p.set('q', q);
-    if (searchParams.sort) p.set('sort', searchParams.sort);
-    if (searchParams.tag) p.set('tag', searchParams.tag);
+    if (sort) p.set('sort', sort);
+    if (ecoTags[0]) p.set('tag', ecoTags[0]);
+    keepPriceFilters(p);
     if (nicheId) p.set('niche', nicheId);
     return `/search?${p.toString()}`;
   }
@@ -115,9 +145,10 @@ export default async function SearchPage({
   function tagHref(tag: string): string {
     const p = new URLSearchParams();
     if (q) p.set('q', q);
-    if (searchParams.niche) p.set('niche', searchParams.niche);
-    if (searchParams.sort) p.set('sort', searchParams.sort);
-    p.set('tag', tag);
+    if (niche) p.set('niche', niche);
+    if (sort) p.set('sort', sort);
+    keepPriceFilters(p);
+    if (ecoTags[0] !== tag) p.set('tag', tag);
     return `/search?${p.toString()}`;
   }
 
@@ -134,12 +165,14 @@ export default async function SearchPage({
                 Resultados para{' '}
                 <span className="text-primary">&ldquo;{q}&rdquo;</span>
               </>
+            ) : hasSearchCriteria ? (
+              'Productos filtrados'
             ) : (
               '¿Qué estás buscando?'
             )}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {q
+            {hasSearchCriteria
               ? `${total} producto${total === 1 ? '' : 's'} · página ${page} de ${Math.max(
                   1,
                   Math.ceil(total / pageSize),
@@ -185,8 +218,7 @@ export default async function SearchPage({
             <div className="space-y-1">
               {NICHE_FACET.map((n) => {
                 const active =
-                  (n.id === '' && !searchParams.niche) ||
-                  searchParams.niche === n.id;
+                  (n.id === '' && niche === null) || niche === n.id;
                 return (
                   <a
                     key={n.id || 'all'}
@@ -212,11 +244,11 @@ export default async function SearchPage({
                 'vegan',
                 'eu-made',
                 'recycled',
-                'handmade',
+                'organic',
                 'b-corp',
                 'female-founded',
               ].map((t) => {
-                const active = searchParams.tag === t;
+                const active = ecoTags[0] === t;
                 return (
                   <a
                     key={t}

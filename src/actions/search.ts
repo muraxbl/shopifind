@@ -7,7 +7,12 @@ import {
   parseQueryIntent,
 } from '@/lib/ai/queryIntent';
 import { buildProductTextOrFilter } from '@/lib/search/postgrest';
-import { revalidatePath } from 'next/cache';
+import {
+  isSearchSort,
+  normalizeNicheFilter,
+  normalizePriceCents,
+  type SearchSort,
+} from '@/lib/search/input';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from '@/lib/config';
 
 export type SearchInput = {
@@ -16,7 +21,7 @@ export type SearchInput = {
   eco_tags?: string[];
   min_price_cents?: number | null;
   max_price_cents?: number | null;
-  sort?: 'relevance' | 'price_asc' | 'price_desc' | 'newest';
+  sort?: SearchSort;
   /** 1-indexed page number; default 1. */
   page?: number;
   /** Items per page; default DEFAULT_PAGE_SIZE; clamped to [MIN, MAX]. */
@@ -58,13 +63,17 @@ export async function searchProducts(
 ): Promise<SearchResult> {
   const q = normalizeSearchQuery(input.q ?? '');
   const ecoTags = normalizeEcoTagFilters(input.eco_tags ?? []);
+  const niche = normalizeNicheFilter(input.niche);
+  const minPrice = normalizePriceCents(input.min_price_cents);
+  const maxPrice = normalizePriceCents(input.max_price_cents);
+  const requestedSort = isSearchSort(input.sort) ? input.sort : undefined;
 
   const hasAnyFilter =
     !!q ||
-    !!input.niche ||
+    !!niche ||
     ecoTags.length > 0 ||
-    input.min_price_cents != null ||
-    input.max_price_cents != null;
+    minPrice !== null ||
+    maxPrice !== null;
   if (!hasAnyFilter) {
     return { products: [], total: 0 };
   }
@@ -74,12 +83,11 @@ export async function searchProducts(
   // 1. Run the AI intent parser if needed.
   let parsed = {
     text: q,
-    niche: (input.niche ?? null) as string | null,
+    niche,
     eco_tags_any: ecoTags,
-    min_price_cents: (input.min_price_cents ?? null) as number | null,
-    max_price_cents: (input.max_price_cents ?? null) as number | null,
-    sort: (input.sort ?? 'relevance') as
-      'relevance' | 'price_asc' | 'price_desc' | 'newest',
+    min_price_cents: minPrice,
+    max_price_cents: maxPrice,
+    sort: requestedSort ?? 'relevance',
   };
 
   if (q && process.env.OPENAI_API_KEY) {
@@ -99,7 +107,7 @@ export async function searchProducts(
             : intent.eco_tags_any,
         min_price_cents: parsed.min_price_cents ?? intent.min_price_cents,
         max_price_cents: parsed.max_price_cents ?? intent.max_price_cents,
-        sort: input.sort ?? intent.sort,
+        sort: requestedSort ?? intent.sort,
       };
     } catch (e) {
       console.warn('[search] AI intent fallback:', e);

@@ -275,11 +275,11 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 |---|---|---|
 | `/` | ✅ live | Hero con AiSearchBox · 4 niche chips · 8 productos featured `last_seen_at DESC` · `<canonical>` + `og:url` apuntando a SITE_CONFIG.url. |
 | `/explore/<niche>` | ✅ live | Pagination server-side (24/page, safeOffset=1000) · chips de nicho · spotlight de colección (Cuando iluminacion → `verano-techos-led`). ISR `revalidate=60`. |
-| `/search` | ✅ live | DRY-up facet (NICHE_FACET, 4 niches + "Todos") · AI intent parser (gated por `OPENAI_API_KEY`) · pagination · ningún resultado ≠ error. |
+| `/search` | ✅ live | DRY-up facet (NICHE_FACET, 4 niches + "Todos") · AI intent parser · filtros sin texto · parámetros URL validados · pagination · selector de comparación. |
 | `/collections/<slug>` | ✅ live | 4 colecciones (1 SF + 3 iluminación verano) · JSON-LD `ItemList` + `Product/ Offer` schema · rich snippets Google. |
 | `/go/[id]` | ✅ live | Server-side 302 a Skimlinks con `xcust=shopifind-<slug>` · bloqueado en robots. |
 | `/product/<slug>` | ✅ live | PDP verificada: metadatos, CTA afiliado, información de tienda y wishlist real. |
-| `/compare?ids=...` | ✅ código listo | Comparador manual de 2-5 productos, `noindex`, atributos normalizados, mejor precio sólo entre monedas iguales y CTA afiliado por producto. Pendiente smoke live del primer deploy. |
+| `/compare?ids=...` | ✅ live | Comparador manual de 2-5 productos, `noindex`, atributos normalizados, mejor precio sólo entre monedas iguales y CTA afiliado por producto; smoke E2E con dos filas reales. |
 | `/wishlist` | ✅ live | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto. |
 | `/account` | ✅ código listo | Perfil owner-only: nombre, preferencias de nicho, plan visible y logout local. Falta smoke E2E con sesión real tras corregir M-1. |
 | `/login` + `/api/auth/callback` | ⚠ código live / config externa pendiente | Middleware protege `/wishlist`, `/account`, `/settings`; magic link necesita corregir redirects/plantilla en Supabase y Google requiere habilitar su provider. |
@@ -288,7 +288,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/legal` / `/privacy` / `/about` | ✅ Markdown scaffold | Páginas-estatic SEO/disclaimer. |
 | `/api/products/*` + `/api/auth/*` | ✅ implementado | Handlers server-side desplegados; los providers OAuth siguen dependiendo de configuración externa. |
 | `/api/webhooks/skimlinks` | ⚠ receiver live / E2E pendiente | Valida tamaño, CIDR, HMAC, payload y replay; inserta con dedupe. Falta conectar Skimlinks y probar evento real. |
-| `/api/test/*` | ⚠ revisar antes de launch público | Rutas de diagnóstico desplegadas; retirar o restringir cuando ya no sean necesarias. |
+| `/api/test/*` | ✅ restringido | Gate default-deny y bloqueo absoluto en `NODE_ENV=production`; GET/POST verificados con 404 en `shopifind.app`. |
 
 ### Features cross-cutting
 
@@ -441,6 +441,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **16** | Account + profiles | `src/app/(shop)/account` + `src/actions/profile.ts` | `/account` owner-only, edición validada de nombre/nichos, plan visible, logout local, navegación responsive; 10 tests totales y build limpio. |
 | **17** | AI search contract hardening | `src/lib/ai/queryIntent.ts` + `src/lib/search/postgrest.ts` | Iluminación soportada, tags catalog-backed, filtros puros, URL precedence, límite/timeout, escape PostgREST y fallback cubiertos; 16 tests y consulta read-only real validada. |
 | **18** | Comparador manual MVP | `src/components/compare` + `/(shop)/compare` | Selección de 2-5 cards, URL validada y acotada, tabla `noindex`, atributos agrupados, comparativa de precios segura por moneda y CTAs `/go`; 19 tests totales y build limpio. |
+| **19** | Search filter-only + URL hardening | `src/lib/search/input.ts` + `/(shop)/search` | Nicho/eco-tag/precio funcionan sin texto, enums y cifras se validan en runtime, eco-tag rápido respaldado por catálogo y toggle para limpiar; 21 tests totales. |
 
 ### Métricas post-deploy
 
@@ -452,7 +453,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 19/19 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 21/21 · rc=0 · rc=0 |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---
@@ -523,7 +524,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **B-3** | **Refresh incremental + snapshots de precio** | B-2 + decisión de scheduler | Actualizar feed masterled y registrar cambios sin duplicar histórico. |
 | **B-4** | **Alertas de bajada** | B-1, B-2, B-3 + Resend | UI en PDP/cuenta, modos any-drop/target/percentage, cron y email idempotente. |
 | **B-5** | ✅ **Corregir AI search actual** | nada | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship. |
-| **B-6** | ✅ **Comparador manual MVP** | nada | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”. Pendiente únicamente smoke live del primer deploy. |
+| **B-6** | ✅ **Comparador manual MVP** | nada | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado. |
 | **B-7** | **Segundo merchant de iluminación** | sourcing/onboarding owner | Desbloquea comparación automática y cobertura real de precios en el vertical principal. |
 
 ### 🟡 Después del núcleo
@@ -533,7 +534,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **B-8** | **Comparación automática cross-store** | Requiere segundo merchant y una estrategia explícita de matching/canonical SKU. |
 | **B-9** | **Embeddings / similarity search** | Sólo después de medir la búsqueda estructurada corregida; estimar coste y latencia con datos reales. |
 | **B-10** | **Sustituir merchants/URLs placeholder** | Ocultar inmediatamente cualquier fila no real; reactivar tras sourcing. |
-| **B-11** | **Retirar o restringir `/api/test/*`** | Hacerlo antes de ampliar tráfico o activar cuentas reales. |
+| **B-11** | ✅ **Restringir `/api/test/*`** | Ya existe gate absoluto de producción y ambas rutas devuelven 404 en live. |
 | **B-12** | **AdSense** | `/search` está bloqueado en robots; no describirlo como página indexable. Esperar tráfico y revisar CWV/UX. |
 | **B-13** | Gift finder, featured stores, newsletter, marca EUIPO | Expansión una vez medidos search → PDP → click-out y retención. |
 
