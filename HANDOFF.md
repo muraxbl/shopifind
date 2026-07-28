@@ -134,7 +134,7 @@
 | Lenguaje | **TypeScript** | 5.4.5 | `strict` + `noUncheckedIndexedAccess`. Genera `.tsbuildinfo` cacheado. |
 | UI | **Tailwind** + **shadcn/ui** + **Radix** + **Lucide** | 3.4 / latest | Radix primitives para dialog/popover/tabs/toast. shadcn wrapper. |
 | Auth + DB | **Supabase** (`@supabase/ssr` + `supabase-js`) | ssr 0.12 / js 2.43 | Service-role key SOLO server-side. |
-| AI | **OpenAI** (`gpt-4o-mini`) | 4.47 | `response_format: json_schema` (Structured Outputs). T=0, max_tokens=200. |
+| AI | **OpenAI** (`OPENAI_SEARCH_MODEL`, default `gpt-4o-mini`) | 4.47 | Chat Completions + Structured Outputs. 4s timeout, sin retry, fallback literal. |
 | Affiliate | **Skimlinks** (publisher `306854X1795120`) | — | `go.redirectingat.com` con `xcust=shopifind-<slug>`. |
 | Email | **Resend** (planned) | 3.2 | Templates pendientes — wireup ya creado (`src/lib/email/resend.ts`). |
 | CRM email | **react-hook-form** + **zod** | 7.51 / 3.23 | Formularios de captura + validación. |
@@ -310,16 +310,15 @@ Structured Outputs schema (strict, Zod-validated):
 ```ts
 {
   text: string,                          // "zellige rug" limpio / '' si solo filtros
-  niche: 'sustainable-fashion'|'indie-gadgets'|'home-deco'|null,
-  eco_tags_any: string[],                 // vegan, eu-made, b-corp, organic, …
+  niche: 'sustainable-fashion'|'indie-gadgets'|'home-deco'|'iluminacion'|null,
+  eco_tags_any: SearchEcoTag[],           // sólo tags generadas por los seeds, máximo 5
   max_price_cents: number|null,           // 8000 = €80
   min_price_cents: number|null,
-  attributes: Record<string, string>,      // {material:'wool', color:'blue'}
   sort: 'relevance'|'price_asc'|'price_desc'|'newest'
 }
 ```
 
-Si OpenAI está caído o schema validation falla → fallback a `{ text: <literal>, niche: null, ...}` + búsqueda plaintext. **URL params siempre ganan**. Deuda actual: el schema todavía omite `iluminacion` y `searchProducts` no aplica `attributes`; corregir esto antes de añadir embeddings.
+Si OpenAI está caído, tarda más de 4s o schema validation falla → fallback literal. **URL params siempre ganan**, incluido `sort`. Las queries se limitan a 240 caracteres y los valores del `.or()` PostgREST se entrecomillan para que comas/paréntesis no alteren la gramática. `attributes` se retiró del intent hasta que exista ejecución SQL real para ese campo.
 
 ---
 
@@ -439,6 +438,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **14** | Domain final enlazado Vercel | `shopifind.app` | DNS A + TXT configured. |
 | **15** | Auth/wishlist/PDP hardening + tests | `fcad59b`, `98189ff` | Redirects internos saneados, middleware activo en `src/`, wishlist real, datos autoritativos server-side, sitemap y `/go` excluyen catálogo inactivo; 7 tests y smoke live. |
 | **16** | Account + profiles | `src/app/(shop)/account` + `src/actions/profile.ts` | `/account` owner-only, edición validada de nombre/nichos, plan visible, logout local, navegación responsive; 10 tests totales y build limpio. |
+| **17** | AI search contract hardening | `src/lib/ai/queryIntent.ts` + `src/lib/search/postgrest.ts` | Iluminación soportada, tags catalog-backed, filtros puros, URL precedence, límite/timeout, escape PostgREST y fallback cubiertos; 16 tests y consulta read-only real validada. |
 
 ### Métricas post-deploy
 
@@ -450,7 +450,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 7/7 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 16/16 · rc=0 · rc=0 |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---
@@ -520,7 +520,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **B-2** | 🟡 **Modelo relacional de precios y alertas** | aprobación/aplicación de migración | Schema, trigger, RLS, ledger idempotente y tipos preparados localmente; NO aplicado aún a Cloud. |
 | **B-3** | **Refresh incremental + snapshots de precio** | B-2 + decisión de scheduler | Actualizar feed masterled y registrar cambios sin duplicar histórico. |
 | **B-4** | **Alertas de bajada** | B-1, B-2, B-3 + Resend | UI en PDP/cuenta, modos any-drop/target/percentage, cron y email idempotente. |
-| **B-5** | **Corregir AI search actual** | nada | Añadir `iluminacion`, aplicar/retirar `attributes`, limitar filtros y añadir tests de intención/fallback antes de embeddings. |
+| **B-5** | ✅ **Corregir AI search actual** | verificar `OPENAI_API_KEY` en Vercel para E2E | Contrato corregido y validado; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship. |
 | **B-6** | **Comparador manual MVP** | nada para picker básico | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirmar “mismo producto”. |
 | **B-7** | **Segundo merchant de iluminación** | sourcing/onboarding owner | Desbloquea comparación automática y cobertura real de precios en el vertical principal. |
 

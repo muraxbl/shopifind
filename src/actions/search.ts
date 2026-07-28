@@ -1,7 +1,12 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { parseQueryIntent } from '@/lib/ai/queryIntent';
+import {
+  normalizeEcoTagFilters,
+  normalizeSearchQuery,
+  parseQueryIntent,
+} from '@/lib/ai/queryIntent';
+import { buildProductTextOrFilter } from '@/lib/search/postgrest';
 import { revalidatePath } from 'next/cache';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from '@/lib/config';
 
@@ -48,13 +53,16 @@ function clampPage(raw: number | undefined): number {
   return Math.floor(n);
 }
 
-export async function searchProducts(input: SearchInput): Promise<SearchResult> {
-  const q = (input.q ?? '').trim();
+export async function searchProducts(
+  input: SearchInput,
+): Promise<SearchResult> {
+  const q = normalizeSearchQuery(input.q ?? '');
+  const ecoTags = normalizeEcoTagFilters(input.eco_tags ?? []);
 
   const hasAnyFilter =
     !!q ||
     !!input.niche ||
-    !!input.eco_tags?.length ||
+    ecoTags.length > 0 ||
     input.min_price_cents != null ||
     input.max_price_cents != null;
   if (!hasAnyFilter) {
@@ -67,23 +75,31 @@ export async function searchProducts(input: SearchInput): Promise<SearchResult> 
   let parsed = {
     text: q,
     niche: (input.niche ?? null) as string | null,
-    eco_tags_any: (input.eco_tags ?? []) as string[],
+    eco_tags_any: ecoTags,
     min_price_cents: (input.min_price_cents ?? null) as number | null,
     max_price_cents: (input.max_price_cents ?? null) as number | null,
-    sort: (input.sort ?? 'relevance') as 'relevance' | 'price_asc' | 'price_desc' | 'newest',
+    sort: (input.sort ?? 'relevance') as
+      'relevance' | 'price_asc' | 'price_desc' | 'newest',
   };
 
   if (q && process.env.OPENAI_API_KEY) {
     try {
       const intent = await parseQueryIntent(q);
+      const hasStructuredIntent =
+        intent.niche !== null ||
+        intent.eco_tags_any.length > 0 ||
+        intent.min_price_cents !== null ||
+        intent.max_price_cents !== null;
       parsed = {
-        text: intent.text || q,
+        text: intent.text || (hasStructuredIntent ? '' : q),
         niche: parsed.niche ?? intent.niche,
         eco_tags_any:
-          parsed.eco_tags_any.length > 0 ? parsed.eco_tags_any : intent.eco_tags_any,
+          parsed.eco_tags_any.length > 0
+            ? parsed.eco_tags_any
+            : intent.eco_tags_any,
         min_price_cents: parsed.min_price_cents ?? intent.min_price_cents,
         max_price_cents: parsed.max_price_cents ?? intent.max_price_cents,
-        sort: intent.sort || parsed.sort,
+        sort: input.sort ?? intent.sort,
       };
     } catch (e) {
       console.warn('[search] AI intent fallback:', e);
@@ -99,7 +115,7 @@ export async function searchProducts(input: SearchInput): Promise<SearchResult> 
     .from('v_products_with_store')
     .select(
       'id, slug, title, price_cents, currency, image_url, store_name, store_slug, niche, eco_tags, store_eco_score',
-      { count: 'exact' }
+      { count: 'exact' },
     )
     .eq('in_stock', true);
 
@@ -107,17 +123,21 @@ export async function searchProducts(input: SearchInput): Promise<SearchResult> 
     // ILIKE wildcards (% _) from user input intentionally remain as wildcards —
     // they're search hints, not regex noise. Strip them would surprise the user
     // when they type "100%" or "M_XX" (likely real product names).
-    query = query.or(
-      `title.ilike.%${parsed.text}%,description.ilike.%${parsed.text}%`
-    );
+    query = query.or(buildProductTextOrFilter(parsed.text));
   }
   if (parsed.niche) query = query.eq('niche', parsed.niche);
-  if (parsed.eco_tags_any.length) query = query.overlaps('eco_tags', parsed.eco_tags_any);
-  if (parsed.min_price_cents != null) query = query.gte('price_cents', parsed.min_price_cents);
-  if (parsed.max_price_cents != null) query = query.lte('price_cents', parsed.max_price_cents);
-  if (parsed.sort === 'price_asc')  query = query.order('price_cents', { ascending: true });
-  if (parsed.sort === 'price_desc') query = query.order('price_cents', { ascending: false });
-  if (parsed.sort === 'newest')     query = query.order('updated_at', { ascending: false });
+  if (parsed.eco_tags_any.length)
+    query = query.overlaps('eco_tags', parsed.eco_tags_any);
+  if (parsed.min_price_cents != null)
+    query = query.gte('price_cents', parsed.min_price_cents);
+  if (parsed.max_price_cents != null)
+    query = query.lte('price_cents', parsed.max_price_cents);
+  if (parsed.sort === 'price_asc')
+    query = query.order('price_cents', { ascending: true });
+  if (parsed.sort === 'price_desc')
+    query = query.order('price_cents', { ascending: false });
+  if (parsed.sort === 'newest')
+    query = query.order('updated_at', { ascending: false });
 
   // .range(offset, offset+pageSize-1) — PostgREST inclusive end. Cap
   // offset to 1000 to avoid Postgres statement-timeout / deep-pagination
@@ -134,11 +154,14 @@ export async function searchProducts(input: SearchInput): Promise<SearchResult> 
   // 3. Best-effort history capture (fire-and-forget — non-critical).
   void sb
     .from('search_history')
-    .insert(
-      { query: q.slice(0, 200), filters: parsed, results_count: data?.length ?? 0 } as never
-    )
+    .insert({
+      query: q.slice(0, 200),
+      filters: parsed,
+      results_count: data?.length ?? 0,
+    } as never)
     .then(({ error: histErr }) => {
-      if (histErr) console.warn('[search] history insert skipped:', histErr.message);
+      if (histErr)
+        console.warn('[search] history insert skipped:', histErr.message);
     });
 
   // No revalidatePath('/search') here — the page already uses
