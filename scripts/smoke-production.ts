@@ -121,6 +121,34 @@ async function main(): Promise<void> {
       },
     },
     {
+      name: "cabeceras de seguridad",
+      run: async () => {
+        const response = await request(baseUrl);
+        expectStatus(response, 200);
+        const csp = response.headers.get("content-security-policy") ?? "";
+        for (const directive of [
+          "default-src 'self'",
+          "object-src 'none'",
+          "frame-ancestors 'none'",
+          "upgrade-insecure-requests",
+        ]) {
+          expectText(csp, directive, `directiva CSP ${directive}`);
+        }
+        expectText(
+          response.headers.get("permissions-policy") ?? "",
+          "camera=()",
+          "Permissions-Policy",
+        );
+        if (response.headers.has("x-powered-by")) {
+          throw new Error("X-Powered-By sigue publicado");
+        }
+        if (response.headers.get("x-frame-options") !== "DENY") {
+          throw new Error("X-Frame-Options no es DENY");
+        }
+        return "CSP + permisos + anti-frame";
+      },
+    },
+    {
       name: "search sin texto",
       run: async () => {
         const response = await request(siteUrl(baseUrl, "/search?sort=newest"));

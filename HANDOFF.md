@@ -452,7 +452,8 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **24** | Telemetría interna fiable | `src/lib/analytics/*` | Búsquedas y click-outs se escriben con cliente anónimo y operación esperada; eventos estructurados, total real y paginación. Plausible sigue sin configurar. |
 | **25** | PDP SEO + share real | `src/lib/seo/jsonLd.ts` + `ShareButton` | Canonical/OG URL, Product/Offer con seller honesto, serialización anti-`</script>` y Web Share/clipboard; JSON-LD de colecciones corregido. |
 | **26** | Upgrade de seguridad Next.js 15 | `package.json` + `pnpm-workspace.yaml` + migración de APIs dinámicas | Next 15.5.22, pnpm 11.17 fijado, dependencias transitivas vulnerables parcheadas por override; build de producción y 39 tests pasan y `pnpm audit` completo reporta 0 vulnerabilidades. |
-| **27** | Smoke de release automatizado | `scripts/smoke-production.ts` | 14 checks read-only descubren una PDP desde sitemap y validan navegación, paginación, auth, robots, SEO, imágenes, Skimlinks, cron y ocultación de APIs de test. |
+| **27** | Smoke de release automatizado | `scripts/smoke-production.ts` | 15 checks read-only descubren una PDP desde sitemap y validan navegación, paginación, auth, cabeceras, robots, SEO, imágenes, Skimlinks, cron y ocultación de APIs de test. |
+| **28** | Hardening de cabeceras web | `next.config.mjs` + `docs/security-headers.md` | CSP compatible con ISR, Permissions-Policy, anti-frame estricto y COOP; `X-Powered-By` eliminado y el smoke ampliado para impedir regresiones. |
 
 ### Métricas post-deploy
 
