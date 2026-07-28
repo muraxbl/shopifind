@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { MAX_PAGE_NUMBER } from '@/lib/search/input';
 
 /**
  * Server Component — offset-based pagination nav rendered below a list of
@@ -54,7 +55,10 @@ export function Pagination({
   basePath,
   queryParams = {},
 }: PaginationProps) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const totalPages = Math.min(
+    MAX_PAGE_NUMBER,
+    Math.max(1, Math.ceil(total / pageSize)),
+  );
   if (totalPages <= 1) return null;
 
   const hasPrev = currentPage > 1;

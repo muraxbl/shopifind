@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   isSearchSort,
+  normalizePageNumber,
   normalizeNicheFilter,
   normalizePriceCents,
 } from '../src/lib/search/input';
@@ -20,4 +21,12 @@ test('price filters accept finite non-negative cents only', () => {
   assert.equal(normalizePriceCents(Number.NaN), null);
   assert.equal(normalizePriceCents(Number.POSITIVE_INFINITY), null);
   assert.equal(normalizePriceCents('1200'), null);
+});
+
+test('page numbers are finite positive integers capped at 100', () => {
+  assert.equal(normalizePageNumber(undefined), 1);
+  assert.equal(normalizePageNumber('-4'), 1);
+  assert.equal(normalizePageNumber('2.9'), 2);
+  assert.equal(normalizePageNumber(101), 100);
+  assert.equal(normalizePageNumber(Number.POSITIVE_INFINITY), 1);
 });

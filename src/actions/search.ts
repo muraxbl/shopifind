@@ -9,6 +9,7 @@ import {
 import { buildProductTextOrFilter } from '@/lib/search/postgrest';
 import {
   isSearchSort,
+  normalizePageNumber,
   normalizeNicheFilter,
   normalizePriceCents,
   type SearchSort,
@@ -54,12 +55,6 @@ function clampPageSize(raw: number | undefined): number {
   return Math.min(MAX_PAGE_SIZE, Math.max(MIN_PAGE_SIZE, Math.floor(n)));
 }
 
-function clampPage(raw: number | undefined): number {
-  const n = raw ?? 1;
-  if (!Number.isFinite(n) || n < 1) return 1;
-  return Math.floor(n);
-}
-
 export async function searchProducts(
   input: SearchInput,
 ): Promise<SearchResult> {
@@ -75,7 +70,8 @@ export async function searchProducts(
     !!niche ||
     ecoTags.length > 0 ||
     minPrice !== null ||
-    maxPrice !== null;
+    maxPrice !== null ||
+    requestedSort !== undefined;
   if (!hasAnyFilter) {
     return { products: [], total: 0 };
   }
@@ -118,7 +114,7 @@ export async function searchProducts(
 
   // 2. Single DB call with offset pagination + count headers.
   const pageSize = clampPageSize(input.pageSize);
-  const page = clampPage(input.page);
+  const page = normalizePageNumber(input.page);
   const offset = (page - 1) * pageSize;
 
   let query = sb
@@ -149,11 +145,9 @@ export async function searchProducts(
   if (parsed.sort === 'newest')
     query = query.order('updated_at', { ascending: false });
 
-  // .range(offset, offset+pageSize-1) — PostgREST inclusive end. Cap
-  // offset to 1000 to avoid Postgres statement-timeout / deep-pagination
-  // pathology. Users navigating past 1000 items can use narrower filters.
-  const safeOffset = Math.min(offset, 1000);
-  query = query.range(safeOffset, safeOffset + pageSize - 1);
+  // PostgREST uses an inclusive range. Page input is bounded to 100, which
+  // limits offset cost without repeating the page at an artificial offset.
+  query = query.range(offset, offset + pageSize - 1);
 
   const { data, count, error } = await query;
   if (error) {

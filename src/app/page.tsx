@@ -122,7 +122,7 @@ export default async function Home() {
             {
               icon: <Heart className="h-5 w-5" />,
               title: 'Tu wishlist universal',
-              copy: 'Guarda productos de cualquier tienda en una sola lista. Te avisamos cuando baja el precio o vuelven a estar en stock.',
+              copy: 'Guarda productos de cualquier tienda en una sola lista. Las alertas de bajada están en preparación y se activarán cuando el servicio de email esté listo.',
             },
           ].map((card) => (
             <div
@@ -149,7 +149,7 @@ export default async function Home() {
             </p>
           </div>
           <Button asChild variant="outline" size="sm">
-            <Link href="/explore/sustainable-fashion">
+            <Link href="/search?sort=newest">
               Ver todo <ArrowRight className="ml-1 h-3.5 w-3.5" />
             </Link>
           </Button>

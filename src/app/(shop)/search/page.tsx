@@ -9,6 +9,7 @@ import { searchProducts } from '@/actions/search';
 import { normalizeEcoTagFilters } from '@/lib/ai/queryIntent';
 import {
   isSearchSort,
+  normalizePageNumber,
   normalizeNicheFilter,
   normalizePriceCents,
 } from '@/lib/search/input';
@@ -70,7 +71,7 @@ export default async function SearchPage({
   searchParams: SearchParams;
 }) {
   const q = (searchParams.q ?? '').trim();
-  const page = clampInt(searchParams.page, 1, 1, Number.MAX_SAFE_INTEGER);
+  const page = normalizePageNumber(searchParams.page);
   const pageSize = clampInt(
     searchParams.page_size,
     DEFAULT_PAGE_SIZE,
@@ -93,7 +94,8 @@ export default async function SearchPage({
     niche !== null ||
     ecoTags.length > 0 ||
     minPrice !== null ||
-    maxPrice !== null;
+    maxPrice !== null ||
+    sort !== undefined;
 
   const filters = {
     q,
@@ -166,7 +168,9 @@ export default async function SearchPage({
                 <span className="text-primary">&ldquo;{q}&rdquo;</span>
               </>
             ) : hasSearchCriteria ? (
-              'Productos filtrados'
+              sort && !niche && ecoTags.length === 0 && minPrice === null && maxPrice === null
+                ? 'Catálogo'
+                : 'Productos filtrados'
             ) : (
               '¿Qué estás buscando?'
             )}

@@ -13,6 +13,7 @@ import {
   MIN_PAGE_SIZE,
 } from '@/lib/config';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { normalizePageNumber } from '@/lib/search/input';
 
 type ProductHit = Parameters<typeof ProductGrid>[0]['products'][number];
 
@@ -22,9 +23,6 @@ async function fetchProductsByNiche(
   offset: number
 ): Promise<{ products: ProductHit[]; total: number }> {
   const sb = createServerSupabaseClient();
-  // Cap offset to 1000 to avoid Postgres statement-timeout pathology for
-  // extreme deep pagination. Users beyond 1000 should narrow filters.
-  const safeOffset = Math.min(offset, 1000);
   const { data, count } = await sb
     .from('v_products_with_store')
     .select(
@@ -33,7 +31,7 @@ async function fetchProductsByNiche(
     )
     .eq('niche', niche)
     .eq('in_stock', true)
-    .range(safeOffset, safeOffset + pageSize - 1);
+    .range(offset, offset + pageSize - 1);
   return {
     products: (data ?? []) as ProductHit[],
     total: typeof count === 'number' ? count : 0,
@@ -79,11 +77,7 @@ export default async function ExploreNichePage({
   const meta = NICHE_LABEL[niche];
 
   // Pagination (server-clamped so users can't pass page=-1 or page_size=9999).
-  const page = (() => {
-    const n = Number(searchParams.page);
-    if (!Number.isFinite(n) || n < 1) return 1;
-    return Math.floor(n);
-  })();
+  const page = normalizePageNumber(searchParams.page);
   const pageSize = (() => {
     const n = Number(searchParams.page_size);
     if (!Number.isFinite(n) || n < MIN_PAGE_SIZE) return DEFAULT_PAGE_SIZE;

@@ -9,6 +9,19 @@ export const SEARCH_SORTS = [
 
 export type SearchSort = (typeof SEARCH_SORTS)[number];
 
+export const MAX_PAGE_NUMBER = 100;
+
+export function normalizePageNumber(value: unknown): number {
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim()
+        ? Number(value)
+        : Number.NaN;
+  if (!Number.isFinite(parsed) || parsed < 1) return 1;
+  return Math.min(MAX_PAGE_NUMBER, Math.floor(parsed));
+}
+
 export function isSearchSort(value: unknown): value is SearchSort {
   return (
     typeof value === 'string' &&

@@ -274,7 +274,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | Ruta | Status | Notas |
 |---|---|---|
 | `/` | ✅ live | Hero con AiSearchBox · 4 niche chips · 8 productos featured `last_seen_at DESC` · `<canonical>` + `og:url` apuntando a SITE_CONFIG.url. |
-| `/explore/<niche>` | ✅ live | Pagination server-side (24/page, safeOffset=1000) · chips de nicho · spotlight de colección (Cuando iluminacion → `verano-techos-led`). ISR `revalidate=60`. |
+| `/explore/<niche>` | ✅ live | Paginación server-side (24/page, máximo 100 páginas) · chips de nicho · spotlight de colección (Cuando iluminacion → `verano-techos-led`). ISR `revalidate=60`. |
 | `/search` | ✅ live | DRY-up facet (NICHE_FACET, 4 niches + "Todos") · AI intent parser · filtros sin texto · parámetros URL validados · pagination · selector de comparación. |
 | `/collections/<slug>` | ✅ live | 4 colecciones (1 SF + 3 iluminación verano) · JSON-LD `ItemList` + `Product/ Offer` schema · rich snippets Google. |
 | `/go/[id]` | ✅ live | Server-side 302 a Skimlinks con `xcust=shopifind-<slug>` · bloqueado en robots. |
@@ -297,7 +297,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | Feature | Componente | Status |
 |---|---|---|
 | **AI conversational search** | `src/lib/ai/queryIntent.ts` + `src/actions/search.ts` | ✅ wired · fallback gracioso si no hay `OPENAI_API_KEY`. |
-| **Server-side pagination** | `src/components/pagination/Pagination.tsx` | ✅ DRY-up via `NICHE_FACET`, `DEFAULT_PAGE_SIZE=24`, clamp `[12, 96]`. |
+| **Server-side pagination** | `src/components/pagination/Pagination.tsx` | ✅ page size `[12, 96]`, máximo 100 páginas y offset real sin tandas repetidas. |
 | **JSON-LD ItemList** | `src/app/(shop)/collections/[slug]/page.tsx` | ✅ validado Google Rich Results. |
 | **Supabase Auth SSR refresh** | `src/middleware.ts` | ✅ smoke tested: anónimo en `/wishlist` recibe 307; rutas con prefijo parecido no quedan bloqueadas. |
 | **Skimlinks affiliate redirect** | `src/app/go/[id]/route.ts` + `src/lib/skimlinks.ts` | ✅ publisher `306854X1795120`. |
@@ -461,7 +461,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 36/36 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 37/37 · rc=0 · rc=0 |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---
@@ -485,7 +485,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 
 ### Next.js / SEO
 
-10. **`safeOffset=1000`** en `searchProducts` — protección contra Postgres statement-timeout (>44s). Usabilidad: usuarios que naveguen a p42+ ven grid vacío. Mitigable con cursor pagination si tráfico lo justifica.
+10. **Paginación acotada a 100 páginas**: todas las rutas usan el offset real y normalizan inputs; no volver a usar `Math.min(offset, 1000)`, porque repetía la misma tanda en páginas profundas. Si el catálogo supera esa ventana, migrar a cursor pagination.
 11. **`/sitemap.xml` revalidate=3600**: ISR funciona, pero si editas el código del sitemap **sin** esperar ISR, Googlebot verá la versión cacheada. Para forzar refresh: 1) redeploy, o 2) `curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(date +%s)`.
 12. **`<loc>` debe ser absolute URL** (sitemap protocol). `SITE_CONFIG.url.replace(/\/+$/, '')` quita trailing slash antes de concatenar.
 13. **canonical + og:url** en `metadata` de cada page export → consolidación de signals en GSC + share cards correctas en Twitter/LinkedIn/Facebook.
@@ -622,7 +622,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - **chips** — los badges verdes/little icons que se ven en product card (vegan, eu-made, recycled, …).
 - **capsule / capsule editorial** — `editorial_collections` row, ej. `ethical-staples`, `verano-techos-led`.
 - **dry-run vs write** — todos los scripts `seed-*` aceptan `--dry-run` (no insert, sólo report) y `--write` (commit a DB). Patrón: dry-run primero, leer el plan, luego write.
-- **safeOffset cliff** — UX boundary en pagination: >p42 el grid sale vacío por el `safeOffset=1000` cap. UX trade-off vs Postgres latency.
+- **Ventana de paginación** — máximo 100 páginas con offset real; si el catálogo crece más allá, sustituir por cursores en vez de reintroducir un offset truncado.
 - **Skylinks / Skimlinks** — typos que nos han salido; la grafía correcta es **Skimlinks**.
 
 ---
