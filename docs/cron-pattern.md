@@ -2,8 +2,9 @@
 
 ## Estado
 
-El handler `GET /api/cron/refresh-masterled` está preparado, pero **no está
-programado en `vercel.json`**. Mantenerlo así hasta completar todos los
+Los handlers `GET /api/cron/refresh-masterled` y
+`GET /api/cron/process-price-alerts` están preparados, pero **no están
+programados en `vercel.json`**. Mantenerlos así hasta completar todos los
 prerrequisitos de activación.
 
 ## Contrato de seguridad
@@ -20,19 +21,30 @@ prerrequisitos de activación.
   lotes del feed hayan terminado correctamente.
 - El trigger de `price_history` registra únicamente cambios de precio, moneda
   o stock, por lo que una invocación duplicada no duplica snapshots.
+- El worker evalúa el último estado disponible, encola mediante una clave
+  única alerta/snapshot, reclama cada entrega con estado `processing` y usa
+  `Idempotency-Key` en Resend. Los target/percentage son one-shot; any-drop
+  mantiene como nueva referencia el último precio evaluado.
+- Un email pendiente se omite si el producto ya está agotado o su precio actual
+  ya no coincide con el snapshot, evitando avisos obsoletos.
 
 ## Prerrequisitos de activación
 
 1. Aplicar `supabase/migrations/20260728190000_price_history_alerts.sql` en
    Supabase Cloud y regenerar tipos.
 2. Configurar en Vercel, sin compartir valores por chat:
-   `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` y `MASTERLED_FEED_URL`.
+   `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `MASTERLED_FEED_URL`,
+   `RESEND_API_KEY` y `RESEND_FROM_EMAIL` (dominio verificado).
 3. Invocar manualmente el deployment de producción desde un terminal seguro:
 
    ```bash
    curl --fail-with-body \
      -H "Authorization: Bearer $CRON_SECRET" \
      https://shopifind.app/api/cron/refresh-masterled
+
+   curl --fail-with-body \
+     -H "Authorization: Bearer $CRON_SECRET" \
+     https://shopifind.app/api/cron/process-price-alerts
    ```
 
 4. Verificar el JSON de resultado, el histórico creado y una muestra de PDPs.
@@ -44,6 +56,10 @@ prerrequisitos de activación.
        {
          "path": "/api/cron/refresh-masterled",
          "schedule": "15 3 * * *"
+       },
+       {
+         "path": "/api/cron/process-price-alerts",
+         "schedule": "15 4 * * *"
        }
      ]
    }
@@ -61,3 +77,4 @@ Fuentes oficiales consultadas el 2026-07-28:
 
 - https://vercel.com/docs/cron-jobs/usage-and-pricing
 - https://vercel.com/docs/cron-jobs/manage-cron-jobs
+- https://resend.com/docs/dashboard/emails/idempotency-keys

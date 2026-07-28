@@ -208,7 +208,9 @@ export interface Database {
           in_stock: boolean;
           observed_at?: string;
         };
-        Update: Partial<Database['public']['Tables']['price_history']['Insert']>;
+        Update: Partial<
+          Database['public']['Tables']['price_history']['Insert']
+        >;
       };
       price_alerts: {
         Row: {
@@ -248,7 +250,8 @@ export interface Database {
           id: string;
           alert_id: string;
           price_history_id: number;
-          status: 'pending' | 'sent' | 'failed';
+          reference_price_cents: number;
+          status: 'pending' | 'processing' | 'sent' | 'failed' | 'skipped';
           provider_message_id: string | null;
           error_message: string | null;
           attempt_count: number;
@@ -260,7 +263,8 @@ export interface Database {
           id?: string;
           alert_id: string;
           price_history_id: number;
-          status?: 'pending' | 'sent' | 'failed';
+          reference_price_cents: number;
+          status?: 'pending' | 'processing' | 'sent' | 'failed' | 'skipped';
           provider_message_id?: string | null;
           error_message?: string | null;
           attempt_count?: number;
@@ -268,7 +272,9 @@ export interface Database {
           attempted_at?: string | null;
           sent_at?: string | null;
         };
-        Update: Partial<Database['public']['Tables']['price_alert_deliveries']['Insert']>;
+        Update: Partial<
+          Database['public']['Tables']['price_alert_deliveries']['Insert']
+        >;
       };
       search_history: {
         Row: {
@@ -287,7 +293,9 @@ export interface Database {
           results_count?: number | null;
           created_at?: string;
         };
-        Update: Partial<Database['public']['Tables']['search_history']['Insert']>;
+        Update: Partial<
+          Database['public']['Tables']['search_history']['Insert']
+        >;
       };
       editorial_collections: {
         Row: {
@@ -318,7 +326,9 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-        Update: Partial<Database['public']['Tables']['editorial_collections']['Insert']>;
+        Update: Partial<
+          Database['public']['Tables']['editorial_collections']['Insert']
+        >;
       };
     };
     Views: {

@@ -112,8 +112,8 @@ CREATE TABLE IF NOT EXISTS price_alert_deliveries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   alert_id UUID NOT NULL REFERENCES price_alerts(id) ON DELETE CASCADE,
   price_history_id BIGINT NOT NULL REFERENCES price_history(id) ON DELETE CASCADE,
-  status TEXT NOT NULL DEFAULT 'pending'
-    CHECK (status IN ('pending', 'sent', 'failed')),
+  reference_price_cents INT NOT NULL CHECK (reference_price_cents >= 0),
+  status TEXT NOT NULL DEFAULT 'pending',
   provider_message_id TEXT,
   error_message TEXT,
   attempt_count INT NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
@@ -123,6 +123,15 @@ CREATE TABLE IF NOT EXISTS price_alert_deliveries (
   CONSTRAINT price_alert_deliveries_event_unique
     UNIQUE (alert_id, price_history_id)
 );
+
+ALTER TABLE price_alert_deliveries
+  ADD COLUMN IF NOT EXISTS reference_price_cents INT CHECK (reference_price_cents >= 0);
+
+ALTER TABLE price_alert_deliveries
+  DROP CONSTRAINT IF EXISTS price_alert_deliveries_status_check;
+ALTER TABLE price_alert_deliveries
+  ADD CONSTRAINT price_alert_deliveries_status_check
+  CHECK (status IN ('pending', 'processing', 'sent', 'failed', 'skipped'));
 
 CREATE INDEX IF NOT EXISTS idx_price_alert_deliveries_pending
   ON price_alert_deliveries(created_at)
