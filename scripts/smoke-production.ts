@@ -58,6 +58,16 @@ function expectText(haystack: string, needle: string, label: string): void {
   }
 }
 
+function expectPublicCache(response: Response, label: string): string {
+  const cacheControl = response.headers.get("cache-control") ?? "";
+  if (!cacheControl || /(?:private|no-store)/i.test(cacheControl)) {
+    throw new Error(
+      `${label} no publica caché compartida: ${cacheControl || "sin cabecera"}`,
+    );
+  }
+  return cacheControl;
+}
+
 function productPaths(html: string): Set<string> {
   return new Set(html.match(/\/product\/[a-z0-9-]+/g) ?? []);
 }
@@ -134,8 +144,9 @@ async function main(): Promise<void> {
       run: async () => {
         const response = await request(baseUrl);
         expectStatus(response, 200);
+        const cacheControl = expectPublicCache(response, "home");
         expectText(await response.text(), "Shopifind", "marca en HTML");
-        return "HTTP 200";
+        return `HTTP 200; ${cacheControl}`;
       },
     },
     {

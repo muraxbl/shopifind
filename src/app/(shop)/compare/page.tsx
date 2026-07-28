@@ -9,7 +9,7 @@ import {
   MIN_COMPARE_PRODUCTS,
   parseCompareIds,
 } from "@/lib/compare/selection";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { cn, formatPrice } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -103,7 +103,7 @@ export default async function ComparePage({
   const ids = parseCompareIds(resolvedSearchParams.ids);
   if (ids.length < MIN_COMPARE_PRODUCTS) return <EmptyComparison />;
 
-  const sb = await createServerSupabaseClient();
+  const sb = createPublicSupabaseClient({ revalidate: false });
   const { data, error } = await sb
     .from("v_products_with_store")
     .select(

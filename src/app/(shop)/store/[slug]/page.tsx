@@ -4,7 +4,9 @@ import { BadgeCheck, Globe, Leaf } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { formatEcoScore, cn } from '@/lib/utils';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createPublicSupabaseClient } from '@/lib/supabase/public';
+
+export const revalidate = 60;
 
 type StoreRow = {
   id: string;
@@ -22,8 +24,14 @@ type StoreRow = {
 
 type ProductHit = Parameters<typeof ProductGrid>[0]['products'][number];
 
+export async function generateStaticParams() {
+  const sb = createPublicSupabaseClient();
+  const { data } = await sb.from('stores').select('slug').eq('active', true);
+  return (data ?? []).map(({ slug }) => ({ slug }));
+}
+
 async function fetchStore(slug: string): Promise<(StoreRow & { products: ProductHit[] }) | null> {
-  const sb = await createServerSupabaseClient();
+  const sb = createPublicSupabaseClient();
   const storeRes = await sb
     .from('stores')
     .select('id, slug, name, country, eco_score, values, short_description, long_description, niche, verified, featured')

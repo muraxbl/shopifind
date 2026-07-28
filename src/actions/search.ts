@@ -1,6 +1,6 @@
 'use server';
 
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createPublicSupabaseClient } from '@/lib/supabase/public';
 import {
   normalizeEcoTagFilters,
   normalizeSearchQuery,
@@ -77,7 +77,7 @@ export async function searchProducts(
     return { products: [], total: 0 };
   }
 
-  const sb = await createServerSupabaseClient();
+  const sb = createPublicSupabaseClient({ revalidate: false });
 
   // 1. Run the AI intent parser if needed.
   let parsed = {

@@ -12,7 +12,7 @@ import {
   MAX_PAGE_SIZE,
   MIN_PAGE_SIZE,
 } from '@/lib/config';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createPublicSupabaseClient } from '@/lib/supabase/public';
 import { normalizePageNumber } from '@/lib/search/input';
 
 type ProductHit = Parameters<typeof ProductGrid>[0]['products'][number];
@@ -22,7 +22,7 @@ async function fetchProductsByNiche(
   pageSize: number,
   offset: number
 ): Promise<{ products: ProductHit[]; total: number }> {
-  const sb = await createServerSupabaseClient();
+  const sb = createPublicSupabaseClient();
   const { data, count } = await sb
     .from('v_products_with_store')
     .select(

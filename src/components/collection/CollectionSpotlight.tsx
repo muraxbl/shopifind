@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createPublicSupabaseClient } from '@/lib/supabase/public';
 import { SITE_CONFIG } from '@/lib/config';
 
 /**
@@ -12,10 +12,9 @@ import { SITE_CONFIG } from '@/lib/config';
  * preview strip on the niche hub).
  *
  * Why a Server Component:
- *   - Reads Supabase client-side via createServerSupabaseClient.
+ *   - Reads Supabase server-side via the stateless public client.
  *   - No interactivity needed; pure RSC render.
- *   - Caches via Next.js fetch revalidation (default is uncached but
- *     stable across requests inside the same Vercel edge node).
+ *   - Shares the Next.js Data Cache with a 60-second revalidation window.
  *
  * Visual:
  *   - Desktop: 4-column grid (md/lg).
@@ -38,7 +37,7 @@ type CollectionWithCover = CollectionRow & {
 };
 
 async function fetchCollectionsForNiche(niche: string, limit = 4): Promise<CollectionWithCover[]> {
-  const sb = await createServerSupabaseClient();
+  const sb = createPublicSupabaseClient();
   // Pull editorial_collections rows (published=true, ordered by newest).
   const collRes = await sb
     .from('editorial_collections')

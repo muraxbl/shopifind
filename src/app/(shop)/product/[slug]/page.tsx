@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatPrice, formatEcoScore, cn } from '@/lib/utils';
 import { SITE_CONFIG } from '@/lib/config';
+import { createPublicSupabaseClient } from '@/lib/supabase/public';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { AddToWishlistButton } from '@/components/product/AddToWishlistButton';
 import { PriceAlertCard } from '@/components/product/PriceAlertCard';
@@ -39,7 +40,7 @@ type ProductDetail = {
 };
 
 const fetchProduct = cache(async (slug: string): Promise<ProductDetail | null> => {
-  const sb = await createServerSupabaseClient();
+  const sb = createPublicSupabaseClient();
   const { data } = await sb
     .from('v_products_with_store')
     .select(

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createPublicSupabaseClient } from '@/lib/supabase/public';
 import { buildSkimlinksUrl } from '@/lib/skimlinks';
 import { buildClickOutHistoryEvent } from '@/lib/analytics/history';
 import { recordHistoryEvent } from '@/lib/analytics/record';
@@ -18,7 +18,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const sb = await createServerSupabaseClient();
+  const sb = createPublicSupabaseClient({ revalidate: false });
   const res = await sb
     .from('v_products_with_store')
     .select('id, slug, source_url, affiliate_url')

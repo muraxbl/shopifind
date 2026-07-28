@@ -392,7 +392,7 @@ Si OpenAI está caído, tarda más de 4s o schema validation falla → fallback 
     │   ├── skimlinks.ts                   # buildSkimlinksUrl(sourceUrl, slug)
     │   ├── ai/queryIntent.ts              # parseQueryIntent (OpenAI Strict)
     │   ├── email/resend.ts                # sendWishlistPriceAlert (Resend stub)
-    │   ├── supabase/{server,client,admin}.ts
+    │   ├── supabase/{server,client,public,admin}.ts
     │   ├── wishlist/items.ts              # normalización/operaciones puras sobre JSONB
     │   ├── env.ts                         # typed env reader
     │   └── utils.ts                       # cn(), formatters (precio, superlative text)
@@ -413,8 +413,8 @@ tests/                                     # node:test: redirects, wishlist y Sk
 2. **`supabase/migrations/00000000000000_init.sql`** — schema + RLS completos. **Lee los índices GIN** antes de tocar queries pesadas.
 3. **`src/actions/search.ts`** — el coração de la búsqueda. `parseQueryIntent → PostgREST range → count=exact`.
 4. **`src/app/sitemap.ts`** — chunked loop, el truco que aprendimos del 1000-row cap.
-5. **`src/lib/supabase/server.ts`** — `createServerSupabaseClient()` (anon key con cookies del middleware).
-6. **`next.config.mjs`** — `images.remotePatterns: ['**']` (wildcard para cualquier merchant HTTPS).
+5. **`src/lib/supabase/server.ts` y `public.ts`** — cliente con sesión/cookies para datos privados y cliente anon stateless con Data Cache para catálogo público; no intercambiarlos.
+6. **`next.config.mjs`** — allowlist exacta de hosts de imagen; añadir cada merchant nuevo de forma explícita.
 7. **`src/middleware.ts`** — `PROTECTED_PATHS` para extender gates. Con `src/app`, dejarlo en la raíz del repo no lo activa.
 
 ---
@@ -456,6 +456,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **28** | Hardening de cabeceras web | `next.config.mjs` + `docs/security-headers.md` | CSP compatible con ISR, Permissions-Policy, anti-frame estricto y COOP; `X-Powered-By` eliminado y el smoke ampliado para impedir regresiones. |
 | **29** | Control operativo de AI search | `queryIntent.ts` + `docs/ai-search-operations.md` | Caché compartida 1h sólo para intents válidos, kill switch, telemetría de tokens sin query y fallback literal; control puro cubierto por tests. |
 | **30** | Allowlist de imágenes remotas | `next.config.mjs` + smoke de release | El wildcard HTTPS se sustituye por `masterled.es` y `placehold.co`, los dos hosts presentes en 1452 productos activos; el smoke exige ambos y rechaza un host ajeno. |
+| **31** | ISR del catálogo público | `src/lib/supabase/public.ts` + páginas públicas | Las lecturas sin sesión ya no llaman a `cookies()`: home, colecciones y tiendas recuperan ISR de 60s, sitemap conserva 1h y las lecturas request-time declaran `no-store`; 43 tests cubren la política de fetch. `/explore` mantiene respuesta dinámica por su paginación en query string, pero comparte el Data Cache de catálogo durante 60s. |
 
 ### Métricas post-deploy
 
@@ -467,7 +468,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1461** (1 home + 4 explore + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 41/41 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 43/43 · rc=0 · rc=0 |
 | `pnpm audit` completo | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28) |
 | `pnpm smoke:production` | **15/15** contra `shopifind.app` (snapshot 2026-07-28) |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
@@ -501,6 +502,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 15. **`SEARCH` bloqueado en robots.txt** porque `?q=*&niche=*&tag=*&page=*` genera infinite permutation → crawler trap.
 16. **Middleware con `src/app`**: el archivo activo es `src/middleware.ts`. Una copia en la raíz puede compilar sin proteger rutas en este layout; comprobar siempre `/wishlist` anónimo (307) y una ruta lookalike (no redirect).
 17. **APIs dinámicas de Next 15**: `cookies()`, `params` y `searchParams` son asíncronas. `createServerSupabaseClient()` devuelve una promesa y todos sus consumidores deben hacer `await`; un reemplazo incompleto puede compilar partes del árbol y fallar sólo en una ruta dinámica.
+18. **Cliente Supabase público vs. sesión**: las lecturas de catálogo sin identidad usan `createPublicSupabaseClient()` para permitir Data Cache/ISR. Auth, perfiles, wishlist y alertas siguen usando `createServerSupabaseClient()`; usar el cliente público ahí ignoraría la sesión. En rutas dinámicas de búsqueda, comparación y `/go`, pasar `{ revalidate: false }` para no servir decisiones request-time desde caché.
 
 ### Affiliate / Skimlinks
 

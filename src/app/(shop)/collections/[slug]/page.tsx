@@ -3,9 +3,11 @@ import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ProductGrid } from '@/components/product/ProductGrid';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createPublicSupabaseClient } from '@/lib/supabase/public';
 import { SITE_CONFIG } from '@/lib/config';
 import { serializeJsonLd } from '@/lib/seo/jsonLd';
+
+export const revalidate = 60;
 
 type CollectionRow = {
   id: string;
@@ -37,8 +39,17 @@ type CollectionProduct = {
 
 type ProductHit = CollectionProduct;
 
+export async function generateStaticParams() {
+  const sb = createPublicSupabaseClient();
+  const { data } = await sb
+    .from('editorial_collections')
+    .select('slug')
+    .eq('published', true);
+  return (data ?? []).map(({ slug }) => ({ slug }));
+}
+
 async function fetchCollection(slug: string): Promise<(CollectionRow & { products: ProductHit[] }) | null> {
-  const sb = await createServerSupabaseClient();
+  const sb = createPublicSupabaseClient();
   const collectionRes = await sb
     .from('editorial_collections')
     .select('id, slug, title, subtitle, description, cover_image_url, niche, product_ids, published_at')

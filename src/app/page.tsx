@@ -6,7 +6,9 @@ import { AiSearchBox } from '@/components/search/AiSearchBox';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import type { Metadata } from 'next';
 import { NICHE_LABEL, SITE_CONFIG, NicheId } from '@/lib/config';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createPublicSupabaseClient } from '@/lib/supabase/public';
+
+export const revalidate = 60;
 
 type FeaturedProduct = {
   id: string;
@@ -23,7 +25,7 @@ type FeaturedProduct = {
 };
 
 async function fetchFeatured(limit = 8): Promise<FeaturedProduct[]> {
-  const sb = await createServerSupabaseClient();
+  const sb = createPublicSupabaseClient();
   const { data } = await sb
     .from('v_products_with_store')
     .select('id, slug, title, price_cents, currency, image_url, store_name, store_slug, niche, eco_tags, store_eco_score')
