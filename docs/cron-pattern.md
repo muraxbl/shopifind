@@ -2,9 +2,13 @@
 
 ## Estado
 
-`GET /api/cron/refresh-masterled` está programado en `vercel.json` una vez al
-día, a las 03:15 UTC. `GET /api/cron/process-price-alerts` permanece sin
-schedule hasta completar el email E2E con Resend.
+Los dos jobs están programados en `vercel.json` una vez al día:
+
+- `GET /api/cron/refresh-masterled`, a las 03:15 UTC.
+- `GET /api/cron/process-price-alerts`, a las 04:15 UTC.
+
+La hora de margen permite que el catálogo termine de refrescar antes de
+evaluar bajadas.
 
 ## Contrato de seguridad
 
@@ -35,10 +39,10 @@ schedule hasta completar el email E2E con Resend.
 1. ✅ `supabase/migrations/20260728190000_price_history_alerts.sql` aplicada en
    Supabase Cloud el 2026-07-29; tipos regenerados y 1.613 snapshots baseline
    verificados.
-2. ✅ Configurados en Vercel para catálogo, sin compartir valores por chat:
-   `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` y `MASTERLED_FEED_URL`.
-   Pendientes de validar para email: `RESEND_API_KEY` y `RESEND_FROM_EMAIL`
-   (dominio verificado).
+2. ✅ Configurados en Vercel, sin compartir valores por chat:
+   `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `MASTERLED_FEED_URL`,
+   `RESEND_API_KEY` y `RESEND_FROM_EMAIL`. El dominio remitente está
+   verificado en Resend.
 3. ✅ Invocado manualmente el refresh del deployment de producción desde un
    terminal seguro el 2026-07-29:
 
@@ -54,8 +58,7 @@ schedule hasta completar el email E2E con Resend.
    14 cambios de stock, ningún cambio de precio/moneda, 23 snapshots, 2 alertas
    activas intactas y 0 entregas. Smoke público: 17/17.
 
-4. Configurar/validar Resend y ejecutar manualmente el worker desde un terminal
-   seguro:
+4. ✅ Resend validado y worker ejecutado manualmente desde un terminal seguro:
 
    ```bash
    curl --fail-with-body \
@@ -63,26 +66,29 @@ schedule hasta completar el email E2E con Resend.
      https://shopifind.app/api/cron/process-price-alerts
    ```
 
-5. Verificar el JSON, el ledger y la recepción de un email de prueba real.
-6. ✅ El refresh de catálogo está añadido a `vercel.json`:
+   El primer intento conservó la entrega como `failed` al detectar una clave
+   inválida. Tras rotarla, el mismo asiento pasó a `sent` en su segundo intento,
+   guardó el identificador del proveedor y actualizó el cursor de la alerta a
+   90 EUR. Una invocación adicional evaluó las 3 alertas sin volver a enviar.
+
+5. ✅ JSON y ledger verificados. Queda únicamente la confirmación humana de
+   llegada al buzón y, después, borrar el fixture oculto de producción.
+6. ✅ Ambos jobs están añadidos a `vercel.json`:
 
    ```json
    {
      "crons": [
-      {
-        "path": "/api/cron/refresh-masterled",
-        "schedule": "15 3 * * *"
-      }
-    ]
+       {
+         "path": "/api/cron/refresh-masterled",
+         "schedule": "15 3 * * *"
+       },
+       {
+         "path": "/api/cron/process-price-alerts",
+         "schedule": "15 4 * * *"
+       }
+     ]
+   }
    ```
-
-}
-
-```
-
-7. Después del email E2E, añadir el worker en una segunda entrada diaria a las
- 04:15 UTC. Mantener una hora de margen permite que el refresh termine antes
- de evaluar las bajadas.
 
 ## Frecuencia
 
@@ -97,4 +103,3 @@ Fuentes oficiales consultadas el 2026-07-28:
 - https://vercel.com/docs/cron-jobs/usage-and-pricing
 - https://vercel.com/docs/cron-jobs/manage-cron-jobs
 - https://resend.com/docs/dashboard/emails/idempotency-keys
-```

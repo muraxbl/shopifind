@@ -10,7 +10,7 @@
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Qué es**         | Buscador B2C de tiendas independientes reales. Indexa 4 nichos curados (sustainable-fashion, indie-gadgets, home-deco, **iluminacion**), permite búsqueda conversacional con IA, wishlist universal cross-store. |
 | **Quién monetiza** | Redirect afiliado server-side preparado con Skimlinks publisher `306854X1795120`; la cuenta sigue en revisión y no hay comisión E2E verificada. Comparador manual live; AdSense no integrado.                    |
-| **Stack core**     | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (`fra1`) · Hestia SMTP (Auth) · Resend (alertas previsto) · Skimlinks · OpenAI · Plausible · Tailwind + shadcn/ui               |
+| **Stack core**     | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (`fra1`) · Hestia SMTP (Auth) · Resend (alertas) · Skimlinks · OpenAI · Plausible · Tailwind + shadcn/ui                        |
 | **Live URL**       | https://shopifind.app                                                                                                                                                                                            |
 | **Status**         | MVP público. Ingest masiva en iluminación completada (masterled.es, 1563 productos · 1452 in-stock).                                                                                                             |
 
@@ -136,7 +136,7 @@
 | Auth + DB | **Supabase** (`@supabase/ssr` + `supabase-js`)            | ssr 0.12 / js 2.43 | Service-role key SOLO server-side.                                                                                                                                                         |
 | AI        | **OpenAI** (`OPENAI_SEARCH_MODEL`, default `gpt-4o-mini`) | 4.47               | Chat Completions + Structured Outputs. 4s timeout, sin retry, caché de intent válido 1h, kill switch y fallback literal.                                                                   |
 | Affiliate | **Skimlinks** (publisher `306854X1795120`)                | —                  | `go.redirectingat.com` con `xcust=shopifind-<slug>`.                                                                                                                                       |
-| Email     | **Resend HTTP API**                                       | REST               | Builder HTML/text, idempotency key y sender configurados sin SDK; clave rotada validada localmente y deployment promovido. Retry E2E pendiente del aviso del owner.                        |
+| Email     | **Resend HTTP API**                                       | REST               | Builder HTML/text, idempotency key y sender configurados sin SDK; entrega real aceptada por Resend y ledger idempotente verificado.                                                       |
 | CRM email | **react-hook-form** + **zod**                             | 7.51 / 3.23        | Formularios de captura + validación.                                                                                                                                                       |
 | Build     | **tsx** (scripts), **pnpm**                               | 4.16 / 11.17       | Scripts en `/scripts/*.ts` corren vía `tsx`, no `next`. La versión queda fijada en `packageManager`; pnpm 11 lee permisos, overrides y excepciones de antigüedad en `pnpm-workspace.yaml`. |
 | Testing   | **playwright-core** (devDep)                              | 1.62               | Solo instalado si activamos Playwright para fix-source-urls SFCC.                                                                                                                          |
@@ -150,11 +150,11 @@
 
 ### Crons / scheduled jobs
 
-> **Hoy:** refresh manual de producción verificado y schedule diario declarado; el worker de alertas sigue inactivo hasta completar el email E2E.
+> **Hoy:** refresh de catálogo a las 03:15 UTC y worker de alertas a las 04:15 UTC, ambos diarios y protegidos por `CRON_SECRET`.
 >
 > **Pendientes** (backlog):
 >
-> - Scanner de precios 12h (price-alerts MVP).
+> - Valorar scanner cada 12h cuando se migre el scheduler o el plan lo permita; el MVP ejecuta una vez al día por el límite de Vercel Hobby.
 > - Configuración externa + prueba end-to-end del webhook Skimlinks. El receiver y el INSERT ya están implementados.
 
 ---
@@ -290,7 +290,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/legal` / `/privacy` / `/about`  | ✅ Markdown scaffold            | Páginas-estatic SEO/disclaimer.                                                                                                                                             |
 | `/api/products/*` + `/api/auth/*` | ✅ implementado                 | Handlers server-side desplegados; Google OAuth habilitado y probado con sesión real.                                                                                        |
 | `/api/cron/refresh-masterled`     | ✅ live / diario 03:15 UTC      | Bearer auth, preflight real de `price_history`, feed allowlisted/acotado y guardias de integridad. Ejecución manual auditada; schedule Vercel diario declarado.             |
-| `/api/cron/process-price-alerts`  | ✅ live / inactivo              | Evaluator + outbox con claim, retries, skip de avisos obsoletos e idempotencia Resend. Sin schedule; fixture oculto en intento 1/5 espera retry autorizado.                 |
+| `/api/cron/process-price-alerts`  | ✅ live / diario 04:15 UTC      | Evaluator + outbox con claim, retries, skip de avisos obsoletos e idempotencia Resend. Envío real y segunda pasada sin duplicado verificados.                             |
 | `/api/account/export`             | ✅ privado / no-store           | Exporta Auth/identidades, perfil, wishlist, búsquedas, alertas y entregas con paginación estable; anónimo recibe 401 y nunca se cachea.                                     |
 | `/api/webhooks/skimlinks`         | ⚠ receiver live / E2E pendiente | Valida tamaño, CIDR, HMAC, payload y replay; inserta con dedupe. Falta conectar Skimlinks y probar evento real.                                                             |
 | `/api/test/*`                     | ✅ restringido                  | Gate default-deny y bloqueo absoluto en `NODE_ENV=production`; GET/POST verificados con 404 en `shopifind.app`.                                                             |
@@ -307,7 +307,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | **Eco-score badges en cards**    | `src/components/product/ProductCard.tsx`                                          | ✅ muestra `store_eco_score` + `eco_tags[..n]`.                                                                                                                 |
 | **Wishlist JSONB**               | `src/actions/wishlist.ts` + `src/app/(shop)/wishlist/`                            | ✅ read/write · RLS owner-only · corazones reales y precio/URL resueltos server-side.                                                                           |
 | **Gestión de price alerts**      | `src/actions/priceAlerts.ts` + PDP + `/account`                                   | ✅ tres modos, owner-only y cursor precio+moneda; alerta `any_drop` creada con sesión real y baseline/currency/cursor verificados en Cloud.                     |
-| **Pricing alerts email**         | `src/lib/email/resend.ts` + `/api/cron/process-price-alerts`                      | 🟡 secretos y sender configurados; la clave rotada pasa el endpoint técnico. Falta reintentar la entrega E2E y, si llega, programar el worker.                  |
+| **Pricing alerts email**         | `src/lib/email/resend.ts` + `/api/cron/process-price-alerts`                      | ✅ Resend acepta la entrega real, conserva provider ID y una segunda pasada no la duplica; falta sólo confirmar el buzón y limpiar el fixture oculto.           |
 | **Autoservicio de datos**        | `/api/account/export` + `src/actions/account.ts`                                  | ✅ exportación autenticada y borrado hard-delete; trigger transaccional elimina búsquedas atribuibles antes de la cascada del perfil.                           |
 | **Comparador manual**            | `src/components/compare/CompareSelection.tsx` + `src/app/(shop)/compare/page.tsx` | ✅ picker de 2-5 cards y tabla comparativa sin afirmar equivalencia de modelo. La comparación automática fuerte en iluminación sigue necesitando otro merchant. |
 
@@ -477,6 +477,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **45** | Primer refresh Masterled controlado                                                                                    | `/api/cron/refresh-masterled`                                        | Feed de 1.562 filas procesado en producción: 9 altas, 14 cambios de stock (1 entrada/13 salidas), 0 cambios de precio/moneda y 23 snapshots. Quedan 1.438 Masterled activos; 2 alertas intactas, 0 entregas y smoke 17/17.                                                                    |
 | **46** | Schedule diario de catálogo                                                                                            | `40ddcb2` + `vercel.json`                                            | Sólo `/api/cron/refresh-masterled`, a las 03:15 UTC. Deployment aceptado, sitemap actualizado a 1.483 URLs y smoke 17/17; el worker de emails no se programa hasta verificar Resend.                                                                                                          |
 | **47** | Exportación y borrado autoservicio                                                                                     | `da50273` + migration `20260729143000`                               | Export JSON paginado, privado y no-store; hard-delete sólo del usuario autenticado tras escribir su email. Cloud E2E: Auth/perfil/búsqueda 1/1/1 → 0/0/0; cookie posterior recibe 401. Live y smoke 18/18; 68 tests y build pasan.                                                            |
+| **48** | Resend E2E + schedule diario de alertas                                                                                 | fixture oculto + `vercel.json`                                       | El intento con clave antigua falló sin perderse; tras rotarla, el mismo asiento fue `sent` en el intento 2 con provider ID y cursor a 90 EUR. La repetición envió 0 emails. Worker declarado a las 04:15 UTC, una hora después del catálogo.                                                   |
 
 ### Métricas post-deploy
 
@@ -545,7 +546,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 27. **Preflight de tablas PostgREST**: no usar `select(..., { head: true })` para comprobar que una tabla existe; puede devolver 204 aunque falte del schema cache. Usar un GET acotado con `.select('id').limit(1)` y comprobar `error`.
 28. **Alta segura de merchants con imágenes remotas**: desplegar primero el `remotePatterns` exacto y mantener la tienda inactiva; comprobar en producción una URL real de `/_next/image` (incluido el ancho mayor usado por la UI) y sólo entonces activar la tienda. Como el sitemap usa ISR diario, tras activarla hay que provocar/verificar una regeneración con la tienda ya activa antes de dar el release por cerrado. Si falla el optimizador, desactivar la tienda es el rollback reversible: no se borran productos.
 29. **Magic links y PKCE cross-device**: `ConfirmationURL` queda ligado al verificador del navegador que pidió el enlace y falla si se abre en otro dispositivo. Auth email usa `TokenHash` con una landing GET que no verifica nada y un POST explícito a `verifyOtp({type: 'email'})`; no volver a consumir tokens en GET porque los filtros de correo precargan enlaces.
-30. **Separación de correo**: Supabase Auth envía por `mail.shopifind.app:587` como `acceso@auth.shopifind.app`; SPF, DKIM y DMARC están aislados en el subdominio. Las alertas conservan el adaptador Resend hasta completar E2E porque su idempotency key complementa el ledger; sustituirlo por SMTP puro reabriría una ventana de duplicados tras un fallo.
+30. **Separación de correo**: Supabase Auth envía por `mail.shopifind.app:587` como `acceso@auth.shopifind.app`; SPF, DKIM y DMARC están aislados en el subdominio. Las alertas usan Resend: su idempotency key complementa el ledger y el E2E confirmó recuperación tras fallo sin duplicado; sustituirlo por SMTP puro reabriría esa ventana.
 
 ---
 
@@ -568,7 +569,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **B-1** | ✅ **Completar `/account` + profiles**           | nada                                            | Lectura, escritura, persistencia y relogin probados con una sesión Google real; identidad vinculada al perfil existente sin duplicado.        |
 | **B-2** | ✅ **Modelo relacional de precios y alertas**    | nada                                            | Aplicado en Cloud: schema, trigger, RLS, ledger idempotente, 1.613 snapshots baseline y tipos regenerados/verificados.                        |
 | **B-3** | ✅ **Refresh incremental + snapshots de precio** | nada                                            | Manual auditado y schedule diario 03:15 UTC declarado: 1.562 filas actuales, 23 snapshots correctos y sin alertas falsas.                     |
-| **B-4** | 🟡 **Alertas de bajada**                         | email E2E + activar cron                        | UI/evaluator/outbox completos. Clave rotada y deploy promovido; fixture oculto `failed` 1/5 espera el retry autorizado antes de programarlo.  |
+| **B-4** | ✅ **Alertas de bajada**                         | nada                                            | UI/evaluator/outbox, Resend E2E e idempotencia verificados; cron diario 04:15 UTC declarado. Sólo queda confirmar recepción y limpiar el fixture temporal. |
 | **B-5** | ✅ **Corregir AI search actual**                 | nada                                            | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship.  |
 | **B-6** | ✅ **Comparador manual MVP**                     | nada                                            | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado. |
 | **B-7** | 🟡 **Segundo merchant de iluminación**           | verificación Skimlinks + feed/permiso del owner | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`.  |
@@ -689,7 +690,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - **¿Cómo se cambia un nicho?** Editar `src/lib/config.ts → primaryNiches + NICHE_LABEL`. Vercel auto-redeploy.
 - **¿Cómo se añade un producto?** Vía `pnpm scripts:seed:products` (multi-merchant) o `pnpm scripts:seed:lighting` (masterled) → usar `--dry-run` primero.
 - **¿Cómo se mide?** Plausible (setup pendiente de verificar) + `click_attribution`; el receiver existe, falta conexión y prueba E2E con Skimlinks.
-- **¿Cuál es el siguiente milestone live pendiente?** Completar el email de alertas E2E con Resend antes de programar su worker; en paralelo, enviar el sitemap ya validado a GSC y validar el segundo merchant en Skimlinks.
+- **¿Cuál es el siguiente milestone live pendiente?** Enviar el sitemap ya validado a GSC, completar identidad legal y validar el segundo merchant en Skimlinks; el núcleo de alertas ya está operativo.
 
 ---
 
