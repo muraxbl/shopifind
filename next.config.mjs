@@ -47,6 +47,11 @@ const nextConfig = {
         hostname: "cdn.shopify.com",
         pathname: "/s/files/1/0661/7029/0424/**",
       },
+      {
+        protocol: "https",
+        hostname: "cdn.shopify.com",
+        pathname: "/s/files/1/0578/8001/8989/**",
+      },
       { protocol: "https", hostname: "placehold.co" },
     ],
     // placehold.co y otros placeholders devuelven SVG; next/image los rechaza por defecto.

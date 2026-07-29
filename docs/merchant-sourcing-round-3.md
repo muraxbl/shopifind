@@ -92,6 +92,44 @@ justifica todavía una puntuación numérica. La allowlist llegó a producción 
 `/_next/image` y el smoke quedó 19/19. Antes de `--write` sólo siguen faltando el
 gate del owner en Skimlinks y la decisión expresa de escribir/activar.
 
+## Piloto técnico Thinking MU preparado
+
+El mismo 2026-07-29 quedó preparado, también **sin escritura en Supabase**, un
+piloto de 12 prendas disponibles:
+
+| Producto | Segmento/tipo             | Material publicado        |  Precio |
+| -------- | ------------------------- | ------------------------- | ------: |
+| Santos   | Hombre · jersey           | Algodón orgánico          | 79,90 € |
+| Tom      | Hombre · camisa           | Algodón orgánico          | 49,90 € |
+| Aaron    | Hombre · camiseta         | Algodón orgánico          | 39,90 € |
+| Moero    | Hombre · pantalón         | Cáñamo                    | 79,90 € |
+| Gus      | Hombre · chaqueta vaquera | Algodón orgánico          |   150 € |
+| Alex     | Hombre · bermuda          | Cáñamo + algodón orgánico | 49,90 € |
+| Lena     | Mujer · camiseta          | Cáñamo                    | 54,90 € |
+| Lenie    | Mujer · blusa             | Algodón orgánico          | 59,90 € |
+| Sunniva  | Mujer · vestido           | Algodón orgánico          |   140 € |
+| Karina   | Mujer · pantalón          | Algodón orgánico          | 59,90 € |
+| Maisie   | Mujer · chaqueta          | Algodón orgánico          |   130 € |
+| Jodie    | Mujer · sudadera          | Algodón orgánico          | 69,90 € |
+
+El dry-run UCP devolvió 12/12 en EUR, con al menos una variante disponible y 12
+imágenes accesibles. Los destinos quedan limitados a
+`https://thinkingmu.com/products/…` y las imágenes a
+`cdn.shopify.com/s/files/1/0578/8001/8989/`. La selección se divide en lotes
+10 + 2 y falla si desaparece cualquier ID.
+
+Los atributos y tags se derivan de la composición de cada ficha. Algodón
+orgánico produce `organic`, `cotton` y `low-water`; cáñamo produce
+`low-impact`, `low-water` y `long-lifespan`, respaldados por la explicación
+de fibras de la marca. El adaptador también reconoce poliéster reciclado,
+Tencel, EcoVero, SeaCell y GOTS, pero sólo los asignará si aparecen en la ficha
+concreta. Una prenda sin material explícito aborta el lote.
+
+La tienda queda definida con `eco_score=0`, `active=false`,
+`verified=false` y `featured=false`. Falta desplegar/probar la allowlist y,
+antes de cualquier `--write`, comprobar `thinkingmu.com` y deep linking en
+Skimlinks.
+
 ## Gates antes de escribir
 
 1. Owner elige uno o varios candidatos.

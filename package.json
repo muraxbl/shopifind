@@ -25,6 +25,7 @@
     "scripts:seed:oakywood": "tsx scripts/seed-oakywood-v1.ts",
     "scripts:seed:shiftcam": "tsx scripts/seed-shiftcam-v1.ts",
     "scripts:seed:woodendot": "tsx scripts/seed-woodendot-v1.ts",
+    "scripts:seed:thinkingmu": "tsx scripts/seed-thinkingmu-v1.ts",
     "smoke:production": "tsx scripts/smoke-production.ts"
   },
   "dependencies": {
