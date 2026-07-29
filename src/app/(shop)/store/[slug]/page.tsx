@@ -25,6 +25,10 @@ type StoreRow = {
 };
 
 type ProductHit = Parameters<typeof ProductGrid>[0]['products'][number];
+type StoreDetails = StoreRow & {
+  products: ProductHit[];
+  totalProducts: number;
+};
 
 export async function generateStaticParams() {
   const sb = createPublicSupabaseClient();
@@ -32,7 +36,7 @@ export async function generateStaticParams() {
   return (data ?? []).map(({ slug }) => ({ slug }));
 }
 
-async function fetchStore(slug: string): Promise<(StoreRow & { products: ProductHit[] }) | null> {
+async function fetchStore(slug: string): Promise<StoreDetails | null> {
   const sb = createPublicSupabaseClient();
   const storeRes = await sb
     .from('stores')
@@ -45,12 +49,19 @@ async function fetchStore(slug: string): Promise<(StoreRow & { products: Product
 
   const productsRes = await sb
     .from('v_products_with_store')
-    .select('id, slug, title, image_url, price_cents, currency, store_name, store_slug, niche, eco_tags, store_eco_score')
+    .select(
+      'id, slug, title, image_url, price_cents, currency, store_name, store_slug, niche, eco_tags, store_eco_score',
+      { count: 'exact' },
+    )
     .eq('store_slug', slug)
     .eq('in_stock', true)
     .limit(36);
 
-  return { ...store, products: (productsRes.data ?? []) as unknown as ProductHit[] };
+  return {
+    ...store,
+    products: (productsRes.data ?? []) as unknown as ProductHit[],
+    totalProducts: productsRes.count ?? 0,
+  };
 }
 
 export async function generateMetadata({
@@ -148,7 +159,19 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
       <section className="mt-10">
         <div className="mb-6 flex items-end justify-between gap-4">
           <h2 className="font-display text-2xl">Productos de la tienda</h2>
-          <span className="text-sm text-muted-foreground">{store.products.length} productos</span>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <span className="text-sm text-muted-foreground">
+              Mostrando {store.products.length} de {store.totalProducts}
+            </span>
+            {store.totalProducts > store.products.length && (
+              <Link
+                href={`/search?store=${encodeURIComponent(store.slug)}&niche=${encodeURIComponent(store.niche)}&sort=newest`}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Ver catálogo completo →
+              </Link>
+            )}
+          </div>
         </div>
         <ProductGrid
           products={store.products}

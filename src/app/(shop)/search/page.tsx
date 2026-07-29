@@ -16,6 +16,7 @@ import {
   normalizePageNumber,
   normalizeNicheFilter,
   normalizePriceCents,
+  normalizeStoreSlug,
 } from '@/lib/search/input';
 import {
   NICHE_FACET,
@@ -33,6 +34,7 @@ export const dynamic = 'force-dynamic';
 type SearchParams = {
   q?: string;
   niche?: string;
+  store?: string;
   sort?: string;
   min?: string;
   max?: string;
@@ -62,6 +64,7 @@ function buildQueryParams(
   const out: Record<string, string | undefined> = {};
   const q = normalizeSearchQuery(sp.q ?? '');
   const niche = normalizeNicheFilter(sp.niche);
+  const store = normalizeStoreSlug(sp.store);
   const tag = normalizeEcoTagFilters([sp.tag])[0];
   const min = normalizePriceCents(
     sp.min ? Number(sp.min) * 100 : null,
@@ -71,6 +74,7 @@ function buildQueryParams(
   );
   if (q) out.q = q;
   if (niche) out.niche = niche;
+  if (store) out.store = store;
   if (isSearchSort(sp.sort)) out.sort = sp.sort;
   if (tag) out.tag = tag;
   if (min !== null) out.min = String(min / 100);
@@ -113,6 +117,7 @@ export default async function SearchPage({
     MAX_PAGE_SIZE,
   );
   const niche = normalizeNicheFilter(resolvedSearchParams.niche);
+  const storeSlug = normalizeStoreSlug(resolvedSearchParams.store);
   const ecoTags = normalizeEcoTagFilters(
     resolvedSearchParams.tag ? [resolvedSearchParams.tag] : [],
   );
@@ -125,10 +130,10 @@ export default async function SearchPage({
   const sort = isSearchSort(resolvedSearchParams.sort)
     ? resolvedSearchParams.sort
     : undefined;
-  const ecoFacets = getSearchEcoFacets(niche, ecoTags[0]);
   const hasSearchCriteria =
     Boolean(q) ||
     niche !== null ||
+    storeSlug !== null ||
     ecoTags.length > 0 ||
     minPrice !== null ||
     maxPrice !== null ||
@@ -137,6 +142,7 @@ export default async function SearchPage({
   const filters = {
     q,
     niche,
+    store: storeSlug,
     max_price_cents: maxPrice,
     min_price_cents: minPrice,
     eco_tags: ecoTags,
@@ -151,6 +157,9 @@ export default async function SearchPage({
     : { products: [], total: 0 };
   const products = result.products;
   const total = result.total;
+  const facetNiche =
+    niche ?? normalizeNicheFilter(products[0]?.niche);
+  const ecoFacets = getSearchEcoFacets(facetNiche, ecoTags[0]);
 
   function keepPriceFilters(params: URLSearchParams): void {
     if (minPrice !== null) params.set('min', String(minPrice / 100));
@@ -163,6 +172,7 @@ export default async function SearchPage({
     const p = new URLSearchParams();
     if (q) p.set('q', q);
     if (niche) p.set('niche', niche);
+    if (storeSlug) p.set('store', storeSlug);
     if (ecoTags[0]) p.set('tag', ecoTags[0]);
     keepPriceFilters(p);
     p.set('sort', sort);
@@ -173,6 +183,7 @@ export default async function SearchPage({
   function nicheHref(nicheId: string): string {
     const p = new URLSearchParams();
     if (q) p.set('q', q);
+    if (storeSlug) p.set('store', storeSlug);
     if (sort) p.set('sort', sort);
     if (ecoTags[0]) p.set('tag', ecoTags[0]);
     keepPriceFilters(p);
@@ -185,11 +196,24 @@ export default async function SearchPage({
     const p = new URLSearchParams();
     if (q) p.set('q', q);
     if (niche) p.set('niche', niche);
+    if (storeSlug) p.set('store', storeSlug);
     if (sort) p.set('sort', sort);
     keepPriceFilters(p);
     if (ecoTags[0] !== tag) p.set('tag', tag);
     return `/search?${p.toString()}`;
   }
+
+  function clearStoreHref(): string {
+    const p = new URLSearchParams();
+    if (q) p.set('q', q);
+    if (niche) p.set('niche', niche);
+    if (sort) p.set('sort', sort);
+    if (ecoTags[0]) p.set('tag', ecoTags[0]);
+    keepPriceFilters(p);
+    return `/search?${p.toString()}`;
+  }
+
+  const storeName = products[0]?.store_name ?? storeSlug;
 
   return (
     <div className="container py-12">
@@ -204,6 +228,8 @@ export default async function SearchPage({
                 Resultados para{' '}
                 <span className="text-primary">&ldquo;{q}&rdquo;</span>
               </>
+            ) : storeSlug ? (
+              <>Catálogo de {storeName}</>
             ) : hasSearchCriteria ? (
               sort && !niche && ecoTags.length === 0 && minPrice === null && maxPrice === null
                 ? 'Catálogo'
@@ -226,6 +252,20 @@ export default async function SearchPage({
       <div className="grid gap-8 lg:grid-cols-[1fr_3fr]">
         {/* Filters sidebar */}
         <aside className="space-y-6">
+          {storeSlug && (
+            <div>
+              <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Tienda
+              </h3>
+              <a
+                href={clearStoreHref()}
+                className="inline-flex rounded-full border border-primary bg-primary px-2.5 py-1 text-xs text-primary-foreground"
+                title="Quitar filtro de tienda"
+              >
+                {storeName} ×
+              </a>
+            </div>
+          )}
           <div>
             <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               Filtros rápidos

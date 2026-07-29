@@ -10,6 +10,7 @@ export const SEARCH_SORTS = [
 export type SearchSort = (typeof SEARCH_SORTS)[number];
 
 export const MAX_PAGE_NUMBER = 100;
+export const MAX_STORE_SLUG_LENGTH = 80;
 
 export function normalizePageNumber(value: unknown): number {
   const parsed =
@@ -34,6 +35,19 @@ export function normalizeNicheFilter(value: unknown): NicheId | null {
   return (SITE_CONFIG.primaryNiches as readonly string[]).includes(value)
     ? (value as NicheId)
     : null;
+}
+
+export function normalizeStoreSlug(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const slug = value.trim().toLowerCase();
+  if (
+    slug.length === 0 ||
+    slug.length > MAX_STORE_SLUG_LENGTH ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+  ) {
+    return null;
+  }
+  return slug;
 }
 
 export function normalizePriceCents(value: unknown): number | null {

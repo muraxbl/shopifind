@@ -5,6 +5,7 @@ import {
   normalizePageNumber,
   normalizeNicheFilter,
   normalizePriceCents,
+  normalizeStoreSlug,
 } from '../src/lib/search/input';
 
 test('search URL enums reject unsupported values', () => {
@@ -12,6 +13,13 @@ test('search URL enums reject unsupported values', () => {
   assert.equal(normalizeNicheFilter('unknown'), null);
   assert.equal(isSearchSort('price_asc'), true);
   assert.equal(isSearchSort('random()'), false);
+});
+
+test('store slugs are bounded and cannot alter filter syntax', () => {
+  assert.equal(normalizeStoreSlug(' Masterled-ES '), 'masterled-es');
+  assert.equal(normalizeStoreSlug('masterled.es'), null);
+  assert.equal(normalizeStoreSlug('x'.repeat(81)), null);
+  assert.equal(normalizeStoreSlug('store,or(in_stock.eq.false)'), null);
 });
 
 test('price filters accept finite non-negative cents only', () => {

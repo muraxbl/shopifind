@@ -13,6 +13,7 @@ import {
   normalizePageNumber,
   normalizeNicheFilter,
   normalizePriceCents,
+  normalizeStoreSlug,
   type SearchSort,
 } from '@/lib/search/input';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE } from '@/lib/config';
@@ -22,6 +23,7 @@ import { recordHistoryEvent } from '@/lib/analytics/record';
 export type SearchInput = {
   q: string;
   niche?: string | null;
+  store?: string | null;
   eco_tags?: string[];
   min_price_cents?: number | null;
   max_price_cents?: number | null;
@@ -62,6 +64,7 @@ export async function searchProducts(
   const q = normalizeSearchQuery(input.q ?? '');
   const ecoTags = normalizeEcoTagFilters(input.eco_tags ?? []);
   const niche = normalizeNicheFilter(input.niche);
+  const storeSlug = normalizeStoreSlug(input.store);
   const minPrice = normalizePriceCents(input.min_price_cents);
   const maxPrice = normalizePriceCents(input.max_price_cents);
   const requestedSort = isSearchSort(input.sort) ? input.sort : undefined;
@@ -69,6 +72,7 @@ export async function searchProducts(
   const hasAnyFilter =
     !!q ||
     !!niche ||
+    !!storeSlug ||
     ecoTags.length > 0 ||
     minPrice !== null ||
     maxPrice !== null ||
@@ -133,6 +137,7 @@ export async function searchProducts(
     query = query.or(buildProductTextOrFilter(parsed.text));
   }
   if (parsed.niche) query = query.eq('niche', parsed.niche);
+  if (storeSlug) query = query.eq('store_slug', storeSlug);
   if (parsed.eco_tags_any.length)
     query = query.overlaps('eco_tags', parsed.eco_tags_any);
   if (parsed.min_price_cents != null)
@@ -161,7 +166,7 @@ export async function searchProducts(
   await recordHistoryEvent(
     buildSearchHistoryEvent({
       query: q,
-      intent: parsed,
+      intent: { ...parsed, store_slug: storeSlug },
       total: typeof count === 'number' ? count : (data?.length ?? 0),
       page,
       pageSize,

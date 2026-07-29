@@ -463,6 +463,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **35** | Alertas seguras por moneda | migration + evaluator + worker + cuenta | `baseline_currency` y `reference_currency` acompañan cada precio; cambios de divisa reinician alertas relativas, desactivan targets fijos y bloquean emails con moneda obsoleta. El preflight exige las columnas nuevas y el upgrade de borradores omite entregas ambiguas. |
 | **36** | Facetas de búsqueda por nicho | `getSearchEcoFacets()` + `/search` | Iluminación muestra filtros con cobertura real (`long-lifespan`, `recyclable`, `certified`) en vez de chips de moda; los labels son legibles y cualquier tag activo válido permanece visible al cambiar de nicho. |
 | **37** | Retorno contextual del comparador | selección + `/compare` | El enlace conserva de forma saneada la búsqueda, filtros, orden y página de origen; quitar productos mantiene ese contexto y los CTAs de tienda abren otra pestaña para no destruir la comparación. |
+| **38** | Catálogo completo por merchant | filtro `store` + perfil de tienda | La ficha conserva ISR y muestra el total real; si supera las 36 cards iniciales enlaza a `/search?store=…`, cuyo slug está validado, se conserva en filtros/paginación y nunca mezcla otros merchants. |
 
 ### Métricas post-deploy
 
@@ -474,9 +475,9 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1465** (1 home + 4 explore + 4 stores + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 47/47 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 48/48 · rc=0 · rc=0 |
 | `pnpm audit` completo | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28) |
-| `pnpm smoke:production` | **16/16** contra `shopifind.app` (snapshot 2026-07-28) |
+| `pnpm smoke:production` | **17/17** contra `shopifind.app` (snapshot 2026-07-29) |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
 
 ---

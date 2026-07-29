@@ -191,6 +191,30 @@ async function main(): Promise<void> {
       },
     },
     {
+      name: "catálogo completo de tienda",
+      run: async () => {
+        const [store, catalog] = await Promise.all([
+          request(siteUrl(baseUrl, "/store/masterled-es")),
+          request(
+            siteUrl(baseUrl, "/search?store=masterled-es&sort=newest"),
+          ),
+        ]);
+        expectStatus(store, 200);
+        expectStatus(catalog, 200);
+        expectText(
+          await store.text(),
+          "Ver catálogo completo",
+          "CTA al catálogo completo",
+        );
+        const catalogHtml = await catalog.text();
+        expectText(catalogHtml, "Catálogo de Masterled", "título de merchant");
+        if (productPaths(catalogHtml).size === 0) {
+          throw new Error("el catálogo de tienda no contiene productos");
+        }
+        return "ficha → búsqueda filtrada";
+      },
+    },
+    {
       name: "paginación real",
       run: async () => {
         const [first, second] = await Promise.all([
