@@ -147,7 +147,17 @@ async function main(): Promise<void> {
         const response = await request(baseUrl);
         expectStatus(response, 200);
         const cacheControl = expectPublicCache(response, "home");
-        expectText(await response.text(), "Shopifind", "marca en HTML");
+        const html = await response.text();
+        expectText(html, "Shopifind", "marca en HTML");
+        if (html.includes("https://plausible.io/js/script.js")) {
+          throw new Error("Plausible conserva el snippet genérico obsoleto");
+        }
+        if (
+          html.includes("https://plausible.io/js/pa-") &&
+          !html.includes("plausible.init()")
+        ) {
+          throw new Error("Plausible carga sin inicialización");
+        }
         return `HTTP 200; ${cacheControl}`;
       },
     },

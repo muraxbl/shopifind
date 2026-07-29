@@ -1,5 +1,14 @@
 import type { Json } from '@/types/database.types';
 
+export const ANALYTICS_SCHEMA_VERSION = 2;
+export const RELEASE_SMOKE_USER_AGENT = 'shopifind-release-smoke/1.0';
+
+export function shouldRecordHistoryEvent(
+  userAgent: string | null | undefined,
+): boolean {
+  return userAgent?.trim().toLowerCase() !== RELEASE_SMOKE_USER_AGENT;
+}
+
 export type SearchHistoryInsert = {
   user_id: null;
   query: string;
@@ -26,6 +35,7 @@ export function buildSearchHistoryEvent(
     query: input.query.slice(0, 200),
     filters: {
       event: 'search',
+      schema_version: ANALYTICS_SCHEMA_VERSION,
       intent: input.intent as Json,
       page: input.page,
       page_size: input.pageSize,
@@ -41,7 +51,11 @@ export function buildClickOutHistoryEvent(
   return {
     user_id: null,
     query: `[click-out] /product/${slug}`,
-    filters: { event: 'click_out', product_slug: slug },
+    filters: {
+      event: 'click_out',
+      schema_version: ANALYTICS_SCHEMA_VERSION,
+      product_slug: slug,
+    },
     results_count: 1,
   };
 }

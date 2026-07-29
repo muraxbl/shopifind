@@ -32,9 +32,11 @@ No compartir secretos, claves API, credenciales OAuth ni documentos de identidad
 - wishlist y alertas relacionan productos y preferencias con el usuario;
 - `search_history` conserva consulta, intención/filtros, paginación, total y click-out de forma anónima a nivel de fila;
 - una consulta puede enviarse a OpenAI para extraer filtros cuando la integración está activa;
-- Resend recibirá email y contenido del aviso cuando se activen las alertas;
+- Resend recibe email y contenido del aviso para entregar alertas activas;
 - `/go/<slug>` redirige a Skimlinks y después al merchant; desde ese punto aplican sus tecnologías y políticas;
-- Plausible está contemplado en código, pero el script no aparece en producción mientras `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` no esté configurado.
+- Plausible está contemplado en código, pero el script no aparece en producción
+  mientras no se configure la URL específica
+  `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` entregada por el proveedor.
 
 ## Cookies y tecnologías similares
 

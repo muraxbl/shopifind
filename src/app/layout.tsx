@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from 'next';
-import Script from 'next/script';
 import { Inter, Fraunces } from 'next/font/google';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { normalizePlausibleScriptSrc } from '@/lib/analytics/plausible';
 import { SITE_CONFIG } from '@/lib/config';
 import './globals.css';
 
@@ -38,17 +38,24 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const plausibleScriptSrc = normalizePlausibleScriptSrc(
+    process.env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC,
+  );
+
   return (
     <html lang="es" className={`${inter.variable} ${fraunces.variable}`}>
-      <body className="flex min-h-screen flex-col font-sans">
-        {process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN && (
-          <Script
-            defer
-            data-domain={process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN}
-            src="https://plausible.io/js/script.js"
-            strategy="afterInteractive"
+      {plausibleScriptSrc && (
+        <head>
+          <script async src={plausibleScriptSrc} />
+          <script
+            dangerouslySetInnerHTML={{
+              __html:
+                'window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()',
+            }}
           />
-        )}
+        </head>
+      )}
+      <body className="flex min-h-screen flex-col font-sans">
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />

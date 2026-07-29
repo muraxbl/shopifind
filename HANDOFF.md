@@ -478,6 +478,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **46** | Schedule diario de catálogo                                                                                            | `40ddcb2` + `vercel.json`                                            | Sólo `/api/cron/refresh-masterled`, a las 03:15 UTC. Deployment aceptado, sitemap actualizado a 1.483 URLs y smoke 17/17; el worker de emails no se programa hasta verificar Resend.                                                                                                          |
 | **47** | Exportación y borrado autoservicio                                                                                     | `da50273` + migration `20260729143000`                               | Export JSON paginado, privado y no-store; hard-delete sólo del usuario autenticado tras escribir su email. Cloud E2E: Auth/perfil/búsqueda 1/1/1 → 0/0/0; cookie posterior recibe 401. Live y smoke 18/18; 68 tests y build pasan.                                                            |
 | **48** | Resend E2E + schedule diario de alertas                                                                                 | fixture oculto + `vercel.json`                                       | El intento con clave antigua falló sin perderse; tras rotarla, el mismo asiento fue `sent` en el intento 2 con provider ID y cursor a 90 EUR. La repetición envió 0 emails. Worker declarado a las 04:15 UTC, una hora después del catálogo.                                                   |
+| **49** | Línea base analítica limpia + Plausible actualizado                                                                     | `src/lib/analytics/*` + `docs/analytics-operations.md`                | El smoke queda fuera de `search_history`, los eventos nuevos llevan `schema_version=2` y se conserva el histórico ambiguo sin borrarlo. El snippet genérico retirado se sustituye por una URL `pa-…js` allowlisted y `plausible.init()`; activación pendiente del sitio del owner.          |
 
 ### Métricas post-deploy
 
@@ -547,6 +548,8 @@ tests/                                     # node:test: redirects, wishlist y Sk
 28. **Alta segura de merchants con imágenes remotas**: desplegar primero el `remotePatterns` exacto y mantener la tienda inactiva; comprobar en producción una URL real de `/_next/image` (incluido el ancho mayor usado por la UI) y sólo entonces activar la tienda. Como el sitemap usa ISR diario, tras activarla hay que provocar/verificar una regeneración con la tienda ya activa antes de dar el release por cerrado. Si falla el optimizador, desactivar la tienda es el rollback reversible: no se borran productos.
 29. **Magic links y PKCE cross-device**: `ConfirmationURL` queda ligado al verificador del navegador que pidió el enlace y falla si se abre en otro dispositivo. Auth email usa `TokenHash` con una landing GET que no verifica nada y un POST explícito a `verifyOtp({type: 'email'})`; no volver a consumir tokens en GET porque los filtros de correo precargan enlaces.
 30. **Separación de correo**: Supabase Auth envía por `mail.shopifind.app:587` como `acceso@auth.shopifind.app`; SPF, DKIM y DMARC están aislados en el subdominio. Las alertas usan Resend: su idempotency key complementa el ledger y el E2E confirmó recuperación tras fallo sin duplicado; sustituirlo por SMTP puro reabriría esa ventana.
+31. **No medir el smoke como usuario**: `scripts/smoke-production.ts` usa `shopifind-release-smoke/1.0` y la capa de escritura lo excluye. Los eventos fiables llevan `filters.schema_version=2`; los 167 anteriores mezclan comprobaciones internas y posible tráfico real, por lo que no son una línea base de conversión.
+32. **Plausible usa snippet único**: desde octubre de 2025 no basta `data-domain` + `/js/script.js`. Copiar el `pa-…js` concreto del sitio a `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC`; el layout sólo acepta ese host/formato y ejecuta `plausible.init()` una vez.
 
 ---
 
@@ -673,7 +676,9 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - [x] Google OAuth: cliente web, callback Supabase, provider, PKCE, sesión, perfil y persistencia E2E verificados el 2026-07-29.
 - [ ] Google Search Console: registrar `https://shopifind.app` → verificación DNS TXT → Sitemaps > Add → `https://shopifind.app/sitemap.xml`.
 - [ ] Bing Webmaster Tools (opcional pero gratis): mismo proceso.
-- [ ] Plausible analytics: verificar que el dominio `shopifind.app` está añadido y `<script>` en `layout.tsx` carga.
+- [ ] Plausible analytics: crear/verificar `shopifind.app`, copiar su URL
+  `https://plausible.io/js/pa-….js` a `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` en
+  Vercel y completar el E2E de `docs/analytics-operations.md`.
 - [ ] OpenAI: configurar alertas de gasto y hard spend limit en el proyecto API de producción (`docs/ai-search-operations.md`).
 - [ ] Legal/privacidad: proporcionar identidad pública, NIF, domicilio/datos registrales si aplican, bases y retenciones; completar `docs/launch-compliance-checklist.md` antes de activar más tracking o adquisición.
 - [ ] Confirmar el eco-score `78` para masterled con curación humana (es el único valor auto-asignado en el seed; el resto vieram del seed.sql).

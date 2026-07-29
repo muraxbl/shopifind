@@ -1,6 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
-import type { SearchHistoryInsert } from './history';
+import {
+  shouldRecordHistoryEvent,
+  type SearchHistoryInsert,
+} from './history';
+
+type HistoryRequestContext = {
+  userAgent?: string | null;
+};
 
 /**
  * Analytics writes intentionally use a stateless anon client. This keeps the
@@ -9,7 +16,10 @@ import type { SearchHistoryInsert } from './history';
  */
 export async function recordHistoryEvent(
   event: SearchHistoryInsert,
+  context?: HistoryRequestContext,
 ): Promise<void> {
+  if (!shouldRecordHistoryEvent(context?.userAgent)) return;
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) return;

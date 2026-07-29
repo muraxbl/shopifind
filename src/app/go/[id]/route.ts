@@ -46,7 +46,9 @@ export async function GET(
 
   // Await the best-effort event so the serverless invocation cannot terminate
   // before the write has been handed to Supabase.
-  await recordHistoryEvent(buildClickOutHistoryEvent(product.slug));
+  await recordHistoryEvent(buildClickOutHistoryEvent(product.slug), {
+    userAgent: request.headers.get('user-agent'),
+  });
 
   return NextResponse.redirect(targetUrl, {
     status: 302,

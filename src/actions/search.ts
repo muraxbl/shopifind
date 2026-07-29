@@ -1,5 +1,6 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { createPublicSupabaseClient } from '@/lib/supabase/public';
 import {
   normalizeEcoTagFilters,
@@ -171,6 +172,7 @@ export async function searchProducts(
       page,
       pageSize,
     }),
+    { userAgent: (await headers()).get('user-agent') },
   );
 
   // No revalidatePath('/search') here — the page already uses
