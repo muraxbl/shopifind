@@ -482,6 +482,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **49** | Línea base analítica limpia + Plausible actualizado                                                                     | `c72571f` + `docs/analytics-operations.md`                            | Deployment aceptado y smoke 18/18: `search_history` permaneció exactamente en 167 filas antes/después, probando que el runner ya no contamina métricas. Eventos humanos nuevos usan `schema_version=2`; Plausible espera la URL `pa-…js` específica del sitio.                           |
 | **50** | Cobertura pública 4/4 por nicho                                                                                         | `82b0d7c` + migration `20260729151000`                               | Oakywood pasa a `home-deco`, encaje más fiel para organización/mobiliario de escritorio; ShiftCam conserva gadgets. Migración registrada en Cloud, hubs muestran 10 productos cada uno y deployment/smoke 19/19 verificados.                                                           |
 | **51** | Readiness de Google Search Console                                                                                      | `docs/search-console-launch.md`                                      | Robots y sitemap live revalidados: referencia canónica y 1.483 URLs absolutas. Alta DNS, envío, muestra de inspección y seguimiento quedan documentados; la propiedad y el submit siguen siendo una acción manual del owner.                                                         |
+| **52** | Readiness del límite de gasto OpenAI                                                                                    | `docs/ai-search-operations.md`                                       | Procedimiento actual de hard cap por proyecto, alertas previas y semántica `429 insufficient_quota` documentados. El fallback literal ya absorbe ese fallo; activar el límite y decidir su importe siguen siendo acciones manuales del owner.                                            |
 
 ### Métricas post-deploy
 
@@ -567,7 +568,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **M-2** | **Submit sitemap a Google Search Console** | El sitio está listo: robots + 1.483 URLs live verificados. Registrar la propiedad de dominio, mantener el TXT DNS y enviar el XML siguiendo `docs/search-console-launch.md`.                                  |
 | **M-3** | **Conectar webhook Skimlinks**             | Configurar secret, salt y CIDRs en Vercel; registrar `/api/webhooks/skimlinks` en Skimlinks y enviar evento de prueba. El receiver ya existe.                                                                 |
 | **M-4** | **Completar identidad legal y privacidad** | El sitio live aún usa scaffolds. Facilitar/decidir los datos y bases de `docs/launch-compliance-checklist.md` antes de escalar tráfico, AdSense o newsletters.                                                |
-| **M-5** | **Fijar presupuesto de OpenAI**            | En el proyecto API de producción: alertas de gasto + hard spend limit mensual. El código ya tiene caché, telemetría y `OPENAI_SEARCH_ENABLED=false`; falta el tope externo que impida una factura inesperada. |
+| **M-5** | **Fijar presupuesto de OpenAI**            | En Project settings > Limits: decidir importe, activar `Enforce a hard limit` y alertas previas según `docs/ai-search-operations.md`. El fallback literal ya cubre `429 insufficient_quota`; falta el control externo. |
 
 ### 🟠 Desarrollo inmediato (por dependencias)
 
@@ -684,7 +685,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - [ ] Plausible analytics: crear/verificar `shopifind.app`, copiar su URL
   `https://plausible.io/js/pa-….js` a `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` en
   Vercel y completar el E2E de `docs/analytics-operations.md`.
-- [ ] OpenAI: configurar alertas de gasto y hard spend limit en el proyecto API de producción (`docs/ai-search-operations.md`).
+- [ ] OpenAI: seleccionar el proyecto API de producción → Limits > Spend → decidir importe → activar `Enforce a hard limit` y alertas previas; registrar fecha/importe según `docs/ai-search-operations.md`.
 - [ ] Legal/privacidad: proporcionar identidad pública, NIF, domicilio/datos registrales si aplican, bases y retenciones; completar `docs/launch-compliance-checklist.md` antes de activar más tracking o adquisición.
 - [ ] Confirmar el eco-score `78` para masterled con curación humana (es el único valor auto-asignado en el seed; el resto vieram del seed.sql).
 - [ ] Rotar el `SKIMLINKS_DOMAIN_ID` placeholder en `.env.local` (real key ya está en Vercel env, ¿OK?).
