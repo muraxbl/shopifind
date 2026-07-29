@@ -10,7 +10,7 @@
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Qué es**         | Buscador B2C de tiendas independientes reales. Indexa 4 nichos curados (sustainable-fashion, indie-gadgets, home-deco, **iluminacion**), permite búsqueda conversacional con IA, wishlist universal cross-store. |
 | **Quién monetiza** | Redirect afiliado server-side preparado con Skimlinks publisher `306854X1795120`; la cuenta sigue en revisión y no hay comisión E2E verificada. Comparador manual live; AdSense no integrado.                         |
-| **Stack core**     | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (region `fra1`) · Skimlinks · Resend · OpenAI · Plausible · Tailwind + shadcn/ui                                                |
+| **Stack core**     | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (`fra1`) · Hestia SMTP (Auth) · Resend (alertas previsto) · Skimlinks · OpenAI · Plausible · Tailwind + shadcn/ui |
 | **Live URL**       | https://shopifind.app                                                                                                                                                                                            |
 | **Status**         | MVP público. Ingest masiva en iluminación completada (masterled.es, 1563 productos · 1452 in-stock).                                                                                                             |
 
@@ -88,9 +88,9 @@
                   │                │                │
                   ▼                ▼                ▼
    ┌────────────────────┐ ┌──────────────────┐ ┌────────────────────┐
-   │ SKIMLINKS  ·  pub  │ │ RESEND  ·  email │ │ OPENAI  ·  intent  │
-   │ 306854X1795120     │ │ (planned per     │ │ gpt-4o-mini via    │
-   │ go.redirectingat…  │ │  alertas MVP)    │ │ Structured Outputs │
+   │ SKIMLINKS  ·  pub  │ │ HESTIA · Auth    │ │ OPENAI  ·  intent  │
+   │ 306854X1795120     │ │ auth.shopifind…  │ │ gpt-4o-mini via    │
+   │ go.redirectingat…  │ │ Resend: alertas  │ │ Structured Outputs │
    └────────────────────┘ └──────────────────┘ └────────────────────┘
 ```
 
@@ -284,7 +284,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/compare?ids=...`                | ✅ live                                  | Comparador manual de 2-5 productos, `noindex`, atributos normalizados, mejor precio sólo entre monedas iguales y CTA afiliado por producto; smoke E2E con dos filas reales. |
 | `/wishlist`                       | ✅ live                                  | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto.                                                    |
 | `/account`                        | ✅ live / E2E real                        | Perfil owner-only: nombre, preferencias de nicho, plan visible y logout local; login Google, escritura, persistencia tras logout/login y vínculo de identidad verificados.   |
-| `/login` + `/api/auth/callback`   | ✅ Google live · magic link E2E pendiente | Google OAuth + PKCE vuelve a `/account`; Site URL HTTPS, allowlist y `ConfirmationURL` corregidos. Falta pedir/probar un magic link nuevo.                                    |
+| `/login` + `/api/auth/*`          | ✅ Google + magic link E2E                 | Google conserva PKCE. Magic link usa SMTP propio y `TokenHash`: landing GET resistente a prefetch + POST `verifyOtp`, probado PC→móvil con sesión final en `/wishlist`.       |
 | `/sitemap.xml`                    | ✅ live                                  | 1486 URLs esperadas tras milestone 41. Incluye tiendas activas y sólo productos in-stock de stores activas. ISR diario (`86400`); loop 1000/page.                           |
 | `/robots.txt`                     | ✅ live                                  | Allow `/` + disallow `/api/`, `/admin/`, `/auth/`, `/go/`, `/search` + sitemap reference.                                                                                   |
 | `/legal` / `/privacy` / `/about`  | ✅ Markdown scaffold                     | Páginas-estatic SEO/disclaimer.                                                                                                                                             |
@@ -305,7 +305,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | **Skimlinks affiliate redirect** | `src/app/go/[id]/route.ts` + `src/lib/skimlinks.ts`                               | ✅ publisher `306854X1795120`.                                                                                                                                  |
 | **Eco-score badges en cards**    | `src/components/product/ProductCard.tsx`                                          | ✅ muestra `store_eco_score` + `eco_tags[..n]`.                                                                                                                 |
 | **Wishlist JSONB**               | `src/actions/wishlist.ts` + `src/app/(shop)/wishlist/`                            | ✅ read/write · RLS owner-only · corazones reales y precio/URL resueltos server-side.                                                                           |
-| **Gestión de price alerts**      | `src/actions/priceAlerts.ts` + PDP + `/account`                                   | 🟡 tres modos, owner-only y cursor precio+moneda con schema Cloud activo; falta crear/probar una alerta con sesión real.                                         |
+| **Gestión de price alerts**      | `src/actions/priceAlerts.ts` + PDP + `/account`                                   | ✅ tres modos, owner-only y cursor precio+moneda; alerta `any_drop` creada con sesión real y baseline/currency/cursor verificados en Cloud.                      |
 | **Pricing alerts email**         | `src/lib/email/resend.ts` + `/api/cron/process-price-alerts`                      | 🟡 evaluator/outbox/sender preparados; faltan secretos Resend, schedule y E2E real.                                                                              |
 | **Comparador manual**            | `src/components/compare/CompareSelection.tsx` + `src/app/(shop)/compare/page.tsx` | ✅ picker de 2-5 cards y tabla comparativa sin afirmar equivalencia de modelo. La comparación automática fuerte en iluminación sigue necesitando otro merchant. |
 
@@ -471,6 +471,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **41** | Piloto ShiftCam + runner Shopify UCP común                                                                             | `src/lib/feeds/shiftcam.ts` + `scripts/lib/curated-shopify-ucp.ts`   | 10 accesorios de fotografía móvil en EUR: 10/10 stock, destino e imagen 200. ShiftCam usa eco-score 0/sin evaluación, advierte importación y restringe su carpeta CDN. Oakywood migra al mismo runner de lookup/dry-run/upsert.                                                               |
 | **42** | Schema Cloud de histórico y alertas                                                                                    | migrations 0001/0002/20260728190000 + tipos remotos                  | Historial reconciliado y migraciones aplicadas en Supabase Cloud: click attribution, 1.613 snapshots baseline, RLS/policies/triggers/índices verificados y tipos TypeScript regenerados; 58 tests y build pasan.                                                                           |
 | **43** | Google OAuth + perfiles E2E                                                                                            | Supabase Auth config + `/api/auth/*` + `/account`                    | Site URL HTTPS, allowlist y provider Google configurados; PKCE Shopifind→Supabase→Google verificado. Una identidad Google quedó vinculada a un perfil existente, con escritura persistente tras logout/login y sin duplicar usuario.                                                       |
+| **44** | SMTP Auth + magic link cross-device                                                                                    | `636f5ee` + Hestia/Supabase config                                   | `acceso@auth.shopifind.app` con STARTTLS; SPF, DKIM 2048 y DMARC pasan en Proton. `TokenHash` se muestra en una landing no consumidora y sólo el POST verifica: PC→móvil E2E, 63 tests, build y smoke 17/17.                                                                               |
 
 ### Métricas post-deploy
 
@@ -482,7 +483,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true                          | **4**                                                                                                                            |
 | `<loc>` URLs esperadas en sitemap.xml                 | **1486** (1 home + 4 explore + 4 stores + 4 collections + 1473 products; confirmar tras deploy/ISR)                              |
 | HTTP 200 en smoke                                     | 100% de rutas navegables                                                                                                         |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 58/58 · rc=0 · rc=0                                                                                                              |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 63/63 · rc=0 · rc=0                                                                                                              |
 | `pnpm audit` completo                                 | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28)                                        |
 | `pnpm smoke:production`                               | **17/17** contra `shopifind.app` (snapshot 2026-07-29)                                                                           |
 | CLS / LCP / Lighthouse mobile (rough)                 | Home en 78 mobile / 92 desktop · LCP ≈1.8s                                                                                       |
@@ -538,6 +539,8 @@ tests/                                     # node:test: redirects, wishlist y Sk
 26. **Verificación post-deploy**: esperar el estado `success` de Vercel y ejecutar `pnpm smoke:production`; descubre una PDP desde el sitemap y valida rutas, auth, SEO, imágenes, Skimlinks, cron y APIs de test sin secretos. El hash enviado a Git no demuestra por sí solo qué versión está sirviendo el dominio.
 27. **Preflight de tablas PostgREST**: no usar `select(..., { head: true })` para comprobar que una tabla existe; puede devolver 204 aunque falte del schema cache. Usar un GET acotado con `.select('id').limit(1)` y comprobar `error`.
 28. **Alta segura de merchants con imágenes remotas**: desplegar primero el `remotePatterns` exacto y mantener la tienda inactiva; comprobar en producción una URL real de `/_next/image` (incluido el ancho mayor usado por la UI) y sólo entonces activar la tienda. Como el sitemap usa ISR diario, tras activarla hay que provocar/verificar una regeneración con la tienda ya activa antes de dar el release por cerrado. Si falla el optimizador, desactivar la tienda es el rollback reversible: no se borran productos.
+29. **Magic links y PKCE cross-device**: `ConfirmationURL` queda ligado al verificador del navegador que pidió el enlace y falla si se abre en otro dispositivo. Auth email usa `TokenHash` con una landing GET que no verifica nada y un POST explícito a `verifyOtp({type: 'email'})`; no volver a consumir tokens en GET porque los filtros de correo precargan enlaces.
+30. **Separación de correo**: Supabase Auth envía por `mail.shopifind.app:587` como `acceso@auth.shopifind.app`; SPF, DKIM y DMARC están aislados en el subdominio. Las alertas conservan el adaptador Resend hasta completar E2E porque su idempotency key complementa el ledger; sustituirlo por SMTP puro reabriría una ventana de duplicados tras un fallo.
 
 ---
 
@@ -547,7 +550,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 
 | #       | Item                                       | Estado / efecto                                                                                                                                                                                               |
 | ------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M-1** | 🟡 **Completar Supabase Auth**             | Google OAuth y perfiles E2E completados; Site URL HTTPS, callback y plantilla corregidos. Sólo falta solicitar y probar un magic link nuevo.                                      |
+| **M-1** | ✅ **Completar Supabase Auth**             | Google OAuth/perfiles y magic link E2E completados. SMTP propio de marca, autenticación DNS y flujo cross-device resistente a prefetch verificados en producción.                  |
 | **M-2** | **Submit sitemap a Google Search Console** | Quick win manual: registrar dominio y enviar `https://shopifind.app/sitemap.xml`.                                                                                                                             |
 | **M-3** | **Conectar webhook Skimlinks**             | Configurar secret, salt y CIDRs en Vercel; registrar `/api/webhooks/skimlinks` en Skimlinks y enviar evento de prueba. El receiver ya existe.                                                                 |
 | **M-4** | **Completar identidad legal y privacidad** | El sitio live aún usa scaffolds. Facilitar/decidir los datos y bases de `docs/launch-compliance-checklist.md` antes de escalar tráfico, AdSense o newsletters.                                                |
@@ -560,7 +563,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **B-1** | ✅ **Completar `/account` + profiles**           | nada                                            | Lectura, escritura, persistencia y relogin probados con una sesión Google real; identidad vinculada al perfil existente sin duplicado.         |
 | **B-2** | ✅ **Modelo relacional de precios y alertas**    | nada                                            | Aplicado en Cloud: schema, trigger, RLS, ledger idempotente, 1.613 snapshots baseline y tipos regenerados/verificados.                         |
 | **B-3** | 🟡 **Refresh incremental + snapshots de precio** | secretos/schedule en Vercel                     | Handler, parser compartido, auth, guardias de feed, lotes y stale-stock preparados. Falta ejecución manual controlada y después programarlo. |
-| **B-4** | 🟡 **Alertas de bajada**                         | activar cron + secretos Resend                  | UI, tres modos, evaluator, outbox y sender idempotente preparados. Ya hay sesión real; falta alerta UI + email E2E antes de programarlo.       |
+| **B-4** | 🟡 **Alertas de bajada**                         | activar cron + secretos Resend                  | UI y alerta `any_drop` E2E completadas; evaluator, outbox y sender idempotente preparados. Falta email E2E antes de programarlo.               |
 | **B-5** | ✅ **Corregir AI search actual**                 | nada                                            | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship.  |
 | **B-6** | ✅ **Comparador manual MVP**                     | nada                                            | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado. |
 | **B-7** | 🟡 **Segundo merchant de iluminación**           | verificación Skimlinks + feed/permiso del owner | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`.  |
@@ -660,7 +663,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 
 ## 12. Pendientes manuales que el owner (tú) tiene que hacer
 
-- [ ] Supabase Auth: Site URL HTTPS, allowlist y plantilla `{{ .ConfirmationURL }}` ya corregidas; pedir y probar un magic link nuevo.
+- [x] Supabase Auth: Google + perfil y magic link SMTP/`TokenHash` cross-device E2E verificados el 2026-07-29; SPF, DKIM y DMARC pasan.
 - [x] Google OAuth: cliente web, callback Supabase, provider, PKCE, sesión, perfil y persistencia E2E verificados el 2026-07-29.
 - [ ] Google Search Console: registrar `https://shopifind.app` → verificación DNS TXT → Sitemaps > Add → `https://shopifind.app/sitemap.xml`.
 - [ ] Bing Webmaster Tools (opcional pero gratis): mismo proceso.
@@ -681,7 +684,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - **¿Cómo se cambia un nicho?** Editar `src/lib/config.ts → primaryNiches + NICHE_LABEL`. Vercel auto-redeploy.
 - **¿Cómo se añade un producto?** Vía `pnpm scripts:seed:products` (multi-merchant) o `pnpm scripts:seed:lighting` (masterled) → usar `--dry-run` primero.
 - **¿Cómo se mide?** Plausible (setup pendiente de verificar) + `click_attribution`; el receiver existe, falta conexión y prueba E2E con Skimlinks.
-- **¿Cuál es el siguiente milestone live pendiente?** Owner: aplicar la migración de alertas y configurar secretos para activar refresh/email; en paralelo, corregir Supabase Auth, enviar sitemap a GSC y validar el segundo merchant en Skimlinks.
+- **¿Cuál es el siguiente milestone live pendiente?** Ejecutar el refresh de precios manual controlado y completar el email de alertas E2E antes de programar crons; en paralelo, enviar sitemap a GSC y validar el segundo merchant en Skimlinks.
 
 ---
 
