@@ -601,6 +601,8 @@ pnpm smoke:production       # smoke read-only contra https://shopifind.app
 pnpm scripts:seed:collection
 pnpm scripts:seed:products
 pnpm scripts:seed:lighting
+pnpm scripts:seed:oakywood       # Shopify UCP; dry-run por defecto
+pnpm scripts:seed:shiftcam       # Shopify UCP; dry-run por defecto
 pnpm scripts:fix:urls       # corregе source_urls broken (chromium Playwright opcional)
 pnpm scripts:hide:placeholder  # marca .example.com como live=false
 ```

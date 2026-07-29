@@ -31,6 +31,7 @@ const nextConfig = {
       // Keep this allowlist synchronized with active catalog image hosts.
       { protocol: "https", hostname: "masterled.es" },
       { protocol: "https", hostname: "images.podos.io" },
+      // UCP returns public Shopify media; isolate each merchant by CDN folder.
       {
         protocol: "https",
         hostname: "cdn.shopify.com",
