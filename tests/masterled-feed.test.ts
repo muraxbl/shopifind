@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   buildMasterledProduct,
+  curateMasterledFeed,
   isAllowedMasterledFeedUrl,
+  isProtectedMasterledRow,
+  MASTERLED_MAX_CURATED_PRODUCTS,
   parseMasterledFeed,
   parseMasterledPrice,
 } from '../src/lib/feeds/masterled';
@@ -50,4 +53,64 @@ test('masterled price and feed URL validation fail closed', () => {
     false,
   );
   assert.equal(isAllowedMasterledFeedUrl('http://masterled.es/feed'), false);
+});
+
+function curatedRow(input: {
+  attributeId: string;
+  title: string;
+  categories?: string;
+  stock?: string;
+}) {
+  return {
+    id_product: input.attributeId,
+    id_product_attribute: input.attributeId,
+    nombre: input.title,
+    Categorías: input.categories ?? 'Productos LED',
+    stock: input.stock ?? '10',
+  };
+}
+
+test('masterled curation always preserves ceiling fans and sliding track modules', () => {
+  const fan = curatedRow({
+    attributeId: 'future-fan',
+    title: 'Ventilador de techo silencioso',
+  });
+  const trackModule = curatedRow({
+    attributeId: 'future-track-module',
+    title: 'Nuevo módulo USB',
+    categories: 'Mecanismos Eléctricos, Carril Enchufes Deslizantes',
+  });
+  const preferred = curatedRow({
+    attributeId: '789',
+    title: 'Bombilla G4 1.5W bi-pin',
+  });
+  const unrelated = curatedRow({
+    attributeId: 'not-curated',
+    title: 'Bombilla repetida',
+  });
+
+  const result = curateMasterledFeed(
+    [unrelated, preferred, fan, trackModule],
+    3,
+  );
+  assert.equal(isProtectedMasterledRow(fan), true);
+  assert.equal(isProtectedMasterledRow(trackModule), true);
+  assert.deepEqual(
+    result.rows.map((row) => row.id_product_attribute),
+    ['future-fan', 'future-track-module', '789'],
+  );
+});
+
+test('masterled curation never exceeds 50 and skips unavailable optional rows', () => {
+  const rows = Array.from({ length: 60 }, (_, index) =>
+    curatedRow({
+      attributeId: String(index === 0 ? 789 : 10_000 + index),
+      title: `Optional ${index}`,
+      stock: index === 0 ? '0' : '10',
+    }),
+  );
+  const result = curateMasterledFeed(rows);
+  assert.ok(result.rows.length <= MASTERLED_MAX_CURATED_PRODUCTS);
+  assert.deepEqual(result.unavailablePreferredIds, ['789']);
+  assert.throws(() => curateMasterledFeed(rows, 51));
 });

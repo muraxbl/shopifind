@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import {
   buildMasterledProduct,
+  curateMasterledFeed,
   isAllowedMasterledFeedUrl,
+  MASTERLED_MAX_CURATED_PRODUCTS,
   parseMasterledFeed,
 } from '@/lib/feeds/masterled';
 import { hasValidBearerSecret } from '@/lib/http/secrets';
@@ -147,8 +149,23 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const curation = curateMasterledFeed(parsed.validRows);
+  if (curation.rows.length !== MASTERLED_MAX_CURATED_PRODUCTS) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'curated_selection_incomplete',
+        selected: curation.rows.length,
+        expected: MASTERLED_MAX_CURATED_PRODUCTS,
+        missing_preferred_ids: curation.missingPreferredIds,
+        unavailable_preferred_ids: curation.unavailablePreferredIds,
+      },
+      { status: 422 },
+    );
+  }
+
   const observedAt = new Date().toISOString();
-  const products = parsed.validRows.map((row) =>
+  const products = curation.rows.map((row) =>
     buildMasterledProduct(row, store.id, observedAt),
   );
   for (let index = 0; index < products.length; index += BATCH_SIZE) {
@@ -198,8 +215,10 @@ export async function GET(request: NextRequest) {
     ok: true,
     observed_at: observedAt,
     feed_rows: parsed.rows.length,
+    feed_candidates: parsed.validRows.length,
     products_seen: products.length,
     products_in_stock: products.filter((product) => product.in_stock).length,
+    protected_products: curation.protectedRows.length,
     products_marked_out_of_stock: staleCountResult.count ?? 0,
   });
 }

@@ -21,6 +21,86 @@ export type ParsedMasterledFeed = {
   validRows: MasterledCsvRow[];
 };
 
+export const MASTERLED_MAX_CURATED_PRODUCTS = 50;
+
+/**
+ * Human-reviewed variants, ordered by editorial priority. The curator fills
+ * the places left by protected families from this list and ignores unavailable
+ * variants. Extra IDs at the end are deliberate reserves for future stock
+ * changes; they never make the public selection exceed 50 rows.
+ */
+export const MASTERLED_CURATED_ATTRIBUTE_IDS = [
+  // Existing user intent: active alert/wishlist and observed click-outs.
+  '789',
+  '2119',
+  '764',
+  '766',
+  '1724',
+  '894',
+  '3871',
+  '3702',
+  '3705',
+  // Interior and architectural lighting.
+  '3634',
+  '3029',
+  '2443',
+  '2441',
+  '3610',
+  '5345',
+  // Solar, exterior and pool use cases.
+  '3129',
+  '2167',
+  '2043',
+  '2555',
+  '2414',
+  '5336',
+  '1926',
+  '3424',
+  // Smart controls, safety and electrical utility.
+  '5327',
+  '4919',
+  '5270',
+  '2148',
+  '2703',
+  '5421',
+  // Complete LED-strip systems rather than near-identical colour variants.
+  '3648',
+  '3666',
+  '3438',
+  '3722',
+  '3772',
+  '874',
+  '1637',
+  // Professional, efficient and emergency applications.
+  '3679',
+  '3619',
+  '5062',
+  '2732',
+  '3414',
+  '1812',
+  // Reviewed reserves, used only when an earlier optional variant is absent.
+  '5350',
+  '2823',
+  '2287',
+  '2143',
+  '1563',
+  '1205',
+  '2491',
+  '5299',
+  '3787',
+  '5003',
+  '4912',
+  '4925',
+  '5351',
+] as const;
+
+export type CuratedMasterledFeed = {
+  rows: MasterledCsvRow[];
+  protectedRows: MasterledCsvRow[];
+  missingPreferredIds: string[];
+  unavailablePreferredIds: string[];
+};
+
 function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -56,6 +136,74 @@ function parseStock(value: string | undefined): number {
   if (!value) return 0;
   const parsed = Number.parseInt(value.replace(/[^\d-]/g, ''), 10);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+export function isProtectedMasterledRow(row: MasterledCsvRow): boolean {
+  const title = row['nombre'] ?? '';
+  const categories = row['Categorías'] ?? '';
+  return (
+    /ventilador(?:es)? de techo/i.test(title) ||
+    /(?:^|,\s*)Carril Enchufes Deslizantes(?:\s*,|$)/i.test(categories)
+  );
+}
+
+export function curateMasterledFeed(
+  rows: readonly MasterledCsvRow[],
+  limit = MASTERLED_MAX_CURATED_PRODUCTS,
+): CuratedMasterledFeed {
+  if (
+    !Number.isSafeInteger(limit) ||
+    limit < 1 ||
+    limit > MASTERLED_MAX_CURATED_PRODUCTS
+  ) {
+    throw new Error(
+      `Masterled curated limit must be between 1 and ${MASTERLED_MAX_CURATED_PRODUCTS}.`,
+    );
+  }
+
+  const byAttributeId = new Map<string, MasterledCsvRow>();
+  for (const row of rows) {
+    const attributeId = row['id_product_attribute']?.trim();
+    if (attributeId && !byAttributeId.has(attributeId)) {
+      byAttributeId.set(attributeId, row);
+    }
+  }
+
+  const protectedRows = rows.filter(isProtectedMasterledRow);
+  if (protectedRows.length > limit) {
+    throw new Error(
+      `Masterled protected families contain ${protectedRows.length} rows, above the ${limit}-row limit.`,
+    );
+  }
+
+  const selected = new Map<string, MasterledCsvRow>();
+  for (const row of protectedRows) {
+    selected.set(row['id_product_attribute']!, row);
+  }
+
+  const missingPreferredIds: string[] = [];
+  const unavailablePreferredIds: string[] = [];
+  for (const attributeId of MASTERLED_CURATED_ATTRIBUTE_IDS) {
+    if (selected.size >= limit) break;
+    const row = byAttributeId.get(attributeId);
+    if (!row) {
+      missingPreferredIds.push(attributeId);
+      continue;
+    }
+    if (selected.has(attributeId)) continue;
+    if (parseStock(row['stock']) <= 0) {
+      unavailablePreferredIds.push(attributeId);
+      continue;
+    }
+    selected.set(attributeId, row);
+  }
+
+  return {
+    rows: [...selected.values()],
+    protectedRows,
+    missingPreferredIds,
+    unavailablePreferredIds,
+  };
 }
 
 function isHttpUrl(value: string | undefined): boolean {

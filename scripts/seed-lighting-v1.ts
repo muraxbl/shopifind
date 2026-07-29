@@ -52,6 +52,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import {
   buildMasterledProduct,
+  curateMasterledFeed,
+  MASTERLED_MAX_CURATED_PRODUCTS,
   parseMasterledFeed,
 } from '../src/lib/feeds/masterled';
 
@@ -161,13 +163,11 @@ async function ensureNiches() {
       display_order: 4,
     },
   ];
-  const { error, count } = await sb
-    .from('niches')
-    .upsert(NICHES as never, {
-      onConflict: 'id',
-      count: 'exact',
-      ignoreDuplicates: false,
-    });
+  const { error, count } = await sb.from('niches').upsert(NICHES as never, {
+    onConflict: 'id',
+    count: 'exact',
+    ignoreDuplicates: false,
+  });
   if (error) throw new Error(`Niches ensure failed: ${error.message}`);
   console.log(`  ✓ ensured ${NICHES.length} niche(s) (idempotent ON CONFLICT)`);
 }
@@ -210,17 +210,40 @@ async function main() {
   if (skipped > 0)
     console.log(`  · skipped (missing required fields): ${skipped}`);
 
+  const curation = curateMasterledFeed(valid);
+  if (!LIMIT && curation.rows.length !== MASTERLED_MAX_CURATED_PRODUCTS) {
+    throw new Error(
+      `Curated selection incomplete: ${curation.rows.length}/${MASTERLED_MAX_CURATED_PRODUCTS}.`,
+    );
+  }
+  console.log(`  · protected rows: ${curation.protectedRows.length}`);
+  console.log(
+    `  · curated rows: ${curation.rows.length}/${MASTERLED_MAX_CURATED_PRODUCTS}`,
+  );
+  if (curation.missingPreferredIds.length > 0) {
+    console.log(
+      `  · missing preferred IDs: ${curation.missingPreferredIds.join(', ')}`,
+    );
+  }
+  if (curation.unavailablePreferredIds.length > 0) {
+    console.log(
+      `  · unavailable preferred IDs: ${curation.unavailablePreferredIds.join(', ')}`,
+    );
+  }
+
   const observedAt = new Date().toISOString();
-  const stockTrue = valid.filter(
+  const stockTrue = curation.rows.filter(
     (row) =>
       buildMasterledProduct(row, '<dryrun-store-id>', observedAt).in_stock,
   ).length;
-  const stockFalse = valid.length - stockTrue;
+  const stockFalse = curation.rows.length - stockTrue;
   console.log(`  · stock>0 (will appear in catalog home): ${stockTrue}`);
   console.log(`  · stock=0 (will be set inactive): ${stockFalse}`);
 
-  const capped = LIMIT ? Math.min(LIMIT, valid.length) : valid.length;
-  const toUpsert = valid.slice(0, capped);
+  const capped = LIMIT
+    ? Math.min(LIMIT, curation.rows.length)
+    : curation.rows.length;
+  const toUpsert = curation.rows.slice(0, capped);
   console.log(`  · toUpload this run: ${toUpsert.length}`);
 
   // -- 3) PRINT PLAN -----------------------------------------------------
@@ -230,15 +253,12 @@ async function main() {
     `  ${toUpsert.length} products: masterled-{normalized-name}-{id_pa} pattern`,
   );
 
-  // Quick sample of 3 to verify mapping correctness.
-  console.log(`\n  Sample 3 mapped products:`);
-  for (const r of toUpsert.slice(0, 3)) {
+  console.log(`\n  Exact curated products:`);
+  for (const [index, r] of toUpsert.entries()) {
     const p = buildMasterledProduct(r, '<dryrun-store-id>', observedAt);
     console.log(
-      `    ${p.slug}  €${(p.price_cents / 100).toFixed(2)}  ${p.in_stock ? 'IN' : 'OUT'}  [img: ${p.image_url.slice(0, 60)}...]  [eco: ${p.eco_tags.join(',')}]`,
+      `    ${String(index + 1).padStart(2, '0')}. ${p.slug}  €${(p.price_cents / 100).toFixed(2)}  ${p.in_stock ? 'IN' : 'OUT'}`,
     );
-    console.log(`      title: ${p.title}`);
-    console.log(`      source_url: ${p.source_url}`);
   }
 
   // -- 4) EXIT DRY-RUN --------------------------------------------------
@@ -268,6 +288,7 @@ async function main() {
   let insertedCount = 0;
   let refreshedCount = 0;
   let failedCount = 0;
+  let hiddenCount = 0;
   const BATCH = 150;
   for (let i = 0; i < toUpsert.length; i += BATCH) {
     const chunk = toUpsert
@@ -296,6 +317,30 @@ async function main() {
     );
   }
 
+  // A limited staging write must never hide the rest of the live catalog.
+  // A complete production write deactivates old/unselected rows reversibly.
+  if (failedCount === 0 && !LIMIT) {
+    const staleCountResult = await sb
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('store_id', storeId)
+      .eq('in_stock', true)
+      .lt('last_seen_at', observedAt);
+    if (staleCountResult.error) {
+      throw new Error(`Stale read failed: ${staleCountResult.error.message}`);
+    }
+    const staleUpdate = await sb
+      .from('products')
+      .update({ in_stock: false } as never)
+      .eq('store_id', storeId)
+      .eq('in_stock', true)
+      .lt('last_seen_at', observedAt);
+    if (staleUpdate.error) {
+      throw new Error(`Stale update failed: ${staleUpdate.error.message}`);
+    }
+    hiddenCount = staleCountResult.count ?? 0;
+  }
+
   // -- 7) REPORT -------------------------------------------------------
   logSection('STEP 7 — final report');
   const report = {
@@ -305,6 +350,7 @@ async function main() {
     productsUpserted: insertedCount,
     productsRefreshed: refreshedCount,
     productsFailed: failedCount,
+    productsHiddenReversibly: hiddenCount,
   };
   console.log(
     report.ok ? '\n✅ DONE' : '\n⚠️  PARTIAL',

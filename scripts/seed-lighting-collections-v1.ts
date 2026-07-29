@@ -7,11 +7,11 @@
  *   1. verano-techos-led        — Smart Cooling: 2x ventilador 3CCT + plafón
  *                                 CCT 50W + 2x lámpara curva + downlight
  *                                 corte ajustable (6 SKUs verified)
- *   2. verano-terraza-jardin    — Terraza & Jardín: 7 farolas solares
- *                                 IP65 (40W → 100W) (7 SKUs verified)
+ *   2. verano-terraza-jardin    — Terraza & Jardín: 5 soluciones solares
+ *                                 IP44/IP65 (5 SKUs verified)
  *   3. carril-inteligente       — Carril enchufes deslizantes (50 + 100cm)
- *                                 + regleta bajo mueble Schuko/USB-A
- *                                 (3 SKUs verified)
+ *                                 + tres mecanismos + regleta bajo mueble
+ *                                 (6 SKUs verified)
  *
  * Slugs in this file are verified against Supabase via
  *   /rest/v1/products?slug=eq.<slug>&select=id
@@ -23,12 +23,12 @@
  *
  * PREREQUISITE
  *   - supabase/seed.sql + scripts/seed-lighting-v1.ts already applied
- *     (masterled-es + 1441 products in Supabase)
+ *     (masterled-es + curated products in Supabase)
  *   - NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in .env.local
  *
  * RUN
- *   pnpm scripts:seed:lighting:collections                 # writes
- *   pnpm scripts:seed:lighting:collections -- --dry-run     # plan only
+ *   pnpm scripts:seed:lighting:collections                  # dry-run
+ *   pnpm scripts:seed:lighting:collections -- --write       # apply
  * ============================================================================
  */
 
@@ -42,15 +42,19 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error(
-    '\u274c Missing required env vars. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.'
+    '\u274c Missing required env vars. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
   );
   process.exit(1);
 }
 
-const DRY_RUN = process.argv.includes('--dry-run');
+const WRITE = process.argv.includes('--write');
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -93,31 +97,32 @@ const COLLECTIONS: readonly CollectionCfg[] = [
     slug: 'verano-terraza-jardin',
     title: 'Terraza & Jard\u00edn \u2014 farolas solares Verano 2026',
     subtitle:
-      '8 farolas solares IP65 con autonom\u00eda real: desde 12W doble hasta 100W con 8000 l\u00famenes. 0\u20ac en factura el\u00e9ctrica exterior.',
+      '5 soluciones solares para exterior: farolas de 40W a 100W, aplique con detector y baliza de pie con sensor PIR.',
     description:
-      'C\u00e1psula curada para terrazas, jardines y fincas. Farolas solares 100% aut\u00f3nomas con chasis IP65 real contra agua y polvo, bater\u00edas de litio de larga duraci\u00f3n y chips LED de alto rendimiento. Desde 12W doble (est\u00e9tica camino) hasta modelos 100W con 8000 l\u00famenes para patios grandes. M\u00e1xima cobertura con cero instalaci\u00f3n el\u00e9ctrica. Distribuci\u00f3n UE.',
+      'C\u00e1psula curada para terrazas, jardines y fincas con cinco escalas de uso: una farola de 100W y 8000 l\u00famenes, una farola de 60W, una opci\u00f3n de 40W con sensor, un aplique de pared con detector y una baliza de pie PIR. Se priorizan usos distintos frente a repetir variantes casi id\u00e9nticas.',
     cover_image_url: null,
     product_slugs: [
       'masterled-farola-solar-led-100w-8000lm-ip65-3129',
-      'masterled-farola-solar-led-100w-8000lm-ip65-2169',
-      'masterled-farola-solar-led-100w-5000k-ip65-3273',
       'masterled-farola-solar-led-60w-5000lm-ip65-2167',
-      'masterled-farola-solar-led-60w-5000k-ip65-3275',
-      'masterled-farola-solar-led-40w-3600lm-ip65-3128',
-      'masterled-farola-solar-led-doble-12w-260cm-ip65-2301',
+      'masterled-farola-solar-led-40w-con-sensor-de-movimiento-ip65-2043',
+      'masterled-aplique-de-pared-solar-led-con-detector-de-movimiento-y-luz--2555',
+      'masterled-baliza-solar-led-de-pie-62-cm-con-sensor-de-movimiento-pir-i-2414',
     ],
   },
   {
     slug: 'carril-inteligente',
-    title: 'Carril enchufes deslizantes + regleta USB \u2014 utility cocina y escritorio',
+    title: 'Carril de enchufes deslizantes \u2014 sistema completo',
     subtitle:
-      '3 piezas verificadas: carril el\u00e9ctrico modular (50cm y 100cm) m\u00e1s regleta bajo mueble con Schuko + USB-A.',
+      '6 piezas verificadas: carriles de 50 y 100cm, tres mecanismos Schuko/USB compatibles y regleta bajo mueble.',
     description:
-      'Una c\u00e1psula compacta para modernizar puntos de enchufe. Carriles el\u00e9ctricos deslizantes en formato 50cm y 100cm \u2014 mueve los enchufes a donde los necesites sin obras \u2014 junto con la regleta bajo mueble con toma Schuko y USB-A para carga directa del m\u00f3vil. Ideal para escritorios home office y cocinas peque\u00f1as donde sumar un nuevo enchufe mural sale caro.',
+      'El sistema completo para modernizar puntos de enchufe: carriles deslizantes de 50 y 100cm, m\u00f3dulo Schuko de 16A y dos opciones USB A+C compatibles. Se a\u00f1ade una regleta bajo mueble con Schuko y USB como alternativa compacta para cocina o escritorio.',
     cover_image_url: null,
     product_slugs: [
       'masterled-carril-enchufes-deslizantes-100cm-5386',
       'masterled-carril-enchufes-deslizantes-50cm-3430',
+      'masterled-enchufe-schuko-para-rail-16a-3432',
+      'masterled-enchufe-usb-a-c-para-rail-2-4a-3433',
+      'masterled-enchufe-usb-a-c-3-1a-para-carril-deslizante-5383',
       'masterled-regleta-led-bajo-mueble-9w-toma-schuko-usb-a-c-blanco-gris-3871',
     ],
   },
@@ -136,7 +141,9 @@ type Resolution = {
 };
 
 function logSection(label: string) {
-  console.log(`\n\u2500\u2500 ${label} ${'\u2500'.repeat(Math.max(0, 60 - label.length))}`);
+  console.log(
+    `\n\u2500\u2500 ${label} ${'\u2500'.repeat(Math.max(0, 60 - label.length))}`,
+  );
 }
 
 async function ensureCollection(cfg: CollectionCfg): Promise<Resolution> {
@@ -147,11 +154,16 @@ async function ensureCollection(cfg: CollectionCfg): Promise<Resolution> {
     .in('slug', [...cfg.product_slugs])
     .eq('in_stock', true);
   if (productsRes.error) {
-    throw new Error(`Product lookup for '${cfg.slug}' failed: ${productsRes.error.message}`);
+    throw new Error(
+      `Product lookup for '${cfg.slug}' failed: ${productsRes.error.message}`,
+    );
   }
 
   const idBySlug = new Map<string, string>();
-  for (const r of (productsRes.data ?? []) as Array<{ id: string; slug: string }>) {
+  for (const r of (productsRes.data ?? []) as Array<{
+    id: string;
+    slug: string;
+  }>) {
     idBySlug.set(r.slug, r.id);
   }
   const missing = cfg.product_slugs.filter((s) => !idBySlug.has(s));
@@ -163,15 +175,21 @@ async function ensureCollection(cfg: CollectionCfg): Promise<Resolution> {
 
   if (missing.length > 0) {
     console.warn(
-      `  \u26a0\ufe0f  ${cfg.slug}: ${missing.length} slug(s) missing in catalog, skipping: ${missing.join(', ')}`
+      `  \u26a0\ufe0f  ${cfg.slug}: ${missing.length} slug(s) missing in catalog, skipping: ${missing.join(', ')}`,
     );
   }
   console.log(
-    `  \u2713 ${cfg.slug}: resolved ${resolvedIds.length}/${cfg.product_slugs.length} product IDs`
+    `  \u2713 ${cfg.slug}: resolved ${resolvedIds.length}/${cfg.product_slugs.length} product IDs`,
   );
 
-  if (DRY_RUN) {
-    return { collection: cfg, resolvedIds, missing, collectionId: null, createdFresh: false };
+  if (!WRITE) {
+    return {
+      collection: cfg,
+      resolvedIds,
+      missing,
+      collectionId: null,
+      createdFresh: false,
+    };
   }
 
   // 2. Check if collection already published (preserve published_at).
@@ -183,7 +201,10 @@ async function ensureCollection(cfg: CollectionCfg): Promise<Resolution> {
   let alreadyPublished = false;
   let existingPublishedAt: string | null = null;
   if (!preRes.error && preRes.data) {
-    const pre = preRes.data as { published: boolean | null; published_at: string | null };
+    const pre = preRes.data as {
+      published: boolean | null;
+      published_at: string | null;
+    };
     alreadyPublished = !!pre.published && !!pre.published_at;
     existingPublishedAt = pre.published_at ?? null;
   }
@@ -201,21 +222,31 @@ async function ensureCollection(cfg: CollectionCfg): Promise<Resolution> {
         niche: 'iluminacion',
         product_ids: resolvedIds,
         published: true,
-        published_at: alreadyPublished ? existingPublishedAt : new Date().toISOString(),
+        published_at: alreadyPublished
+          ? existingPublishedAt
+          : new Date().toISOString(),
       } as never,
-      { onConflict: 'slug' }
+      { onConflict: 'slug' },
     )
     .select('id, published_at')
     .single();
   if (collRes.error) {
-    throw new Error(`Collection upsert for '${cfg.slug}' failed: ${collRes.error.message}`);
+    throw new Error(
+      `Collection upsert for '${cfg.slug}' failed: ${collRes.error.message}`,
+    );
   }
 
   const r = collRes.data as { id: string; published_at: string | null };
   console.log(
-    `  \u2713 ${cfg.slug}: id=${r.id.slice(0, 8)}\u2026 published_at=${r.published_at ?? '(null)'} ${alreadyPublished ? '(preserved)' : '(fresh)'}`
+    `  \u2713 ${cfg.slug}: id=${r.id.slice(0, 8)}\u2026 published_at=${r.published_at ?? '(null)'} ${alreadyPublished ? '(preserved)' : '(fresh)'}`,
   );
-  return { collection: cfg, resolvedIds, missing, collectionId: r.id, createdFresh: !alreadyPublished };
+  return {
+    collection: cfg,
+    resolvedIds,
+    missing,
+    collectionId: r.id,
+    createdFresh: !alreadyPublished,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -225,8 +256,8 @@ async function ensureCollection(cfg: CollectionCfg): Promise<Resolution> {
 async function main() {
   console.log(
     `\u25b6 Seeding ${COLLECTIONS.length} iluminacion collections (Verano 2026)${
-      DRY_RUN ? ' [DRY RUN \u2014 no DB writes]' : ''
-    }`
+      !WRITE ? ' [DRY RUN \u2014 no DB writes]' : ''
+    }`,
   );
 
   logSection('STEP 1 \u2014 resolve product slugs against catalog');
@@ -239,7 +270,7 @@ async function main() {
   logSection('STEP 2 \u2014 final report');
   const summary = {
     ok: true,
-    dryRun: DRY_RUN,
+    dryRun: !WRITE,
     collections: resolutions.map((r) => ({
       slug: r.collection.slug,
       title: r.collection.title,
@@ -252,11 +283,15 @@ async function main() {
   };
   console.log(JSON.stringify(summary, null, 2));
 
-  if (DRY_RUN) {
-    console.log('\n\u2705 DRY RUN OK \u2014 no DB writes performed. Re-run without --dry-run to apply.\n');
+  if (!WRITE) {
+    console.log(
+      '\n\u2705 DRY RUN OK \u2014 no DB writes performed. Re-run with --write to apply.\n',
+    );
     return;
   }
-  console.log('\n\u2705 DONE \u2014 3 lighting collections seeded for /collections/<slug> URLs.\n');
+  console.log(
+    '\n\u2705 DONE \u2014 3 lighting collections seeded for /collections/<slug> URLs.\n',
+  );
 }
 
 main().catch((err) => {
