@@ -87,9 +87,10 @@ IDs ausentes o inesperados. Imágenes limitadas a
 La tienda permanece `active=false`, `verified=false`, `featured=false` y con
 `eco_score=0`. La evidencia oficial permite etiquetar el piloto como madera
 certificada, fabricación UE, circularidad y vocación de larga duración, pero no
-justifica todavía una puntuación numérica. Antes de `--write` sigue faltando el
-gate del owner en Skimlinks; después hay que desplegar la allowlist, verificar
-una imagen mediante `/_next/image` y decidir expresamente la activación.
+justifica todavía una puntuación numérica. La allowlist llegó a producción en
+`315f25a`: la imagen Pelican respondió `200 image/jpeg` a 1920 px mediante
+`/_next/image` y el smoke quedó 19/19. Antes de `--write` sólo siguen faltando el
+gate del owner en Skimlinks y la decisión expresa de escribir/activar.
 
 ## Gates antes de escribir
 
