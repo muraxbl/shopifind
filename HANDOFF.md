@@ -483,6 +483,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **50** | Cobertura pública 4/4 por nicho                                                                                         | `82b0d7c` + migration `20260729151000`                               | Oakywood pasa a `home-deco`, encaje más fiel para organización/mobiliario de escritorio; ShiftCam conserva gadgets. Migración registrada en Cloud, hubs muestran 10 productos cada uno y deployment/smoke 19/19 verificados.                                                           |
 | **51** | Readiness de Google Search Console                                                                                      | `docs/search-console-launch.md`                                      | Robots y sitemap live revalidados: referencia canónica y 1.483 URLs absolutas. Alta DNS, envío, muestra de inspección y seguimiento quedan documentados; la propiedad y el submit siguen siendo una acción manual del owner.                                                         |
 | **52** | Readiness del límite de gasto OpenAI                                                                                    | `docs/ai-search-operations.md`                                       | Procedimiento actual de hard cap por proyecto, alertas previas y semántica `429 insufficient_quota` documentados. El fallback literal ya absorbe ese fallo; activar el límite y decidir su importe siguen siendo acciones manuales del owner.                                            |
+| **53** | Readiness de Bing Webmaster Tools                                                                                       | `docs/bing-webmaster-launch.md`                                      | Bingbot recibe robots y 1.483 URLs correctamente. Importación desde GSC, alternativa manual, permisos persistentes y seguimiento quedan documentados; se difiere IndexNow hasta medir latencia real de descubrimiento.                                                                   |
 
 ### Métricas post-deploy
 
@@ -681,7 +682,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - [x] Supabase Auth: Google + perfil y magic link SMTP/`TokenHash` cross-device E2E verificados el 2026-07-29; SPF, DKIM y DMARC pasan.
 - [x] Google OAuth: cliente web, callback Supabase, provider, PKCE, sesión, perfil y persistencia E2E verificados el 2026-07-29.
 - [ ] Google Search Console: registrar la propiedad de dominio `shopifind.app` (sin protocolo) → mantener el TXT DNS → Sitemaps > Add → `https://shopifind.app/sitemap.xml`; registrar el resultado siguiendo `docs/search-console-launch.md`.
-- [ ] Bing Webmaster Tools (opcional pero gratis): mismo proceso.
+- [ ] Bing Webmaster Tools (opcional): tras completar GSC, importar sólo `shopifind.app` y su sitemap o verificarla manualmente siguiendo `docs/bing-webmaster-launch.md`.
 - [ ] Plausible analytics: crear/verificar `shopifind.app`, copiar su URL
   `https://plausible.io/js/pa-….js` a `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` en
   Vercel y completar el E2E de `docs/analytics-operations.md`.
