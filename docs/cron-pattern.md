@@ -33,8 +33,9 @@ prerrequisitos de activación.
 
 ## Prerrequisitos de activación
 
-1. Aplicar `supabase/migrations/20260728190000_price_history_alerts.sql` en
-   Supabase Cloud y regenerar tipos.
+1. ✅ `supabase/migrations/20260728190000_price_history_alerts.sql` aplicada en
+   Supabase Cloud el 2026-07-29; tipos regenerados y 1.613 snapshots baseline
+   verificados.
 2. Configurar en Vercel, sin compartir valores por chat:
    `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `MASTERLED_FEED_URL`,
    `RESEND_API_KEY` y `RESEND_FROM_EMAIL` (dominio verificado).

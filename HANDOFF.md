@@ -9,7 +9,7 @@
 |                    |                                                                                                                                                                                                                  |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Qué es**         | Buscador B2C de tiendas independientes reales. Indexa 4 nichos curados (sustainable-fashion, indie-gadgets, home-deco, **iluminacion**), permite búsqueda conversacional con IA, wishlist universal cross-store. |
-| **Quién monetiza** | Affiliate (Skimlinks publisher `306854X1795120`). CTR al merchant → join transaction automático vía JS loader. Comparador manual live; Display AdSense planned.                                                  |
+| **Quién monetiza** | Redirect afiliado server-side preparado con Skimlinks publisher `306854X1795120`; la cuenta sigue en revisión y no hay comisión E2E verificada. Comparador manual live; AdSense no integrado.                         |
 | **Stack core**     | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (region `fra1`) · Skimlinks · Resend · OpenAI · Plausible · Tailwind + shadcn/ui                                                |
 | **Live URL**       | https://shopifind.app                                                                                                                                                                                            |
 | **Status**         | MVP público. Ingest masiva en iluminación completada (masterled.es, 1563 productos · 1452 in-stock).                                                                                                             |
@@ -154,7 +154,7 @@
 >
 > **Pendientes** (backlog):
 >
-> - Activar refresh diario de Masterled después de aplicar B-2 y configurar secretos.
+> - Activar refresh diario de Masterled después de configurar secretos y completar una ejecución manual controlada; B-2 ya está aplicada.
 > - Scanner de precios 12h (price-alerts MVP).
 > - Configuración externa + prueba end-to-end del webhook Skimlinks. El receiver y el INSERT ya están implementados.
 
@@ -162,12 +162,12 @@
 
 ## 5. DB schema
 
-> 3 migraciones aplicadas conocidas + 1 migración preparada en `supabase/migrations/`:
+> Schema núcleo aplicado manualmente + 3 migraciones registradas como aplicadas en Cloud:
 >
 > 1. `00000000000000_init.sql` (núcleo + RLS + view)
 > 2. `00000000000001_click_attribution.sql` (target Skimlinks webhook)
 > 3. `00000000000002_add_iluminacion_niche.sql` (cuarto nicho)
-> 4. `20260728190000_price_history_alerts.sql` (**pendiente de aplicar en Cloud**)
+> 4. `20260728190000_price_history_alerts.sql` (aplicada en Cloud el 2026-07-29)
 
 ### Tabla por tabla
 
@@ -233,9 +233,9 @@ FK a `auth.users(id)`. `plan user_plan ENUM('free','plus','pro')`. `niche_prefs 
 
 Insert permitido a anónimos (`auth.uid() IS NULL OR auth.uid() = user_id`). RLS solo owner-scoped read. Hoy captura eventos/búsquedas (incluido click-out), pero `parseQueryIntent` **no consulta** el histórico: no existe todavía un self-feedback loop.
 
-#### `price_history` + `price_alerts` + `price_alert_deliveries` — preparado, no aplicado
+#### `price_history` + `price_alerts` + `price_alert_deliveries` — aplicado en Cloud
 
-La migración `20260728190000_price_history_alerts.sql` registra únicamente cambios reales de precio/stock/moneda mediante trigger, separa una alerta configurable por usuario-producto y añade un ledger de entregas con `UNIQUE (alert_id, price_history_id)` para impedir emails duplicados en reintentos. Precio y moneda de referencia quedan congelados juntos para no comparar céntimos de divisas diferentes. Incluye RLS owner-only para alertas, lectura pública del histórico y escrituras del ledger reservadas al service role. Falta dry-run/aplicación contra Supabase Cloud.
+La migración `20260728190000_price_history_alerts.sql` registra únicamente cambios reales de precio/stock/moneda mediante trigger, separa una alerta configurable por usuario-producto y añade un ledger de entregas con `UNIQUE (alert_id, price_history_id)` para impedir emails duplicados en reintentos. Precio y moneda de referencia quedan congelados juntos para no comparar céntimos de divisas diferentes. Incluye RLS owner-only para alertas, lectura pública del histórico y escrituras del ledger reservadas al service role. Cloud tiene 1.613 snapshots baseline para 1.613 productos; triggers, políticas e índices fueron verificados y una prueba transaccional con `ROLLBACK` confirmó el trigger sin conservar cambios.
 
 #### `editorial_collections` — cápsulas SEO
 
@@ -243,7 +243,7 @@ La migración `20260728190000_price_history_alerts.sql` registra únicamente cam
 
 #### `click_attribution` — target del Skimlinks webhook
 
-> Migración 0001 (idempotente) + receiver desplegado en `/api/webhooks/skimlinks`. Falta configurar credenciales/CIDRs en producción, registrar la URL en Skimlinks y validar un evento real.
+> Migración 0001 aplicada + receiver desplegado en `/api/webhooks/skimlinks`. Falta configurar credenciales/CIDRs en producción, registrar la URL en Skimlinks y validar un evento real.
 
 - `xcust` (nuestro custom), `product_slug`, `source_url`, `merchant_id`.
 - `intent` ENUM `'visit' | 'buys'` (los dos tipos que Skimlinks envía).
@@ -349,7 +349,7 @@ Si OpenAI está caído, tarda más de 4s o schema validation falla → fallback 
 │   │   ├── 00000000000000_init.sql        # users/stores/products/wishlists/collections + RLS + view
 │   │   ├── 00000000000001_click_attribution.sql   # Skimlinks webhook target
 │   │   ├── 00000000000002_add_iluminacion_niche.sql # 4º vertical
-│   │   └── 20260728190000_price_history_alerts.sql  # preparado; NO aplicado aún
+│   │   └── 20260728190000_price_history_alerts.sql  # aplicado en Cloud 2026-07-29
 │   └── scripts/                           # (vacío — los *.ts en /scripts/ del repo son los reales)
 │
 ├── scripts/                                # ⭐ CLI entry points (todos idempotentes con --dry-run / --write)
@@ -469,6 +469,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **39** | Saneado de enlaces + piloto Rapanui                                                                                    | auditor + ingestor curado                                            | 11 fixtures no-Masterled con placeholder se pusieron fuera de stock y 3 tiendas vacías se desactivaron sin borrar datos. Rapanui queda activo con 12/12 PDPs, stock y precios GBP verificados e imágenes enlazadas desde el CDN de origen; dry-run, allowlists y límites cubiertos por tests. |
 | **40** | Piloto Oakywood vía Shopify UCP                                                                                        | `src/lib/feeds/oakywood.ts` + ingestor                               | 10 IDs curados consultados en una sola operación UCP con contexto España/EUR: 10/10 stock, destino e imagen 200. Hotlink restringido a su carpeta Shopify CDN; sin scraping de HTML. La UI distingue además eco-score 0 de “sin evaluar”.                                                     |
 | **41** | Piloto ShiftCam + runner Shopify UCP común                                                                             | `src/lib/feeds/shiftcam.ts` + `scripts/lib/curated-shopify-ucp.ts`   | 10 accesorios de fotografía móvil en EUR: 10/10 stock, destino e imagen 200. ShiftCam usa eco-score 0/sin evaluación, advierte importación y restringe su carpeta CDN. Oakywood migra al mismo runner de lookup/dry-run/upsert.                                                               |
+| **42** | Schema Cloud de histórico y alertas                                                                                    | migrations 0001/0002/20260728190000 + tipos remotos                  | Historial reconciliado y migraciones aplicadas en Supabase Cloud: click attribution, 1.613 snapshots baseline, RLS/policies/triggers/índices verificados y tipos TypeScript regenerados; 58 tests y build pasan.                                                                           |
 
 ### Métricas post-deploy
 
@@ -480,7 +481,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true                          | **4**                                                                                                                            |
 | `<loc>` URLs esperadas en sitemap.xml                 | **1486** (1 home + 4 explore + 4 stores + 4 collections + 1473 products; confirmar tras deploy/ISR)                              |
 | HTTP 200 en smoke                                     | 100% de rutas navegables                                                                                                         |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 52/52 · rc=0 · rc=0                                                                                                              |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 58/58 · rc=0 · rc=0                                                                                                              |
 | `pnpm audit` completo                                 | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28)                                        |
 | `pnpm smoke:production`                               | **17/17** contra `shopifind.app` (snapshot 2026-07-29)                                                                           |
 | CLS / LCP / Lighthouse mobile (rough)                 | Home en 78 mobile / 92 desktop · LCP ≈1.8s                                                                                       |
@@ -521,7 +522,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 
 18. **`xcust=shopifind-<slug>` es la palanca de atribución**. Tiene que ser único por producto. Si dos slugs generan el mismo xcust, los reportes de Skimlinks los confunden.
 19. **Bloquear `/go/` en robots.txt** — **obligatorio**. Sin esto, Googlebot ejecuta el 302 como click válido, infla las comisiones "visit" en el dashboard y distorsiona el funnel.
-20. **Skimlinks JS loader**: si ad-blocker lo bloquea, el user va directo al merchant sin tracking. Aceptamos esa pérdida (es lo mismo que cualquier affiliate network, ~5-10% lost-to-blockers).
+20. **Skimlinks no usa loader cliente**: `/go/<slug>` construye en servidor un 302 hacia `go.redirectingat.com` cuando existe `SKIMLINKS_DOMAIN_ID`; si falta, degrada a `affiliate_url` y luego a `source_url`. La cuenta/publisher sigue pendiente de aprobación y no debe describirse como monetización verificada.
 21. **`/go/[id]` degrada con seguridad**: si falta `SKIMLINKS_DOMAIN_ID` usa `affiliate_url` y después `source_url`; el route param se llama `id` por historia, pero contiene el slug.
 
 ### Masterled / PrestaShop
@@ -556,9 +557,9 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | #       | Item                                             | Bloqueado por                                   | Alcance                                                                                                                                       |
 | ------- | ------------------------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | **B-1** | ✅ **Completar `/account` + profiles**           | M-1 sólo para E2E real                          | Código y validación completados; falta probar lectura/escritura con una sesión real después de corregir Supabase Auth.                        |
-| **B-2** | 🟡 **Modelo relacional de precios y alertas**    | aprobación/aplicación de migración              | Schema, trigger, RLS, ledger idempotente y tipos preparados localmente; NO aplicado aún a Cloud.                                              |
-| **B-3** | 🟡 **Refresh incremental + snapshots de precio** | B-2 + secretos/schedule en Vercel               | Handler, parser compartido, auth, guardias de feed, lotes y stale-stock preparados. No programado ni ejecutado contra Cloud.                  |
-| **B-4** | 🟡 **Alertas de bajada**                         | B-2 + activar crons + secretos Resend           | UI, tres modos, evaluator, outbox y sender idempotente preparados. Falta aplicar schema, configurar/ejecutar y completar E2E con email real.  |
+| **B-2** | ✅ **Modelo relacional de precios y alertas**    | nada                                            | Aplicado en Cloud: schema, trigger, RLS, ledger idempotente, 1.613 snapshots baseline y tipos regenerados/verificados.                         |
+| **B-3** | 🟡 **Refresh incremental + snapshots de precio** | secretos/schedule en Vercel                     | Handler, parser compartido, auth, guardias de feed, lotes y stale-stock preparados. Falta ejecución manual controlada y después programarlo. |
+| **B-4** | 🟡 **Alertas de bajada**                         | M-1 + activar cron + secretos Resend             | UI, tres modos, evaluator, outbox y sender idempotente preparados. Falta E2E con usuario real y email real antes de programarlo.              |
 | **B-5** | ✅ **Corregir AI search actual**                 | nada                                            | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship.  |
 | **B-6** | ✅ **Comparador manual MVP**                     | nada                                            | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado. |
 | **B-7** | 🟡 **Segundo merchant de iluminación**           | verificación Skimlinks + feed/permiso del owner | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`.  |
