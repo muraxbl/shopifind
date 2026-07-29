@@ -1,6 +1,6 @@
-import { NextResponse, type NextRequest } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { safeNextPath } from '@/lib/auth/redirect';
+import { NextResponse, type NextRequest } from "next/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { safeNextPath } from "@/lib/auth/redirect";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -14,16 +14,24 @@ export async function POST(request: NextRequest) {
   try {
     form = await request.formData();
   } catch {
-    return NextResponse.redirect(new URL('/login?error=invalid_form', url.origin));
+    return NextResponse.redirect(
+      new URL("/login?error=invalid_form", url.origin),
+      303,
+    );
   }
-  const email = String(form.get('email') ?? '').trim().toLowerCase();
+  const email = String(form.get("email") ?? "")
+    .trim()
+    .toLowerCase();
   const next = safeNextPath(
-    form.get('next')?.toString() ?? url.searchParams.get('next'),
-    '/'
+    form.get("next")?.toString() ?? url.searchParams.get("next"),
+    "/",
   );
 
   if (!EMAIL_REGEX.test(email)) {
-    return NextResponse.redirect(new URL('/login?error=invalid_email', url.origin));
+    return NextResponse.redirect(
+      new URL("/login?error=invalid_email", url.origin),
+      303,
+    );
   }
 
   const supabase = await createServerSupabaseClient();
@@ -37,8 +45,11 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, url.origin));
+    return NextResponse.redirect(
+      new URL("/login?error=magic_link_send_failed", url.origin),
+      303,
+    );
   }
 
-  return NextResponse.redirect(new URL(`/login?sent=${encodeURIComponent(email)}`, url.origin));
+  return NextResponse.redirect(new URL("/login?sent=1", url.origin), 303);
 }
