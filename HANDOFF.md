@@ -1,6 +1,6 @@
 # Shopifind — Handoff del proyecto
 
-> Documento vivo. Última actualización: 2026-07-29. **Estado:** MVP live en `shopifind.app` (Vercel) con DB poblada en Supabase Cloud. 4 nichos curados · 4 stores activas saneadas · 1473 productos activos expuestos · 4 colecciones editoriales · sitemap.xml + robots.txt operacionales.
+> Documento vivo. Última actualización: 2026-07-29. **Estado:** MVP live en `shopifind.app` (Vercel) con DB poblada en Supabase Cloud. 4 nichos curados · 4 stores activas saneadas · 1470 productos activos expuestos · 4 colecciones editoriales · sitemap.xml + robots.txt operacionales.
 
 ---
 
@@ -12,7 +12,7 @@
 | **Quién monetiza** | Redirect afiliado server-side preparado con Skimlinks publisher `306854X1795120`; la cuenta sigue en revisión y no hay comisión E2E verificada. Comparador manual live; AdSense no integrado.                    |
 | **Stack core**     | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (`fra1`) · Hestia SMTP (Auth) · Resend (alertas) · Skimlinks · OpenAI · Plausible · Tailwind + shadcn/ui                        |
 | **Live URL**       | https://shopifind.app                                                                                                                                                                                            |
-| **Status**         | MVP público. Ingest masiva en iluminación completada (masterled.es, 1563 productos · 1452 in-stock).                                                                                                             |
+| **Status**         | MVP público. Catálogo Masterled incremental: 1572 referencias conservadas · 1438 in-stock tras el refresh del 2026-07-29.                                                                                      |
 
 ---
 
@@ -161,13 +161,14 @@
 
 ## 5. DB schema
 
-> Schema núcleo aplicado manualmente + 4 migraciones registradas como aplicadas en Cloud:
+> Schema núcleo aplicado manualmente + 5 migraciones registradas como aplicadas en Cloud:
 >
 > 1. `00000000000000_init.sql` (núcleo + RLS + view)
 > 2. `00000000000001_click_attribution.sql` (target Skimlinks webhook)
 > 3. `00000000000002_add_iluminacion_niche.sql` (cuarto nicho)
 > 4. `20260728190000_price_history_alerts.sql` (aplicada en Cloud el 2026-07-29)
 > 5. `20260729143000_account_erasure.sql` (aplicada y probada en Cloud el 2026-07-29)
+> 6. `20260729151000_reclassify_oakywood_home_deco.sql` (aplicada y registrada en Cloud el 2026-07-29)
 
 ### Tabla por tabla
 
@@ -263,7 +264,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | Stores seed                               | 6                    | `stores`                | `supabase/seed.sql` (everlane-eu, b-corp-outfitters, killiney-audio, gridloom, casa-vereda, nordic-folk) |
 | Productos seed SF/IG/HD                   | 10                   | `products`              | `seed.sql`                                                                                               |
 | Productos seed SF extra (ethical-staples) | 4                    | `products`              | `seed.sql` (extend para cápsula curated)                                                                 |
-| Productos masterled.es                    | 1452 (in-stock 1452) | `products`              | `scripts/seed-lighting-v1.ts` (PrestaShop CSV feed)                                                      |
+| Productos masterled.es                    | 1572 (in-stock 1438) | `products`              | seed inicial + refresh incremental desde CSV PrestaShop                                                  |
 | **Cápsulas editoriales**                  | 4                    | `editorial_collections` | `seed-editorial-collection.ts` + `seed-lighting-collections-v1.ts`                                       |
 | **Iluminación store**                     | 1                    | `stores`                | seed-lighting-v1.ts (masterled-es · niche = iluminacion · eco_score 78)                                  |
 
@@ -285,7 +286,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/wishlist`                       | ✅ live                         | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto.                                                    |
 | `/account`                        | ✅ live / E2E real              | Perfil owner-only, preferencias, alertas y logout; exportación JSON completa y borrado irreversible con confirmación por email añadidos en milestone 47.                    |
 | `/login` + `/api/auth/*`          | ✅ Google + magic link E2E      | Google conserva PKCE. Magic link usa SMTP propio y `TokenHash`: landing GET resistente a prefetch + POST `verifyOtp`, probado PC→móvil con sesión final en `/wishlist`.     |
-| `/sitemap.xml`                    | ✅ live                         | 1486 URLs esperadas tras milestone 41. Incluye tiendas activas y sólo productos in-stock de stores activas. ISR diario (`86400`); loop 1000/page.                           |
+| `/sitemap.xml`                    | ✅ live                         | 1483 URLs verificadas: 1 home + 4 nichos + 4 tiendas + 4 colecciones + 1470 PDP. ISR diario (`86400`); loop 1000/page.                                      |
 | `/robots.txt`                     | ✅ live                         | Allow `/` + disallow `/api/`, `/admin/`, `/auth/`, `/go/`, `/search` + sitemap reference.                                                                                   |
 | `/legal` / `/privacy` / `/about`  | ✅ Markdown scaffold            | Páginas-estatic SEO/disclaimer.                                                                                                                                             |
 | `/api/products/*` + `/api/auth/*` | ✅ implementado                 | Handlers server-side desplegados; Google OAuth habilitado y probado con sesión real.                                                                                        |
@@ -487,6 +488,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Tiendas históricas en seeds/DB                        | permanecen en DB; sólo **4 merchants saneados** están expuestos públicamente (`masterled-es`, `rapanui`, `oakywood`, `shiftcam`) |
 | Productos activos en DB                               | **1470** (1438 Masterled + 12 Rapanui + 10 Oakywood + 10 ShiftCam; snapshot DB 2026-07-29)                                       |
 | Nichos activos                                        | **4**                                                                                                                            |
+| Nichos con inventario público                         | **4/4** (Rapanui · ShiftCam · Oakywood · Masterled)                                                                               |
 | Colecciones publicado = true                          | **4**                                                                                                                            |
 | `<loc>` URLs en sitemap.xml                           | **1483 live** (1 home + 4 explore + 4 stores + 4 collections + 1470 productos; verificado tras deploy 2026-07-29)                |
 | HTTP 200 en smoke                                     | 100% de rutas navegables                                                                                                         |

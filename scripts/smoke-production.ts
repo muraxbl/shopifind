@@ -282,6 +282,34 @@ async function main(): Promise<void> {
       },
     },
     {
+      name: "inventario en los cuatro nichos",
+      run: async () => {
+        const expectedStores = new Map([
+          ["/explore/sustainable-fashion", "Rapanui"],
+          ["/explore/indie-gadgets", "ShiftCam"],
+          ["/explore/home-deco", "Oakywood"],
+          ["/explore/iluminacion", "Masterled"],
+        ]);
+        const responses = await Promise.all(
+          [...expectedStores.keys()].map((path) =>
+            request(siteUrl(baseUrl, path)),
+          ),
+        );
+        for (const [index, [path, store]] of [
+          ...expectedStores.entries(),
+        ].entries()) {
+          const response = responses[index]!;
+          expectStatus(response, 200);
+          const html = await response.text();
+          expectText(html, store, `tienda ${store} en ${path}`);
+          if (productPaths(html).size === 0) {
+            throw new Error(`${path} no contiene productos`);
+          }
+        }
+        return "Rapanui + ShiftCam + Oakywood + Masterled";
+      },
+    },
+    {
       name: "login",
       run: async () => {
         const response = await request(siteUrl(baseUrl, "/login"));

@@ -13,7 +13,7 @@ const STORE = {
   slug: "oakywood",
   name: "Oakywood",
   url: "https://oakywood.shop",
-  niche: "indie-gadgets",
+  niche: "home-deco",
   short_description:
     "Accesorios de escritorio tecnológicos diseñados y fabricados en un taller familiar de Polonia.",
   long_description:

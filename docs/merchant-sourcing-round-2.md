@@ -12,7 +12,7 @@
    acceso a creatividades. Shopifind mantiene, no obstante, `skimlinks` como
    mecanismo de click-out y `verified=false` hasta comprobar el merchant en el
    dashboard real.
-2. **Oakywood — piloto publicado.** Diez accesorios de escritorio y carga
+2. **Oakywood — piloto publicado en home-deco.** Diez accesorios de escritorio y carga
    localizados para España en EUR mediante el Storefront Catalog UCP oficial de
    Shopify. La marca fabrica en Polonia, documenta madera responsable/FSC,
    recuperación de producto y garantía de cinco años. Su programa Awin publica
@@ -67,6 +67,9 @@
 - Eco-score humano 84: materiales responsables/FSC, taller local, recuperación
   de producto y garantía de cinco años; las etiquetas de producto sólo se
   derivan de la descripción concreta.
+- Se clasifica como `home-deco`: organización, soportes y mobiliario de
+  escritorio en madera son un encaje editorial más directo que gadgets. Así el
+  hub deja de estar vacío y ShiftCam conserva la cobertura de `indie-gadgets`.
 
 ## Piloto ShiftCam
 
