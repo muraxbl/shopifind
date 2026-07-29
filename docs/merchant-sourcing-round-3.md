@@ -184,7 +184,9 @@ El dry-run UCP respondió 10/10 disponibles para España, con precio EUR y las
 diez imágenes accesibles como `image/*`. Los destinos se limitan a
 `https://www.orbitkey.eu/es/products/...` y los assets a
 `cdn.shopify.com/s/files/1/2161/4233/`; cualquier desvío de host, locale o
-carpeta aborta el lote.
+carpeta aborta el lote. La allowlist llegó a producción en `293c0ac`: una
+imagen real del Key Organiser a 1920 px respondió `200 image/jpeg` (136.513
+bytes) mediante `/_next/image`, y el smoke quedó 19/19.
 
 Las etiquetas se derivan exclusivamente de la descripción y tags de cada ficha:
 algodón BCI, cuero de cactus, cuero vegano, Cyclepet/PET o poliéster reciclado,
