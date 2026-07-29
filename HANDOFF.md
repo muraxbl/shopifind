@@ -6,13 +6,13 @@
 
 ## 1. TL;DR
 
-| | |
-|---|---|
-| **Qué es** | Buscador B2C de tiendas independientes reales. Indexa 4 nichos curados (sustainable-fashion, indie-gadgets, home-deco, **iluminacion**), permite búsqueda conversacional con IA, wishlist universal cross-store. |
-| **Quién monetiza** | Affiliate (Skimlinks publisher `306854X1795120`). CTR al merchant → join transaction automático vía JS loader. Comparador manual live; Display AdSense planned. |
-| **Stack core** | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (region `fra1`) · Skimlinks · Resend · OpenAI · Plausible · Tailwind + shadcn/ui |
-| **Live URL** | https://shopifind.app |
-| **Status** | MVP público. Ingest masiva en iluminación completada (masterled.es, 1563 productos · 1452 in-stock). |
+|                    |                                                                                                                                                                                                                  |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Qué es**         | Buscador B2C de tiendas independientes reales. Indexa 4 nichos curados (sustainable-fashion, indie-gadgets, home-deco, **iluminacion**), permite búsqueda conversacional con IA, wishlist universal cross-store. |
+| **Quién monetiza** | Affiliate (Skimlinks publisher `306854X1795120`). CTR al merchant → join transaction automático vía JS loader. Comparador manual live; Display AdSense planned.                                                  |
+| **Stack core**     | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (region `fra1`) · Skimlinks · Resend · OpenAI · Plausible · Tailwind + shadcn/ui                                                |
+| **Live URL**       | https://shopifind.app                                                                                                                                                                                            |
+| **Status**         | MVP público. Ingest masiva en iluminación completada (masterled.es, 1563 productos · 1452 in-stock).                                                                                                             |
 
 ---
 
@@ -24,7 +24,7 @@
 
 ### Por qué existe (3 problemas que resuelve)
 
-1. **Descubrimiento vs. búsqueda**: cuando ya sabes qué tienda quieres, vas directo. Cuando sabes qué *te importa* pero no la tienda, comes tiempo muerto. Shopifind cataloga por *valores* (eco_score 0-100, `eco_tags[]`, país, certificaciones) — no solo por keyword.
+1. **Descubrimiento vs. búsqueda**: cuando ya sabes qué tienda quieres, vas directo. Cuando sabes qué _te importa_ pero no la tienda, comes tiempo muerto. Shopifind cataloga por _valores_ (eco_score 0-100, `eco_tags[]`, país, certificaciones) — no solo por keyword.
 2. **Afiliación saneada**: Skimlinks auto-joins transactions >60k programas. Cero coupling con cada merchant program (no nos enteramos si uno cambia el commission rate).
 3. **Curación humana + IA estructurada**: AI interpreta la query → typed filters (Zod/JSON Schema) → SQL con pg_trgm + tsvector. El humano curador publica colecciones SEO tipo "Top 10 mochilas indie" que rankean para long-tails de alta conversión.
 
@@ -128,31 +128,32 @@
 
 ### Runtime
 
-| Capa | Tech | Versión | Comentario |
-|---|---|---|---|
-| Framework | **Next.js** App Router | 15.5.22 | RSC + Server Actions. `cookies()`, `params` y `searchParams` se consumen como APIs asíncronas. `experimental.serverActions.bodySizeLimit = 2mb`. |
-| Lenguaje | **TypeScript** | 5.4.5 | `strict` + `noUncheckedIndexedAccess`. Genera `.tsbuildinfo` cacheado. |
-| UI | **Tailwind** + **shadcn/ui** + **Radix** + **Lucide** | 3.4 / latest | Radix primitives para dialog/popover/tabs/toast. shadcn wrapper. |
-| Auth + DB | **Supabase** (`@supabase/ssr` + `supabase-js`) | ssr 0.12 / js 2.43 | Service-role key SOLO server-side. |
-| AI | **OpenAI** (`OPENAI_SEARCH_MODEL`, default `gpt-4o-mini`) | 4.47 | Chat Completions + Structured Outputs. 4s timeout, sin retry, caché de intent válido 1h, kill switch y fallback literal. |
-| Affiliate | **Skimlinks** (publisher `306854X1795120`) | — | `go.redirectingat.com` con `xcust=shopifind-<slug>`. |
-| Email | **Resend HTTP API** (prepared) | REST | Builder HTML/text, idempotency key y sender preparados sin SDK; falta configuración y E2E real. |
-| CRM email | **react-hook-form** + **zod** | 7.51 / 3.23 | Formularios de captura + validación. |
-| Build | **tsx** (scripts), **pnpm** | 4.16 / 11.17 | Scripts en `/scripts/*.ts` corren vía `tsx`, no `next`. La versión queda fijada en `packageManager`; pnpm 11 lee permisos, overrides y excepciones de antigüedad en `pnpm-workspace.yaml`. |
-| Testing | **playwright-core** (devDep) | 1.62 | Solo instalado si activamos Playwright para fix-source-urls SFCC. |
+| Capa      | Tech                                                      | Versión            | Comentario                                                                                                                                                                                 |
+| --------- | --------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Framework | **Next.js** App Router                                    | 15.5.22            | RSC + Server Actions. `cookies()`, `params` y `searchParams` se consumen como APIs asíncronas. `experimental.serverActions.bodySizeLimit = 2mb`.                                           |
+| Lenguaje  | **TypeScript**                                            | 5.4.5              | `strict` + `noUncheckedIndexedAccess`. Genera `.tsbuildinfo` cacheado.                                                                                                                     |
+| UI        | **Tailwind** + **shadcn/ui** + **Radix** + **Lucide**     | 3.4 / latest       | Radix primitives para dialog/popover/tabs/toast. shadcn wrapper.                                                                                                                           |
+| Auth + DB | **Supabase** (`@supabase/ssr` + `supabase-js`)            | ssr 0.12 / js 2.43 | Service-role key SOLO server-side.                                                                                                                                                         |
+| AI        | **OpenAI** (`OPENAI_SEARCH_MODEL`, default `gpt-4o-mini`) | 4.47               | Chat Completions + Structured Outputs. 4s timeout, sin retry, caché de intent válido 1h, kill switch y fallback literal.                                                                   |
+| Affiliate | **Skimlinks** (publisher `306854X1795120`)                | —                  | `go.redirectingat.com` con `xcust=shopifind-<slug>`.                                                                                                                                       |
+| Email     | **Resend HTTP API** (prepared)                            | REST               | Builder HTML/text, idempotency key y sender preparados sin SDK; falta configuración y E2E real.                                                                                            |
+| CRM email | **react-hook-form** + **zod**                             | 7.51 / 3.23        | Formularios de captura + validación.                                                                                                                                                       |
+| Build     | **tsx** (scripts), **pnpm**                               | 4.16 / 11.17       | Scripts en `/scripts/*.ts` corren vía `tsx`, no `next`. La versión queda fijada en `packageManager`; pnpm 11 lee permisos, overrides y excepciones de antigüedad en `pnpm-workspace.yaml`. |
+| Testing   | **playwright-core** (devDep)                              | 1.62               | Solo instalado si activamos Playwright para fix-source-urls SFCC.                                                                                                                          |
 
 ### Hosting
 
-| Servicio | Plan | Región | Notas |
-|---|---|---|---|
-| **Vercel** | Hobby (auto-upgrade si Pro necesario) | `fra1` (Frankfurt) | `pnpm build` es el comando. Hobby admite hasta 100 cron jobs, pero cada uno como máximo una vez al día y con precisión horaria. |
-| **Supabase Cloud** | Free tier → evaluar upgrade | EU region (default) | DB en lituania-eu-west; auth/pg_net/realtime listos. |
+| Servicio           | Plan                                  | Región              | Notas                                                                                                                           |
+| ------------------ | ------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Vercel**         | Hobby (auto-upgrade si Pro necesario) | `fra1` (Frankfurt)  | `pnpm build` es el comando. Hobby admite hasta 100 cron jobs, pero cada uno como máximo una vez al día y con precisión horaria. |
+| **Supabase Cloud** | Free tier → evaluar upgrade           | EU region (default) | DB en lituania-eu-west; auth/pg_net/realtime listos.                                                                            |
 
 ### Crons / scheduled jobs
 
 > **Hoy:** endpoint seguro de refresh preparado, pero ningún schedule activo.
 >
 > **Pendientes** (backlog):
+>
 > - Activar refresh diario de Masterled después de aplicar B-2 y configurar secretos.
 > - Scanner de precios 12h (price-alerts MVP).
 > - Configuración externa + prueba end-to-end del webhook Skimlinks. El receiver y el INSERT ya están implementados.
@@ -162,6 +163,7 @@
 ## 5. DB schema
 
 > 3 migraciones aplicadas conocidas + 1 migración preparada en `supabase/migrations/`:
+>
 > 1. `00000000000000_init.sql` (núcleo + RLS + view)
 > 2. `00000000000001_click_attribution.sql` (target Skimlinks webhook)
 > 3. `00000000000002_add_iluminacion_niche.sql` (cuarto nicho)
@@ -256,14 +258,14 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 
 ### Seeds pre-cargados (lo que está en DB hoy)
 
-| Tipo | Cantidad | Tabla | Origen |
-|---|---|---|---|
-| Stores seed | 6 | `stores` | `supabase/seed.sql` (everlane-eu, b-corp-outfitters, killiney-audio, gridloom, casa-vereda, nordic-folk) |
-| Productos seed SF/IG/HD | 10 | `products` | `seed.sql` |
-| Productos seed SF extra (ethical-staples) | 4 | `products` | `seed.sql` (extend para cápsula curated) |
-| Productos masterled.es | 1452 (in-stock 1452) | `products` | `scripts/seed-lighting-v1.ts` (PrestaShop CSV feed) |
-| **Cápsulas editoriales** | 4 | `editorial_collections` | `seed-editorial-collection.ts` + `seed-lighting-collections-v1.ts` |
-| **Iluminación store** | 1 | `stores` | seed-lighting-v1.ts (masterled-es · niche = iluminacion · eco_score 78) |
+| Tipo                                      | Cantidad             | Tabla                   | Origen                                                                                                   |
+| ----------------------------------------- | -------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| Stores seed                               | 6                    | `stores`                | `supabase/seed.sql` (everlane-eu, b-corp-outfitters, killiney-audio, gridloom, casa-vereda, nordic-folk) |
+| Productos seed SF/IG/HD                   | 10                   | `products`              | `seed.sql`                                                                                               |
+| Productos seed SF extra (ethical-staples) | 4                    | `products`              | `seed.sql` (extend para cápsula curated)                                                                 |
+| Productos masterled.es                    | 1452 (in-stock 1452) | `products`              | `scripts/seed-lighting-v1.ts` (PrestaShop CSV feed)                                                      |
+| **Cápsulas editoriales**                  | 4                    | `editorial_collections` | `seed-editorial-collection.ts` + `seed-lighting-collections-v1.ts`                                       |
+| **Iluminación store**                     | 1                    | `stores`                | seed-lighting-v1.ts (masterled-es · niche = iluminacion · eco_score 78)                                  |
 
 ---
 
@@ -271,41 +273,41 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 
 ### UI / páginas
 
-| Ruta | Status | Notas |
-|---|---|---|
-| `/` | ✅ live | Hero con AiSearchBox · 4 niche chips · 8 productos featured `last_seen_at DESC` · `<canonical>` + `og:url` apuntando a SITE_CONFIG.url. |
-| `/explore/<niche>` | ✅ live | Paginación server-side (24/page, máximo 100 páginas) · chips de nicho · spotlight de colección (Cuando iluminacion → `verano-techos-led`). ISR `revalidate=60`. |
-| `/search` | ✅ live | DRY-up facet (NICHE_FACET, 4 niches + "Todos") · AI intent parser · filtros sin texto · parámetros URL validados · pagination · selector de comparación. |
-| `/collections/<slug>` | ✅ live | 4 colecciones (1 SF + 3 iluminación verano) · JSON-LD `ItemList` + `Product/ Offer` schema · rich snippets Google. |
-| `/go/[id]` | ✅ live | Server-side 302 a Skimlinks con `xcust=shopifind-<slug>` · bloqueado en robots. |
-| `/product/<slug>` | ✅ live | Canonical + Product/Offer JSON-LD seguro, compartir funcional, CTA afiliado, información de tienda, wishlist y alertas con fallback. |
-| `/compare?ids=...` | ✅ live | Comparador manual de 2-5 productos, `noindex`, atributos normalizados, mejor precio sólo entre monedas iguales y CTA afiliado por producto; smoke E2E con dos filas reales. |
-| `/wishlist` | ✅ live | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto. |
-| `/account` | ✅ código listo | Perfil owner-only: nombre, preferencias de nicho, plan visible y logout local. Falta smoke E2E con sesión real tras corregir M-1. |
-| `/login` + `/api/auth/callback` | ⚠ código live / config externa pendiente | Middleware protege `/wishlist`, `/account`, `/settings`; magic link necesita corregir redirects/plantilla en Supabase y Google requiere habilitar su provider. |
-| `/sitemap.xml` | ✅ live | 1465 URLs verificadas el 2026-07-28. Incluye tiendas activas y sólo productos in-stock de stores activas. ISR `revalidate=3600`; loop 1000/page. |
-| `/robots.txt` | ✅ live | Allow `/` + disallow `/api/`, `/admin/`, `/auth/`, `/go/`, `/search` + sitemap reference. |
-| `/legal` / `/privacy` / `/about` | ✅ Markdown scaffold | Páginas-estatic SEO/disclaimer. |
-| `/api/products/*` + `/api/auth/*` | ✅ implementado | Handlers server-side desplegados; los providers OAuth siguen dependiendo de configuración externa. |
-| `/api/cron/refresh-masterled` | ✅ live / inactivo | Bearer auth, preflight real de `price_history`, feed allowlisted/acotado y guardias de integridad. Sin schedule ni secretos de activación; 401 anónimo verificado. |
-| `/api/cron/process-price-alerts` | ✅ live / inactivo | Evaluator + outbox con claim, retries, skip de avisos obsoletos e idempotencia Resend. Sin schedule; 401 anónimo verificado; depende de B-2 y secretos Resend. |
-| `/api/webhooks/skimlinks` | ⚠ receiver live / E2E pendiente | Valida tamaño, CIDR, HMAC, payload y replay; inserta con dedupe. Falta conectar Skimlinks y probar evento real. |
-| `/api/test/*` | ✅ restringido | Gate default-deny y bloqueo absoluto en `NODE_ENV=production`; GET/POST verificados con 404 en `shopifind.app`. |
+| Ruta                              | Status                                   | Notas                                                                                                                                                                       |
+| --------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                               | ✅ live                                  | Hero con AiSearchBox · 4 niche chips · 8 productos featured `last_seen_at DESC` · `<canonical>` + `og:url` apuntando a SITE_CONFIG.url.                                     |
+| `/explore/<niche>`                | ✅ live                                  | Paginación server-side (24/page, máximo 100 páginas) · chips de nicho · spotlight de colección (Cuando iluminacion → `verano-techos-led`). ISR `revalidate=60`.             |
+| `/search`                         | ✅ live                                  | DRY-up facet (NICHE_FACET, 4 niches + "Todos") · AI intent parser · filtros sin texto · parámetros URL validados · pagination · selector de comparación.                    |
+| `/collections/<slug>`             | ✅ live                                  | 4 colecciones (1 SF + 3 iluminación verano) · JSON-LD `ItemList` + `Product/ Offer` schema · rich snippets Google.                                                          |
+| `/go/[id]`                        | ✅ live                                  | Server-side 302 a Skimlinks con `xcust=shopifind-<slug>` · bloqueado en robots.                                                                                             |
+| `/product/<slug>`                 | ✅ live                                  | Canonical + Product/Offer JSON-LD seguro, compartir funcional, CTA afiliado, información de tienda, wishlist y alertas con fallback.                                        |
+| `/compare?ids=...`                | ✅ live                                  | Comparador manual de 2-5 productos, `noindex`, atributos normalizados, mejor precio sólo entre monedas iguales y CTA afiliado por producto; smoke E2E con dos filas reales. |
+| `/wishlist`                       | ✅ live                                  | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto.                                                    |
+| `/account`                        | ✅ código listo                          | Perfil owner-only: nombre, preferencias de nicho, plan visible y logout local. Falta smoke E2E con sesión real tras corregir M-1.                                           |
+| `/login` + `/api/auth/callback`   | ⚠ código live / config externa pendiente | Middleware protege `/wishlist`, `/account`, `/settings`; magic link necesita corregir redirects/plantilla en Supabase y Google requiere habilitar su provider.              |
+| `/sitemap.xml`                    | ✅ live                                  | 1465 URLs verificadas el 2026-07-28. Incluye tiendas activas y sólo productos in-stock de stores activas. ISR `revalidate=3600`; loop 1000/page.                            |
+| `/robots.txt`                     | ✅ live                                  | Allow `/` + disallow `/api/`, `/admin/`, `/auth/`, `/go/`, `/search` + sitemap reference.                                                                                   |
+| `/legal` / `/privacy` / `/about`  | ✅ Markdown scaffold                     | Páginas-estatic SEO/disclaimer.                                                                                                                                             |
+| `/api/products/*` + `/api/auth/*` | ✅ implementado                          | Handlers server-side desplegados; los providers OAuth siguen dependiendo de configuración externa.                                                                          |
+| `/api/cron/refresh-masterled`     | ✅ live / inactivo                       | Bearer auth, preflight real de `price_history`, feed allowlisted/acotado y guardias de integridad. Sin schedule ni secretos de activación; 401 anónimo verificado.          |
+| `/api/cron/process-price-alerts`  | ✅ live / inactivo                       | Evaluator + outbox con claim, retries, skip de avisos obsoletos e idempotencia Resend. Sin schedule; 401 anónimo verificado; depende de B-2 y secretos Resend.              |
+| `/api/webhooks/skimlinks`         | ⚠ receiver live / E2E pendiente          | Valida tamaño, CIDR, HMAC, payload y replay; inserta con dedupe. Falta conectar Skimlinks y probar evento real.                                                             |
+| `/api/test/*`                     | ✅ restringido                           | Gate default-deny y bloqueo absoluto en `NODE_ENV=production`; GET/POST verificados con 404 en `shopifind.app`.                                                             |
 
 ### Features cross-cutting
 
-| Feature | Componente | Status |
-|---|---|---|
-| **AI conversational search** | `src/lib/ai/queryIntent.ts` + `src/actions/search.ts` | ✅ wired · fallback gracioso si no hay `OPENAI_API_KEY`. |
-| **Server-side pagination** | `src/components/pagination/Pagination.tsx` | ✅ page size `[12, 96]`, máximo 100 páginas y offset real sin tandas repetidas. |
-| **JSON-LD ItemList** | `src/app/(shop)/collections/[slug]/page.tsx` | ✅ validado Google Rich Results. |
-| **Supabase Auth SSR refresh** | `src/middleware.ts` | ✅ smoke tested: anónimo en `/wishlist` recibe 307; rutas con prefijo parecido no quedan bloqueadas. |
-| **Skimlinks affiliate redirect** | `src/app/go/[id]/route.ts` + `src/lib/skimlinks.ts` | ✅ publisher `306854X1795120`. |
-| **Eco-score badges en cards** | `src/components/product/ProductCard.tsx` | ✅ muestra `store_eco_score` + `eco_tags[..n]`. |
-| **Wishlist JSONB** | `src/actions/wishlist.ts` + `src/app/(shop)/wishlist/` | ✅ read/write · RLS owner-only · corazones reales y precio/URL resueltos server-side. |
-| **Gestión de price alerts** | `src/actions/priceAlerts.ts` + PDP + `/account` | 🟡 tres modos, owner-only y cursor precio+moneda preparados; UI se auto-desactiva mientras B-2 falte. Worker/email listos pero inactivos. |
-| **Pricing alerts email** | `src/lib/email/resend.ts` + `/api/cron/process-price-alerts` | 🟡 evaluator/outbox/sender preparados; falta migración Cloud, secretos, schedule y E2E real. |
-| **Comparador manual** | `src/components/compare/CompareSelection.tsx` + `src/app/(shop)/compare/page.tsx` | ✅ picker de 2-5 cards y tabla comparativa sin afirmar equivalencia de modelo. La comparación automática fuerte en iluminación sigue necesitando otro merchant. |
+| Feature                          | Componente                                                                        | Status                                                                                                                                                          |
+| -------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AI conversational search**     | `src/lib/ai/queryIntent.ts` + `src/actions/search.ts`                             | ✅ wired · fallback gracioso si no hay `OPENAI_API_KEY`.                                                                                                        |
+| **Server-side pagination**       | `src/components/pagination/Pagination.tsx`                                        | ✅ page size `[12, 96]`, máximo 100 páginas y offset real sin tandas repetidas.                                                                                 |
+| **JSON-LD ItemList**             | `src/app/(shop)/collections/[slug]/page.tsx`                                      | ✅ validado Google Rich Results.                                                                                                                                |
+| **Supabase Auth SSR refresh**    | `src/middleware.ts`                                                               | ✅ smoke tested: anónimo en `/wishlist` recibe 307; rutas con prefijo parecido no quedan bloqueadas.                                                            |
+| **Skimlinks affiliate redirect** | `src/app/go/[id]/route.ts` + `src/lib/skimlinks.ts`                               | ✅ publisher `306854X1795120`.                                                                                                                                  |
+| **Eco-score badges en cards**    | `src/components/product/ProductCard.tsx`                                          | ✅ muestra `store_eco_score` + `eco_tags[..n]`.                                                                                                                 |
+| **Wishlist JSONB**               | `src/actions/wishlist.ts` + `src/app/(shop)/wishlist/`                            | ✅ read/write · RLS owner-only · corazones reales y precio/URL resueltos server-side.                                                                           |
+| **Gestión de price alerts**      | `src/actions/priceAlerts.ts` + PDP + `/account`                                   | 🟡 tres modos, owner-only y cursor precio+moneda preparados; UI se auto-desactiva mientras B-2 falte. Worker/email listos pero inactivos.                       |
+| **Pricing alerts email**         | `src/lib/email/resend.ts` + `/api/cron/process-price-alerts`                      | 🟡 evaluator/outbox/sender preparados; falta migración Cloud, secretos, schedule y E2E real.                                                                    |
+| **Comparador manual**            | `src/components/compare/CompareSelection.tsx` + `src/app/(shop)/compare/page.tsx` | ✅ picker de 2-5 cards y tabla comparativa sin afirmar equivalencia de modelo. La comparación automática fuerte en iluminación sigue necesitando otro merchant. |
 
 ### AI search semantics (`parseQueryIntent`)
 
@@ -423,62 +425,63 @@ tests/                                     # node:test: redirects, wishlist y Sk
 
 ### Cronología (milestones shipped)
 
-| # | Milestone | Commit / artefacto | Resultado |
-|---|---|---|---|
-| **0** | Pivot a Supabase Cloud + bootstrap Next.js 14 | early seeds | DB en EU, anon + service role conectadas. |
-| **1** | Schema + RLS + view + 6 stores seed | `seed.sql` | 6 merchants, 10 productos base, RLS saneada. |
-| **2** | Editorial collection scaffolding (`editorial_collections` table + page JSON-LD) | migration 0000 + `/(shop)/collections/[slug]/` | ItemList schema listo para SEO launch. |
-| **3** | Skimlinks `/go/[id]` redirect | `src/lib/skimlinks.ts` + `/go/[id]/route.ts` | publisher `306854X1795120` activo. |
-| **4** | masterled.es ingest (lighting) | `scripts/seed-lighting-v1.ts` | **1452 productos in-stock del 1563 ingestados** (eco_score=78). |
-| **5** | Seed extension SF ethical‑staples + lighting cápsula "verano-techos-led" | `seed.sql` extend + `seed-editorial-collection.ts` | Curación vertical + SEO entry point para iluminación. |
-| **6** | Hardening pre-prod (`npm audit`) | reportado · upgrades safe-only | 0 critical vulnerabilidad (3 dev-deps sub-pinned that flagged). |
-| **7** | Middleware Supabase SSR refresh | `src/middleware.ts` | auth cookie persist + gates /wishlist, /account, /settings. |
-| **8** | Pagination + DRY-up facet | commit `e46139d` | offset pagination, NICHE_FACET unifica search + explore + home, SSR-safe. |
-| **9** | JSON-LD ItemList schema en collection pages | `/(shop)/collections/[slug]/page.tsx` | Google Rich Results detectados y validan OK. |
-| **10** | Deploy Vercel + dominio `shopifind.app` | vercel.json + env vars | Production URL activa. |
-| **11** | `/sitemap.xml` + `/robots.txt` (Next 13+) | commit `4b171b9` (tras fix de orphan code block) | 1461 URLs · ISR 1h · block `/go/`, `/search`, `/api`, `/auth`, `/admin`. |
-| **12** | canonical + og:url en `/` | `src/app/page.tsx` `metadata` export | consolida signal en GSC. |
-| **13** | 3rd merchant SEO curation: `seed-lighting-collections-v1.ts` (verano-techos-led, exterior-solar, enchufes-deslizantes) | seed iluminacion v1 | 3 cápsulas curadas para verano 2026. |
-| **14** | Domain final enlazado Vercel | `shopifind.app` | DNS A + TXT configured. |
-| **15** | Auth/wishlist/PDP hardening + tests | `fcad59b`, `98189ff` | Redirects internos saneados, middleware activo en `src/`, wishlist real, datos autoritativos server-side, sitemap y `/go` excluyen catálogo inactivo; 7 tests y smoke live. |
-| **16** | Account + profiles | `src/app/(shop)/account` + `src/actions/profile.ts` | `/account` owner-only, edición validada de nombre/nichos, plan visible, logout local, navegación responsive; 10 tests totales y build limpio. |
-| **17** | AI search contract hardening | `src/lib/ai/queryIntent.ts` + `src/lib/search/postgrest.ts` | Iluminación soportada, tags catalog-backed, filtros puros, URL precedence, límite/timeout, escape PostgREST y fallback cubiertos; 16 tests y consulta read-only real validada. |
-| **18** | Comparador manual MVP | `src/components/compare` + `/(shop)/compare` | Selección de 2-5 cards, URL validada y acotada, tabla `noindex`, atributos agrupados, comparativa de precios segura por moneda y CTAs `/go`; 19 tests totales y build limpio. |
-| **19** | Search filter-only + URL hardening | `src/lib/search/input.ts` + `/(shop)/search` | Nicho/eco-tag/precio funcionan sin texto, enums y cifras se validan en runtime, eco-tag rápido respaldado por catálogo y toggle para limpiar; 21 tests totales. |
-| **20** | Guarded Masterled refresh | `373d38d` | Parser único CLI/cron, 1.563 filas reales validadas, Bearer auth, preflight, lotes y stale-stock; endpoint live devuelve 401 y no tiene schedule. |
-| **21** | Price-alert management UI | `src/actions/priceAlerts.ts` + `PriceAlertCard` + `PriceAlertList` | Tres modos validados, baseline/cursor autoritativos, PDP/cuenta y fallback honesto si falta schema. |
-| **22** | Price-alert evaluator + idempotent sender | `/api/cron/process-price-alerts` + `src/lib/alerts/evaluate.ts` | Estado final del ciclo, outbox con claim/recovery, precio de referencia congelado, stale skip, Resend idempotency y HTML escapado; 33 tests totales. |
-| **23** | Sourcing del segundo merchant de iluminación | `docs/merchant-sourcing-lighting.md` | GreenIce recomendado y Barcelona LED como fallback; catálogos públicos viables, pero cero SKU exactos cross-store. Ingest bloqueada hasta verificar Skimlinks y obtener feed/permiso. |
-| **24** | Telemetría interna fiable | `src/lib/analytics/*` | Búsquedas y click-outs se escriben con cliente anónimo y operación esperada; eventos estructurados, total real y paginación. Plausible sigue sin configurar. |
-| **25** | PDP SEO + share real | `src/lib/seo/jsonLd.ts` + `ShareButton` | Canonical/OG URL, Product/Offer con seller honesto, serialización anti-`</script>` y Web Share/clipboard; JSON-LD de colecciones corregido. |
-| **26** | Upgrade de seguridad Next.js 15 | `package.json` + `pnpm-workspace.yaml` + migración de APIs dinámicas | Next 15.5.22, pnpm 11.17 fijado, dependencias transitivas vulnerables parcheadas por override; build de producción y 39 tests pasan y `pnpm audit` completo reporta 0 vulnerabilidades. |
-| **27** | Smoke de release automatizado | `scripts/smoke-production.ts` | 15 checks read-only descubren una PDP desde sitemap y validan navegación, paginación, auth, cabeceras, robots, SEO, imágenes, Skimlinks, cron y ocultación de APIs de test. |
-| **28** | Hardening de cabeceras web | `next.config.mjs` + `docs/security-headers.md` | CSP compatible con ISR, Permissions-Policy, anti-frame estricto y COOP; `X-Powered-By` eliminado y el smoke ampliado para impedir regresiones. |
-| **29** | Control operativo de AI search | `queryIntent.ts` + `docs/ai-search-operations.md` | Caché compartida 1h sólo para intents válidos, kill switch, telemetría de tokens sin query y fallback literal; control puro cubierto por tests. |
-| **30** | Allowlist de imágenes remotas | `next.config.mjs` + smoke de release | El wildcard HTTPS se sustituye por `masterled.es` y `placehold.co`, los dos hosts presentes en 1452 productos activos; el smoke exige ambos y rechaza un host ajeno. |
-| **31** | ISR del catálogo público | `src/lib/supabase/public.ts` + páginas públicas | Las lecturas sin sesión ya no llaman a `cookies()`: home, colecciones y tiendas recuperan ISR de 60s, sitemap conserva 1h y las lecturas request-time declaran `no-store`; 43 tests cubren la política de fetch. `/explore` mantiene respuesta dinámica por su paginación en query string, pero comparte el Data Cache de catálogo durante 60s. |
-| **32** | SEO de hubs públicos | metadata de `/explore/[niche]` y `/store/[slug]` | Cada nicho y tienda indexable publica título/descripción propios, canonical estable y tarjetas Open Graph/Twitter; slugs inválidos declaran `noindex` y el smoke live cubre los dos tipos de página. |
-| **33** | Tiendas activas en sitemap | `src/app/sitemap.ts` + smoke de release | Los cuatro perfiles reales pasan a ser descubribles por buscadores con `lastModified`; el filtro `active=true` evita reactivar merchants placeholder y el smoke exige Masterled en el XML. |
-| **34** | Copy factual de procedencia | PDP + `SITE_CONFIG.description` | La PDP deja de presentar el país de la marca como origen del envío, deriva logística/devoluciones al merchant y el smoke impide que reaparezca esa afirmación; la descripción global ya incluye iluminación. |
-| **35** | Alertas seguras por moneda | migration + evaluator + worker + cuenta | `baseline_currency` y `reference_currency` acompañan cada precio; cambios de divisa reinician alertas relativas, desactivan targets fijos y bloquean emails con moneda obsoleta. El preflight exige las columnas nuevas y el upgrade de borradores omite entregas ambiguas. |
-| **36** | Facetas de búsqueda por nicho | `getSearchEcoFacets()` + `/search` | Iluminación muestra filtros con cobertura real (`long-lifespan`, `recyclable`, `certified`) en vez de chips de moda; los labels son legibles y cualquier tag activo válido permanece visible al cambiar de nicho. |
-| **37** | Retorno contextual del comparador | selección + `/compare` | El enlace conserva de forma saneada la búsqueda, filtros, orden y página de origen; quitar productos mantiene ese contexto y los CTAs de tienda abren otra pestaña para no destruir la comparación. |
-| **38** | Catálogo completo por merchant | filtro `store` + perfil de tienda | La ficha conserva ISR y muestra el total real; si supera las 36 cards iniciales enlaza a `/search?store=…`, cuyo slug está validado, se conserva en filtros/paginación y nunca mezcla otros merchants. |
+| #      | Milestone                                                                                                              | Commit / artefacto                                                   | Resultado                                                                                                                                                                                                                                                                                                                                       |
+| ------ | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0**  | Pivot a Supabase Cloud + bootstrap Next.js 14                                                                          | early seeds                                                          | DB en EU, anon + service role conectadas.                                                                                                                                                                                                                                                                                                       |
+| **1**  | Schema + RLS + view + 6 stores seed                                                                                    | `seed.sql`                                                           | 6 merchants, 10 productos base, RLS saneada.                                                                                                                                                                                                                                                                                                    |
+| **2**  | Editorial collection scaffolding (`editorial_collections` table + page JSON-LD)                                        | migration 0000 + `/(shop)/collections/[slug]/`                       | ItemList schema listo para SEO launch.                                                                                                                                                                                                                                                                                                          |
+| **3**  | Skimlinks `/go/[id]` redirect                                                                                          | `src/lib/skimlinks.ts` + `/go/[id]/route.ts`                         | publisher `306854X1795120` activo.                                                                                                                                                                                                                                                                                                              |
+| **4**  | masterled.es ingest (lighting)                                                                                         | `scripts/seed-lighting-v1.ts`                                        | **1452 productos in-stock del 1563 ingestados** (eco_score=78).                                                                                                                                                                                                                                                                                 |
+| **5**  | Seed extension SF ethical‑staples + lighting cápsula "verano-techos-led"                                               | `seed.sql` extend + `seed-editorial-collection.ts`                   | Curación vertical + SEO entry point para iluminación.                                                                                                                                                                                                                                                                                           |
+| **6**  | Hardening pre-prod (`npm audit`)                                                                                       | reportado · upgrades safe-only                                       | 0 critical vulnerabilidad (3 dev-deps sub-pinned that flagged).                                                                                                                                                                                                                                                                                 |
+| **7**  | Middleware Supabase SSR refresh                                                                                        | `src/middleware.ts`                                                  | auth cookie persist + gates /wishlist, /account, /settings.                                                                                                                                                                                                                                                                                     |
+| **8**  | Pagination + DRY-up facet                                                                                              | commit `e46139d`                                                     | offset pagination, NICHE_FACET unifica search + explore + home, SSR-safe.                                                                                                                                                                                                                                                                       |
+| **9**  | JSON-LD ItemList schema en collection pages                                                                            | `/(shop)/collections/[slug]/page.tsx`                                | Google Rich Results detectados y validan OK.                                                                                                                                                                                                                                                                                                    |
+| **10** | Deploy Vercel + dominio `shopifind.app`                                                                                | vercel.json + env vars                                               | Production URL activa.                                                                                                                                                                                                                                                                                                                          |
+| **11** | `/sitemap.xml` + `/robots.txt` (Next 13+)                                                                              | commit `4b171b9` (tras fix de orphan code block)                     | 1461 URLs · ISR 1h · block `/go/`, `/search`, `/api`, `/auth`, `/admin`.                                                                                                                                                                                                                                                                        |
+| **12** | canonical + og:url en `/`                                                                                              | `src/app/page.tsx` `metadata` export                                 | consolida signal en GSC.                                                                                                                                                                                                                                                                                                                        |
+| **13** | 3rd merchant SEO curation: `seed-lighting-collections-v1.ts` (verano-techos-led, exterior-solar, enchufes-deslizantes) | seed iluminacion v1                                                  | 3 cápsulas curadas para verano 2026.                                                                                                                                                                                                                                                                                                            |
+| **14** | Domain final enlazado Vercel                                                                                           | `shopifind.app`                                                      | DNS A + TXT configured.                                                                                                                                                                                                                                                                                                                         |
+| **15** | Auth/wishlist/PDP hardening + tests                                                                                    | `fcad59b`, `98189ff`                                                 | Redirects internos saneados, middleware activo en `src/`, wishlist real, datos autoritativos server-side, sitemap y `/go` excluyen catálogo inactivo; 7 tests y smoke live.                                                                                                                                                                     |
+| **16** | Account + profiles                                                                                                     | `src/app/(shop)/account` + `src/actions/profile.ts`                  | `/account` owner-only, edición validada de nombre/nichos, plan visible, logout local, navegación responsive; 10 tests totales y build limpio.                                                                                                                                                                                                   |
+| **17** | AI search contract hardening                                                                                           | `src/lib/ai/queryIntent.ts` + `src/lib/search/postgrest.ts`          | Iluminación soportada, tags catalog-backed, filtros puros, URL precedence, límite/timeout, escape PostgREST y fallback cubiertos; 16 tests y consulta read-only real validada.                                                                                                                                                                  |
+| **18** | Comparador manual MVP                                                                                                  | `src/components/compare` + `/(shop)/compare`                         | Selección de 2-5 cards, URL validada y acotada, tabla `noindex`, atributos agrupados, comparativa de precios segura por moneda y CTAs `/go`; 19 tests totales y build limpio.                                                                                                                                                                   |
+| **19** | Search filter-only + URL hardening                                                                                     | `src/lib/search/input.ts` + `/(shop)/search`                         | Nicho/eco-tag/precio funcionan sin texto, enums y cifras se validan en runtime, eco-tag rápido respaldado por catálogo y toggle para limpiar; 21 tests totales.                                                                                                                                                                                 |
+| **20** | Guarded Masterled refresh                                                                                              | `373d38d`                                                            | Parser único CLI/cron, 1.563 filas reales validadas, Bearer auth, preflight, lotes y stale-stock; endpoint live devuelve 401 y no tiene schedule.                                                                                                                                                                                               |
+| **21** | Price-alert management UI                                                                                              | `src/actions/priceAlerts.ts` + `PriceAlertCard` + `PriceAlertList`   | Tres modos validados, baseline/cursor autoritativos, PDP/cuenta y fallback honesto si falta schema.                                                                                                                                                                                                                                             |
+| **22** | Price-alert evaluator + idempotent sender                                                                              | `/api/cron/process-price-alerts` + `src/lib/alerts/evaluate.ts`      | Estado final del ciclo, outbox con claim/recovery, precio de referencia congelado, stale skip, Resend idempotency y HTML escapado; 33 tests totales.                                                                                                                                                                                            |
+| **23** | Sourcing del segundo merchant de iluminación                                                                           | `docs/merchant-sourcing-lighting.md`                                 | GreenIce recomendado y Barcelona LED como fallback; catálogos públicos viables, pero cero SKU exactos cross-store. Ingest bloqueada hasta verificar Skimlinks y obtener feed/permiso.                                                                                                                                                           |
+| **24** | Telemetría interna fiable                                                                                              | `src/lib/analytics/*`                                                | Búsquedas y click-outs se escriben con cliente anónimo y operación esperada; eventos estructurados, total real y paginación. Plausible sigue sin configurar.                                                                                                                                                                                    |
+| **25** | PDP SEO + share real                                                                                                   | `src/lib/seo/jsonLd.ts` + `ShareButton`                              | Canonical/OG URL, Product/Offer con seller honesto, serialización anti-`</script>` y Web Share/clipboard; JSON-LD de colecciones corregido.                                                                                                                                                                                                     |
+| **26** | Upgrade de seguridad Next.js 15                                                                                        | `package.json` + `pnpm-workspace.yaml` + migración de APIs dinámicas | Next 15.5.22, pnpm 11.17 fijado, dependencias transitivas vulnerables parcheadas por override; build de producción y 39 tests pasan y `pnpm audit` completo reporta 0 vulnerabilidades.                                                                                                                                                         |
+| **27** | Smoke de release automatizado                                                                                          | `scripts/smoke-production.ts`                                        | 15 checks read-only descubren una PDP desde sitemap y validan navegación, paginación, auth, cabeceras, robots, SEO, imágenes, Skimlinks, cron y ocultación de APIs de test.                                                                                                                                                                     |
+| **28** | Hardening de cabeceras web                                                                                             | `next.config.mjs` + `docs/security-headers.md`                       | CSP compatible con ISR, Permissions-Policy, anti-frame estricto y COOP; `X-Powered-By` eliminado y el smoke ampliado para impedir regresiones.                                                                                                                                                                                                  |
+| **29** | Control operativo de AI search                                                                                         | `queryIntent.ts` + `docs/ai-search-operations.md`                    | Caché compartida 1h sólo para intents válidos, kill switch, telemetría de tokens sin query y fallback literal; control puro cubierto por tests.                                                                                                                                                                                                 |
+| **30** | Allowlist de imágenes remotas                                                                                          | `next.config.mjs` + smoke de release                                 | El wildcard HTTPS se sustituye por `masterled.es` y `placehold.co`, los dos hosts presentes en 1452 productos activos; el smoke exige ambos y rechaza un host ajeno.                                                                                                                                                                            |
+| **31** | ISR del catálogo público                                                                                               | `src/lib/supabase/public.ts` + páginas públicas                      | Las lecturas sin sesión ya no llaman a `cookies()`: home, colecciones y tiendas recuperan ISR de 60s, sitemap conserva 1h y las lecturas request-time declaran `no-store`; 43 tests cubren la política de fetch. `/explore` mantiene respuesta dinámica por su paginación en query string, pero comparte el Data Cache de catálogo durante 60s. |
+| **32** | SEO de hubs públicos                                                                                                   | metadata de `/explore/[niche]` y `/store/[slug]`                     | Cada nicho y tienda indexable publica título/descripción propios, canonical estable y tarjetas Open Graph/Twitter; slugs inválidos declaran `noindex` y el smoke live cubre los dos tipos de página.                                                                                                                                            |
+| **33** | Tiendas activas en sitemap                                                                                             | `src/app/sitemap.ts` + smoke de release                              | Los cuatro perfiles reales pasan a ser descubribles por buscadores con `lastModified`; el filtro `active=true` evita reactivar merchants placeholder y el smoke exige Masterled en el XML.                                                                                                                                                      |
+| **34** | Copy factual de procedencia                                                                                            | PDP + `SITE_CONFIG.description`                                      | La PDP deja de presentar el país de la marca como origen del envío, deriva logística/devoluciones al merchant y el smoke impide que reaparezca esa afirmación; la descripción global ya incluye iluminación.                                                                                                                                    |
+| **35** | Alertas seguras por moneda                                                                                             | migration + evaluator + worker + cuenta                              | `baseline_currency` y `reference_currency` acompañan cada precio; cambios de divisa reinician alertas relativas, desactivan targets fijos y bloquean emails con moneda obsoleta. El preflight exige las columnas nuevas y el upgrade de borradores omite entregas ambiguas.                                                                     |
+| **36** | Facetas de búsqueda por nicho                                                                                          | `getSearchEcoFacets()` + `/search`                                   | Iluminación muestra filtros con cobertura real (`long-lifespan`, `recyclable`, `certified`) en vez de chips de moda; los labels son legibles y cualquier tag activo válido permanece visible al cambiar de nicho.                                                                                                                               |
+| **37** | Retorno contextual del comparador                                                                                      | selección + `/compare`                                               | El enlace conserva de forma saneada la búsqueda, filtros, orden y página de origen; quitar productos mantiene ese contexto y los CTAs de tienda abren otra pestaña para no destruir la comparación.                                                                                                                                             |
+| **38** | Catálogo completo por merchant                                                                                         | filtro `store` + perfil de tienda                                    | La ficha conserva ISR y muestra el total real; si supera las 36 cards iniciales enlaza a `/search?store=…`, cuyo slug está validado, se conserva en filtros/paginación y nunca mezcla otros merchants.                                                                                                                                          |
+| **39** | Saneado de enlaces + piloto Rapanui                                                                                    | auditor + ingestor curado                                            | 11 fixtures no-Masterled con placeholder se pusieron fuera de stock y 3 tiendas vacías se desactivaron sin borrar datos. Rapanui queda activo con 12/12 PDPs, stock y precios GBP verificados e imágenes enlazadas desde el CDN de origen; dry-run, allowlists y límites cubiertos por tests.                                                   |
 
 ### Métricas post-deploy
 
-| Métrica | Valor |
-|---|---|
-| Tiendas históricas en seeds/DB | **7**; sólo **4 merchants reales** están expuestos públicamente |
-| Productos activos expuestos por sitemap | **1452** (snapshot live 2026-07-28; el total físico en DB puede incluir seeds/inactivos) |
-| Nichos activos | **4** |
-| Colecciones publicado = true | **4** |
-| `<loc>` URLs en sitemap.xml | **1465** (1 home + 4 explore + 4 stores + 4 collections + 1452 products) |
-| HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 48/48 · rc=0 · rc=0 |
-| `pnpm audit` completo | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28) |
-| `pnpm smoke:production` | **17/17** contra `shopifind.app` (snapshot 2026-07-29) |
-| CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
+| Métrica                                               | Valor                                                                                                    |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Tiendas históricas en seeds/DB                        | permanecen en DB; sólo **2 merchants saneados** están expuestos públicamente (`masterled-es`, `rapanui`) |
+| Productos activos expuestos por sitemap               | **1453** (1441 Masterled + 12 Rapanui; snapshot DB 2026-07-29)                                           |
+| Nichos activos                                        | **4**                                                                                                    |
+| Colecciones publicado = true                          | **4**                                                                                                    |
+| `<loc>` URLs esperadas en sitemap.xml                 | **1464** (1 home + 4 explore + 2 stores + 4 collections + 1453 products; confirmar tras deploy/ISR)      |
+| HTTP 200 en smoke                                     | 100% de rutas navegables                                                                                 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 52/52 · rc=0 · rc=0                                                                                       |
+| `pnpm audit` completo                                 | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28)                |
+| `pnpm smoke:production`                               | **17/17** contra `shopifind.app` (snapshot 2026-07-29)                                                   |
+| CLS / LCP / Lighthouse mobile (rough)                 | Home en 78 mobile / 92 desktop · LCP ≈1.8s                                                               |
 
 ---
 
@@ -505,7 +508,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 11. **`/sitemap.xml` revalidate=3600**: ISR funciona, pero si editas el código del sitemap **sin** esperar ISR, Googlebot verá la versión cacheada. Para forzar refresh: 1) redeploy, o 2) `curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(date +%s)`.
 12. **`<loc>` debe ser absolute URL** (sitemap protocol). `SITE_CONFIG.url.replace(/\/+$/, '')` quita trailing slash antes de concatenar.
 13. **canonical + og:url** en `metadata` de cada page export → consolidación de signals en GSC + share cards correctas en Twitter/LinkedIn/Facebook.
-14. **`dangerouslyAllowSVG: true`** en `next.config.mjs` permite `placehold.co/...svg` — necesario porque masterled images llegan como SVG en el seed. CSP sandbox embebida evita ejecución de scripts.
+14. **`dangerouslyAllowSVG: true`** sigue temporalmente por covers editoriales legacy de `placehold.co`; los productos públicos ya no pueden usar placeholders. Masterled sirve imágenes raster y Rapanui usa `images.podos.io`. Retirar host + flag cuando se reemplacen esos covers.
 15. **`SEARCH` bloqueado en robots.txt** porque `?q=*&niche=*&tag=*&page=*` genera infinite permutation → crawler trap.
 16. **Middleware con `src/app`**: el archivo activo es `src/middleware.ts`. Una copia en la raíz puede compilar sin proteger rutas en este layout; comprobar siempre `/wishlist` anónimo (307) y una ruta lookalike (no redirect).
 17. **APIs dinámicas de Next 15**: `cookies()`, `params` y `searchParams` son asíncronas. `createServerSupabaseClient()` devuelve una promesa y todos sus consumidores deben hacer `await`; un reemplazo incompleto puede compilar partes del árbol y fallar sólo en una ruta dinámica.
@@ -537,36 +540,36 @@ tests/                                     # node:test: redirects, wishlist y Sk
 
 ### 🔴 Acciones externas del owner (no requieren código)
 
-| # | Item | Estado / efecto |
-|---|---|---|
-| **M-1** | **Corregir Supabase Auth** | Site URL `https://shopifind.app`; allowlist del callback; plantilla magic link con `ConfirmationURL`. Google OAuth además requiere OAuth Client y provider habilitado. Bloquea el smoke E2E real de perfiles. |
-| **M-2** | **Submit sitemap a Google Search Console** | Quick win manual: registrar dominio y enviar `https://shopifind.app/sitemap.xml`. |
-| **M-3** | **Conectar webhook Skimlinks** | Configurar secret, salt y CIDRs en Vercel; registrar `/api/webhooks/skimlinks` en Skimlinks y enviar evento de prueba. El receiver ya existe. |
-| **M-4** | **Completar identidad legal y privacidad** | El sitio live aún usa scaffolds. Facilitar/decidir los datos y bases de `docs/launch-compliance-checklist.md` antes de escalar tráfico, AdSense o newsletters. |
-| **M-5** | **Fijar presupuesto de OpenAI** | En el proyecto API de producción: alertas de gasto + hard spend limit mensual. El código ya tiene caché, telemetría y `OPENAI_SEARCH_ENABLED=false`; falta el tope externo que impida una factura inesperada. |
+| #       | Item                                       | Estado / efecto                                                                                                                                                                                               |
+| ------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M-1** | **Corregir Supabase Auth**                 | Site URL `https://shopifind.app`; allowlist del callback; plantilla magic link con `ConfirmationURL`. Google OAuth además requiere OAuth Client y provider habilitado. Bloquea el smoke E2E real de perfiles. |
+| **M-2** | **Submit sitemap a Google Search Console** | Quick win manual: registrar dominio y enviar `https://shopifind.app/sitemap.xml`.                                                                                                                             |
+| **M-3** | **Conectar webhook Skimlinks**             | Configurar secret, salt y CIDRs en Vercel; registrar `/api/webhooks/skimlinks` en Skimlinks y enviar evento de prueba. El receiver ya existe.                                                                 |
+| **M-4** | **Completar identidad legal y privacidad** | El sitio live aún usa scaffolds. Facilitar/decidir los datos y bases de `docs/launch-compliance-checklist.md` antes de escalar tráfico, AdSense o newsletters.                                                |
+| **M-5** | **Fijar presupuesto de OpenAI**            | En el proyecto API de producción: alertas de gasto + hard spend limit mensual. El código ya tiene caché, telemetría y `OPENAI_SEARCH_ENABLED=false`; falta el tope externo que impida una factura inesperada. |
 
 ### 🟠 Desarrollo inmediato (por dependencias)
 
-| # | Item | Bloqueado por | Alcance |
-|---|---|---|---|
-| **B-1** | ✅ **Completar `/account` + profiles** | M-1 sólo para E2E real | Código y validación completados; falta probar lectura/escritura con una sesión real después de corregir Supabase Auth. |
-| **B-2** | 🟡 **Modelo relacional de precios y alertas** | aprobación/aplicación de migración | Schema, trigger, RLS, ledger idempotente y tipos preparados localmente; NO aplicado aún a Cloud. |
-| **B-3** | 🟡 **Refresh incremental + snapshots de precio** | B-2 + secretos/schedule en Vercel | Handler, parser compartido, auth, guardias de feed, lotes y stale-stock preparados. No programado ni ejecutado contra Cloud. |
-| **B-4** | 🟡 **Alertas de bajada** | B-2 + activar crons + secretos Resend | UI, tres modos, evaluator, outbox y sender idempotente preparados. Falta aplicar schema, configurar/ejecutar y completar E2E con email real. |
-| **B-5** | ✅ **Corregir AI search actual** | nada | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship. |
-| **B-6** | ✅ **Comparador manual MVP** | nada | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado. |
-| **B-7** | 🟡 **Segundo merchant de iluminación** | verificación Skimlinks + feed/permiso del owner | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`. |
+| #       | Item                                             | Bloqueado por                                   | Alcance                                                                                                                                       |
+| ------- | ------------------------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **B-1** | ✅ **Completar `/account` + profiles**           | M-1 sólo para E2E real                          | Código y validación completados; falta probar lectura/escritura con una sesión real después de corregir Supabase Auth.                        |
+| **B-2** | 🟡 **Modelo relacional de precios y alertas**    | aprobación/aplicación de migración              | Schema, trigger, RLS, ledger idempotente y tipos preparados localmente; NO aplicado aún a Cloud.                                              |
+| **B-3** | 🟡 **Refresh incremental + snapshots de precio** | B-2 + secretos/schedule en Vercel               | Handler, parser compartido, auth, guardias de feed, lotes y stale-stock preparados. No programado ni ejecutado contra Cloud.                  |
+| **B-4** | 🟡 **Alertas de bajada**                         | B-2 + activar crons + secretos Resend           | UI, tres modos, evaluator, outbox y sender idempotente preparados. Falta aplicar schema, configurar/ejecutar y completar E2E con email real.  |
+| **B-5** | ✅ **Corregir AI search actual**                 | nada                                            | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship.  |
+| **B-6** | ✅ **Comparador manual MVP**                     | nada                                            | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado. |
+| **B-7** | 🟡 **Segundo merchant de iluminación**           | verificación Skimlinks + feed/permiso del owner | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`.  |
 
 ### 🟡 Después del núcleo
 
-| # | Item | Nota |
-|---|---|---|
-| **B-8** | **Comparación automática cross-store** | Requiere segundo merchant y una estrategia explícita de matching/canonical SKU. |
-| **B-9** | **Embeddings / similarity search** | Sólo después de medir la búsqueda estructurada corregida; estimar coste y latencia con datos reales. |
-| **B-10** | ✅ **Ocultar merchants/URLs placeholder** | Sólo cuatro merchants reales son visibles por API; las cinco rutas placeholder históricas devuelven 404. Sustituir/reactivar sólo tras sourcing. |
-| **B-11** | ✅ **Restringir `/api/test/*`** | Ya existe gate absoluto de producción y ambas rutas devuelven 404 en live. |
-| **B-12** | **AdSense** | `/search` está bloqueado en robots; no describirlo como página indexable. Esperar tráfico y revisar CWV/UX. |
-| **B-13** | Gift finder, featured stores, newsletter, marca EUIPO | Expansión una vez medidos search → PDP → click-out y retención. |
+| #        | Item                                                  | Nota                                                                                                                                             |
+| -------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **B-8**  | **Comparación automática cross-store**                | Requiere segundo merchant y una estrategia explícita de matching/canonical SKU.                                                                  |
+| **B-9**  | **Embeddings / similarity search**                    | Sólo después de medir la búsqueda estructurada corregida; estimar coste y latencia con datos reales.                                             |
+| **B-10** | ✅ **Ocultar merchants/URLs placeholder**             | Sólo cuatro merchants reales son visibles por API; las cinco rutas placeholder históricas devuelven 404. Sustituir/reactivar sólo tras sourcing. |
+| **B-11** | ✅ **Restringir `/api/test/*`**                       | Ya existe gate absoluto de producción y ambas rutas devuelven 404 en live.                                                                       |
+| **B-12** | **AdSense**                                           | `/search` está bloqueado en robots; no describirlo como página indexable. Esperar tráfico y revisar CWV/UX.                                      |
+| **B-13** | Gift finder, featured stores, newsletter, marca EUIPO | Expansión una vez medidos search → PDP → click-out y retención.                                                                                  |
 
 ### 📋 Deuda recurrente
 
@@ -674,4 +677,4 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 
 ---
 
-*Este documento es la memoria viva. Si añades un milestone que cambia la arquitectura, edita este archivo en el mismo commit. Convencional: nombre `HANDOFF.md`, sección nueva al final de "Resumen de lo realizado" antes de los gotchas.*
+_Este documento es la memoria viva. Si añades un milestone que cambia la arquitectura, edita este archivo en el mismo commit. Convencional: nombre `HANDOFF.md`, sección nueva al final de "Resumen de lo realizado" antes de los gotchas._

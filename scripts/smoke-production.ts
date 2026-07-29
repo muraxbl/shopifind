@@ -195,9 +195,7 @@ async function main(): Promise<void> {
       run: async () => {
         const [store, catalog] = await Promise.all([
           request(siteUrl(baseUrl, "/store/masterled-es")),
-          request(
-            siteUrl(baseUrl, "/search?store=masterled-es&sort=newest"),
-          ),
+          request(siteUrl(baseUrl, "/search?store=masterled-es&sort=newest")),
         ]);
         expectStatus(store, 200);
         expectStatus(catalog, 200);
@@ -207,7 +205,11 @@ async function main(): Promise<void> {
           "CTA al catálogo completo",
         );
         const catalogHtml = await catalog.text();
-        expectText(catalogHtml, "Catálogo de Masterled", "título de merchant");
+        expectText(
+          catalogHtml.replaceAll("<!-- -->", ""),
+          "Catálogo de Masterled",
+          "título de merchant",
+        );
         if (productPaths(catalogHtml).size === 0) {
           throw new Error("el catálogo de tienda no contiene productos");
         }
@@ -305,10 +307,18 @@ async function main(): Promise<void> {
         expectText(
           sitemapXml,
           `<loc>${siteUrl(baseUrl, "/store/masterled-es").toString()}</loc>`,
-          "tienda activa en sitemap",
+          "Masterled activo en sitemap",
         );
-        productUrl = productUrlFromSitemap(sitemapXml, baseUrl);
-        return `tienda activa + PDP descubierta: ${productUrl.pathname}`;
+        expectText(
+          sitemapXml,
+          `<loc>${siteUrl(baseUrl, "/store/rapanui").toString()}</loc>`,
+          "Rapanui activo en sitemap",
+        );
+        if (sitemapXml.includes("/store/everlane-eu")) {
+          throw new Error("el sitemap conserva un merchant retirado");
+        }
+        productUrl = productUrlFromSitemap(sitemapXml, baseUrl, "rapanui-");
+        return `2 tiendas saneadas + PDP Rapanui: ${productUrl.pathname}`;
       },
     },
     {

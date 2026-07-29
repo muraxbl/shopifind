@@ -30,6 +30,7 @@ const nextConfig = {
     remotePatterns: [
       // Keep this allowlist synchronized with active catalog image hosts.
       { protocol: "https", hostname: "masterled.es" },
+      { protocol: "https", hostname: "images.podos.io" },
       { protocol: "https", hostname: "placehold.co" },
     ],
     // placehold.co y otros placeholders devuelven SVG; next/image los rechaza por defecto.
