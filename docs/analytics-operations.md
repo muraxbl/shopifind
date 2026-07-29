@@ -19,6 +19,9 @@ Desde `schema_version = 2`, el smoke usa el User-Agent exacto
 humanos siguen registrándose, incluso cuando falta User-Agent. Esta versión es
 la primera línea base válida para el embudo interno.
 
+Verificación de producción del 2026-07-29: el conteo quedó en 167 filas totales
+y 0 filas v2 tanto antes como después de ejecutar el smoke 18/18 completo.
+
 ## Activar Plausible
 
 Plausible cambió su integración en octubre de 2025: cada sitio utiliza ahora
