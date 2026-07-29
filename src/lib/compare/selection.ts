@@ -1,3 +1,5 @@
+import { safeNextPath } from '@/lib/auth/redirect';
+
 export const MIN_COMPARE_PRODUCTS = 2;
 export const MAX_COMPARE_PRODUCTS = 5;
 
@@ -18,6 +20,18 @@ export function parseCompareIds(raw: string | string[] | undefined): string[] {
   return result;
 }
 
-export function buildCompareHref(ids: readonly string[]): string {
-  return `/compare?ids=${ids.slice(0, MAX_COMPARE_PRODUCTS).join(',')}`;
+export function safeCompareReturnPath(value: unknown): string {
+  if (typeof value !== 'string') return '/search';
+  const safe = safeNextPath(value, '/search');
+  return safe === '/search' || safe.startsWith('/search?') ? safe : '/search';
+}
+
+export function buildCompareHref(
+  ids: readonly string[],
+  returnTo?: string,
+): string {
+  const href = `/compare?ids=${ids.slice(0, MAX_COMPARE_PRODUCTS).join(',')}`;
+  return returnTo
+    ? `${href}&from=${encodeURIComponent(safeCompareReturnPath(returnTo))}`
+    : href;
 }

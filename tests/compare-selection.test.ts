@@ -4,6 +4,7 @@ import {
   buildCompareHref,
   MAX_COMPARE_PRODUCTS,
   parseCompareIds,
+  safeCompareReturnPath,
 } from '../src/lib/compare/selection';
 
 const IDS = [
@@ -33,5 +34,17 @@ test('compare href keeps only the supported number of ids', () => {
   assert.equal(
     buildCompareHref(IDS),
     `/compare?ids=${IDS.slice(0, MAX_COMPARE_PRODUCTS).join(',')}`,
+  );
+});
+
+test('compare return path preserves only an internal search URL', () => {
+  const returnTo = '/search?q=lampara&niche=iluminacion&page=2';
+  assert.equal(safeCompareReturnPath(returnTo), returnTo);
+  assert.equal(safeCompareReturnPath('/account'), '/search');
+  assert.equal(safeCompareReturnPath('//evil.example'), '/search');
+  assert.equal(safeCompareReturnPath('%2F%2Fevil.example'), '/search');
+  assert.equal(
+    buildCompareHref(IDS.slice(0, 2), returnTo),
+    `/compare?ids=${IDS.slice(0, 2).join(',')}&from=${encodeURIComponent(returnTo)}`,
   );
 });

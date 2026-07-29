@@ -29,8 +29,10 @@ const CompareSelectionContext =
 
 export function CompareSelectionProvider({
   children,
+  returnTo,
 }: {
   children: ReactNode;
+  returnTo?: string;
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -76,7 +78,7 @@ export function CompareSelectionProvider({
             </Button>
             {ready ? (
               <Button asChild className="gap-2">
-                <Link href={buildCompareHref(selectedIds)}>
+                <Link href={buildCompareHref(selectedIds, returnTo)}>
                   <GitCompareArrows className="h-4 w-4" /> Comparar
                 </Link>
               </Button>

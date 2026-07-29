@@ -9,6 +9,7 @@ import { searchProducts } from '@/actions/search';
 import {
   getSearchEcoFacets,
   normalizeEcoTagFilters,
+  normalizeSearchQuery,
 } from '@/lib/ai/queryIntent';
 import {
   isSearchSort,
@@ -59,13 +60,42 @@ function buildQueryParams(
   sp: SearchParams,
 ): Record<string, string | undefined> {
   const out: Record<string, string | undefined> = {};
-  if (sp.q) out.q = sp.q;
-  if (sp.niche) out.niche = sp.niche;
-  if (sp.sort) out.sort = sp.sort;
-  if (sp.tag) out.tag = sp.tag;
-  if (sp.min) out.min = sp.min;
-  if (sp.max) out.max = sp.max;
+  const q = normalizeSearchQuery(sp.q ?? '');
+  const niche = normalizeNicheFilter(sp.niche);
+  const tag = normalizeEcoTagFilters([sp.tag])[0];
+  const min = normalizePriceCents(
+    sp.min ? Number(sp.min) * 100 : null,
+  );
+  const max = normalizePriceCents(
+    sp.max ? Number(sp.max) * 100 : null,
+  );
+  if (q) out.q = q;
+  if (niche) out.niche = niche;
+  if (isSearchSort(sp.sort)) out.sort = sp.sort;
+  if (tag) out.tag = tag;
+  if (min !== null) out.min = String(min / 100);
+  if (max !== null) out.max = String(max / 100);
   return out;
+}
+
+function buildSearchReturnPath(sp: SearchParams): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(buildQueryParams(sp))) {
+    if (value) params.set(key, value);
+  }
+  const page = normalizePageNumber(sp.page);
+  const pageSize = clampInt(
+    sp.page_size,
+    DEFAULT_PAGE_SIZE,
+    MIN_PAGE_SIZE,
+    MAX_PAGE_SIZE,
+  );
+  if (page > 1) params.set('page', String(page));
+  if (pageSize !== DEFAULT_PAGE_SIZE) {
+    params.set('page_size', String(pageSize));
+  }
+  const query = params.toString();
+  return query ? `/search?${query}` : '/search';
 }
 
 export default async function SearchPage({
@@ -74,7 +104,7 @@ export default async function SearchPage({
   searchParams: Promise<SearchParams>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const q = (resolvedSearchParams.q ?? '').trim();
+  const q = normalizeSearchQuery(resolvedSearchParams.q ?? '');
   const page = normalizePageNumber(resolvedSearchParams.page);
   const pageSize = clampInt(
     resolvedSearchParams.page_size,
@@ -274,7 +304,9 @@ export default async function SearchPage({
 
         {/* Results column */}
         <section>
-          <CompareSelectionProvider>
+          <CompareSelectionProvider
+            returnTo={buildSearchReturnPath(resolvedSearchParams)}
+          >
             <Suspense>
               <ProductGrid
                 products={products}

@@ -8,6 +8,7 @@ import {
   buildCompareHref,
   MIN_COMPARE_PRODUCTS,
   parseCompareIds,
+  safeCompareReturnPath,
 } from "@/lib/compare/selection";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { cn, formatPrice } from "@/lib/utils";
@@ -76,7 +77,7 @@ function displayAttribute(
   return "—";
 }
 
-function EmptyComparison() {
+function EmptyComparison({ returnTo }: { returnTo: string }) {
   return (
     <div className="container flex min-h-[60vh] max-w-xl flex-col items-center justify-center py-12 text-center">
       <GitCompareArrows className="h-12 w-12 text-muted-foreground" />
@@ -88,7 +89,7 @@ function EmptyComparison() {
         lado.
       </p>
       <Button asChild className="mt-6">
-        <Link href="/search">Ir al buscador</Link>
+        <Link href={returnTo}>Ir al buscador</Link>
       </Button>
     </div>
   );
@@ -97,11 +98,21 @@ function EmptyComparison() {
 export default async function ComparePage({
   searchParams,
 }: {
-  searchParams: Promise<{ ids?: string | string[] }>;
+  searchParams: Promise<{
+    ids?: string | string[];
+    from?: string | string[];
+  }>;
 }) {
   const resolvedSearchParams = await searchParams;
   const ids = parseCompareIds(resolvedSearchParams.ids);
-  if (ids.length < MIN_COMPARE_PRODUCTS) return <EmptyComparison />;
+  const returnTo = safeCompareReturnPath(
+    Array.isArray(resolvedSearchParams.from)
+      ? resolvedSearchParams.from[0]
+      : resolvedSearchParams.from,
+  );
+  if (ids.length < MIN_COMPARE_PRODUCTS) {
+    return <EmptyComparison returnTo={returnTo} />;
+  }
 
   const sb = createPublicSupabaseClient({ revalidate: false });
   const { data, error } = await sb
@@ -117,7 +128,9 @@ export default async function ComparePage({
   const products = ids
     .map((id) => unordered.find((product) => product.id === id))
     .filter((product): product is CompareProduct => Boolean(product));
-  if (products.length < MIN_COMPARE_PRODUCTS) return <EmptyComparison />;
+  if (products.length < MIN_COMPARE_PRODUCTS) {
+    return <EmptyComparison returnTo={returnTo} />;
+  }
 
   const oneCurrency =
     new Set(products.map((product) => product.currency)).size === 1;
@@ -134,7 +147,7 @@ export default async function ComparePage({
   return (
     <div className="container py-10 md:py-14">
       <Link
-        href="/search"
+        href={returnTo}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
       >
         <ArrowLeft className="h-4 w-4" /> Volver a resultados
@@ -302,6 +315,7 @@ export default async function ComparePage({
                   <Button asChild className="w-full gap-2">
                     <a
                       href={`/go/${product.slug}`}
+                      target="_blank"
                       rel="nofollow sponsored noopener noreferrer"
                     >
                       Ver en {product.store_name}{" "}
@@ -320,7 +334,7 @@ export default async function ComparePage({
           const remaining = ids.filter((id) => id !== product.id);
           return (
             <Button key={product.id} asChild variant="outline" size="sm">
-              <Link href={buildCompareHref(remaining)}>
+              <Link href={buildCompareHref(remaining, returnTo)}>
                 Quitar {product.store_name}
               </Link>
             </Button>
