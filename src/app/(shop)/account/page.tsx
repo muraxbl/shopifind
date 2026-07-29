@@ -35,7 +35,7 @@ type ProfileRow = {
 type AlertRow = {
   product_id: string;
   mode: PriceAlertMode;
-  baseline_price_cents: number;
+  baseline_currency: string;
   target_price_cents: number | null;
   percentage_drop: number | null;
 };
@@ -68,7 +68,7 @@ export default async function AccountPage({
   const alertResult = await sb
     .from('price_alerts')
     .select(
-      'product_id, mode, baseline_price_cents, target_price_cents, percentage_drop',
+      'product_id, mode, baseline_currency, target_price_cents, percentage_drop',
     )
     .eq('user_id', user.id)
     .eq('active', true)
@@ -96,9 +96,9 @@ export default async function AccountPage({
       productId: alert.product_id,
       productSlug: product?.slug ?? null,
       productTitle: product?.title ?? 'Producto no disponible',
-      currency: product?.currency ?? 'EUR',
+      alertCurrency: alert.baseline_currency,
+      currentCurrency: product?.currency ?? null,
       currentPriceCents: product?.price_cents ?? null,
-      baselinePriceCents: alert.baseline_price_cents,
       mode: alert.mode,
       targetPriceCents: alert.target_price_cents,
       percentageDrop: alert.percentage_drop,

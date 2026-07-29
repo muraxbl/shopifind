@@ -25,8 +25,11 @@ prerrequisitos de activación.
   única alerta/snapshot, reclama cada entrega con estado `processing` y usa
   `Idempotency-Key` en Resend. Los target/percentage son one-shot; any-drop
   mantiene como nueva referencia el último precio evaluado.
+- La moneda forma parte de la referencia y del ledger. Nunca se comparan
+  céntimos de divisas distintas: un cambio de moneda reinicia alertas relativas
+  y desactiva objetivos de precio fijo, cuyo importe deja de ser interpretable.
 - Un email pendiente se omite si el producto ya está agotado o su precio actual
-  ya no coincide con el snapshot, evitando avisos obsoletos.
+  o moneda ya no coinciden con el snapshot, evitando avisos obsoletos.
 
 ## Prerrequisitos de activación
 

@@ -33,7 +33,7 @@ export async function savePriceAlert(
 
   const productResult = await sb
     .from('v_products_with_store')
-    .select('id, slug, price_cents')
+    .select('id, slug, price_cents, currency')
     .eq('id', parsed.data.productId)
     .eq('in_stock', true)
     .maybeSingle();
@@ -41,6 +41,7 @@ export async function savePriceAlert(
     id: string;
     slug: string;
     price_cents: number;
+    currency: string;
   } | null;
   if (productResult.error || !product) {
     return { ok: false, error: 'product_unavailable' };
@@ -70,6 +71,7 @@ export async function savePriceAlert(
       product_id: product.id,
       mode: parsed.data.mode,
       baseline_price_cents: product.price_cents,
+      baseline_currency: product.currency,
       target_price_cents: parsed.data.targetPriceCents,
       percentage_drop: parsed.data.percentageDrop,
       active: true,

@@ -1,5 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { evaluatePriceAlert } from '@/lib/alerts/evaluate';
+import {
+  evaluatePriceAlert,
+  isPriceAlertDeliveryCurrent,
+} from '@/lib/alerts/evaluate';
 import type { PriceAlertMode } from '@/lib/alerts/input';
 import { sendPriceAlertEmail } from '@/lib/email/resend';
 import { hasValidBearerSecret } from '@/lib/http/secrets';
@@ -20,6 +23,7 @@ type AlertRow = {
   product_id: string;
   mode: PriceAlertMode;
   baseline_price_cents: number;
+  baseline_currency: string;
   target_price_cents: number | null;
   percentage_drop: number | null;
   last_evaluated_history_id: number | null;
@@ -30,6 +34,7 @@ type DeliveryRow = {
   alert_id: string;
   price_history_id: number;
   reference_price_cents: number;
+  reference_currency: string;
   status: 'pending' | 'failed';
   attempt_count: number;
 };
@@ -63,9 +68,12 @@ export async function GET(request: NextRequest) {
 
   const sb = createAdminSupabaseClient();
   const schemaChecks = await Promise.all([
-    sb.from('price_history').select('id').limit(1),
-    sb.from('price_alerts').select('id').limit(1),
-    sb.from('price_alert_deliveries').select('id').limit(1),
+    sb.from('price_history').select('id, currency').limit(1),
+    sb.from('price_alerts').select('id, baseline_currency').limit(1),
+    sb
+      .from('price_alert_deliveries')
+      .select('id, reference_currency')
+      .limit(1),
   ]);
   if (schemaChecks.some((result) => result.error)) {
     return NextResponse.json(
@@ -77,7 +85,7 @@ export async function GET(request: NextRequest) {
   const alertResult = await sb
     .from('price_alerts')
     .select(
-      'id, user_id, product_id, mode, baseline_price_cents, target_price_cents, percentage_drop, last_evaluated_history_id',
+      'id, user_id, product_id, mode, baseline_price_cents, baseline_currency, target_price_cents, percentage_drop, last_evaluated_history_id',
     )
     .eq('active', true)
     .order('updated_at', { ascending: true })
@@ -96,7 +104,7 @@ export async function GET(request: NextRequest) {
   for (const alert of (alertResult.data ?? []) as AlertRow[]) {
     let historyQuery = sb
       .from('price_history')
-      .select('id, price_cents, in_stock')
+      .select('id, price_cents, currency, in_stock')
       .eq('product_id', alert.product_id)
       .order('id', { ascending: true })
       .limit(MAX_EVENTS_PER_ALERT + 1);
@@ -111,6 +119,7 @@ export async function GET(request: NextRequest) {
     const rawEvents = (historyResult.data ?? []) as Array<{
       id: number;
       price_cents: number;
+      currency: string;
       in_stock: boolean;
     }>;
     const hasMoreEvents = rawEvents.length > MAX_EVENTS_PER_ALERT;
@@ -123,6 +132,7 @@ export async function GET(request: NextRequest) {
     const evaluation = evaluatePriceAlert({
       mode: alert.mode,
       baselinePriceCents: alert.baseline_price_cents,
+      baselineCurrency: alert.baseline_currency,
       targetPriceCents: alert.target_price_cents,
       percentageDrop: alert.percentage_drop,
       events,
@@ -135,6 +145,7 @@ export async function GET(request: NextRequest) {
           alert_id: alert.id,
           price_history_id: triggerHistoryId,
           reference_price_cents: alert.baseline_price_cents,
+          reference_currency: alert.baseline_currency,
           status: 'pending',
         } as never,
         {
@@ -154,7 +165,14 @@ export async function GET(request: NextRequest) {
       .update({
         last_evaluated_history_id: evaluation.lastHistoryId,
         baseline_price_cents: evaluation.nextBaselinePriceCents,
+        baseline_currency: evaluation.nextBaselineCurrency,
         active: hasMoreEvents ? true : !evaluation.deactivate,
+        ...(evaluation.nextBaselineCurrency !== alert.baseline_currency
+          ? {
+              last_notified_price_cents: null,
+              last_notified_at: null,
+            }
+          : {}),
       } as never)
       .eq('id', alert.id);
     if (updateResult.error) {
@@ -177,7 +195,7 @@ export async function GET(request: NextRequest) {
   const deliveryResult = await sb
     .from('price_alert_deliveries')
     .select(
-      'id, alert_id, price_history_id, reference_price_cents, status, attempt_count',
+      'id, alert_id, price_history_id, reference_price_cents, reference_currency, status, attempt_count',
     )
     .in('status', ['pending', 'failed'])
     .lt('attempt_count', MAX_DELIVERY_ATTEMPTS)
@@ -261,9 +279,19 @@ export async function GET(request: NextRequest) {
       productDetails.error ||
       !product ||
       !email ||
-      !history.in_stock ||
-      !product.in_stock ||
-      product.price_cents !== history.price_cents
+      !isPriceAlertDeliveryCurrent({
+        referenceCurrency: delivery.reference_currency,
+        history: {
+          priceCents: history.price_cents,
+          currency: history.currency,
+          inStock: history.in_stock,
+        },
+        product: {
+          priceCents: product.price_cents,
+          currency: product.currency,
+          inStock: product.in_stock,
+        },
+      })
     ) {
       await markSkipped(sb, delivery.id, 'delivery_obsolete_or_unavailable');
       deliveriesSkipped++;

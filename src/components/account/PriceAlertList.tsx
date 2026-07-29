@@ -12,9 +12,9 @@ export type AccountPriceAlert = {
   productId: string;
   productSlug: string | null;
   productTitle: string;
-  currency: string;
+  alertCurrency: string;
+  currentCurrency: string | null;
   currentPriceCents: number | null;
-  baselinePriceCents: number;
   mode: PriceAlertMode;
   targetPriceCents: number | null;
   percentageDrop: number | null;
@@ -22,7 +22,7 @@ export type AccountPriceAlert = {
 
 function conditionLabel(alert: AccountPriceAlert): string {
   if (alert.mode === 'target_price' && alert.targetPriceCents !== null) {
-    return `Objetivo: ${formatPrice(alert.targetPriceCents, alert.currency)}`;
+    return `Objetivo: ${formatPrice(alert.targetPriceCents, alert.alertCurrency)}`;
   }
   if (alert.mode === 'percentage_drop' && alert.percentageDrop !== null) {
     return `Bajada de ${alert.percentageDrop}%`;
@@ -91,10 +91,13 @@ export function PriceAlertList({
                 )}
                 <p className="mt-1 text-xs text-muted-foreground">
                   {conditionLabel(alert)}
-                  {alert.currentPriceCents !== null && (
+                  {alert.currentPriceCents !== null && alert.currentCurrency && (
                     <>
                       {' · '}Ahora{' '}
-                      {formatPrice(alert.currentPriceCents, alert.currency)}
+                      {formatPrice(
+                        alert.currentPriceCents,
+                        alert.currentCurrency,
+                      )}
                     </>
                   )}
                 </p>

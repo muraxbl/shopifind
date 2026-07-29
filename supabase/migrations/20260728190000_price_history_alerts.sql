@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS price_alerts (
   mode TEXT NOT NULL DEFAULT 'any_drop'
     CHECK (mode IN ('any_drop', 'target_price', 'percentage_drop')),
   baseline_price_cents INT NOT NULL CHECK (baseline_price_cents >= 0),
+  baseline_currency TEXT NOT NULL CHECK (char_length(baseline_currency) = 3),
   target_price_cents INT CHECK (target_price_cents >= 0),
   percentage_drop SMALLINT CHECK (percentage_drop BETWEEN 1 AND 99),
   active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -88,6 +89,31 @@ CREATE TABLE IF NOT EXISTS price_alerts (
     OR (mode = 'percentage_drop' AND target_price_cents IS NULL AND percentage_drop IS NOT NULL)
   )
 );
+
+-- Upgrade path for an earlier local draft of this migration. Currency is part
+-- of the alert reference: comparing cents from different currencies can cause
+-- a false notification.
+ALTER TABLE price_alerts
+  ADD COLUMN IF NOT EXISTS baseline_currency TEXT;
+UPDATE price_alerts a
+SET baseline_price_cents = p.price_cents,
+    baseline_currency = p.currency,
+    active = CASE WHEN a.mode = 'target_price' THEN FALSE ELSE a.active END,
+    last_evaluated_history_id = (
+      SELECT MAX(h.id) FROM price_history h WHERE h.product_id = a.product_id
+    ),
+    last_notified_price_cents = NULL,
+    last_notified_at = NULL
+FROM products p
+WHERE a.product_id = p.id
+  AND a.baseline_currency IS NULL;
+UPDATE price_alerts SET baseline_currency = 'EUR' WHERE baseline_currency IS NULL;
+ALTER TABLE price_alerts ALTER COLUMN baseline_currency SET NOT NULL;
+ALTER TABLE price_alerts
+  DROP CONSTRAINT IF EXISTS price_alerts_baseline_currency_check;
+ALTER TABLE price_alerts
+  ADD CONSTRAINT price_alerts_baseline_currency_check
+  CHECK (char_length(baseline_currency) = 3);
 
 CREATE INDEX IF NOT EXISTS idx_price_alerts_active_product
   ON price_alerts(product_id) WHERE active = TRUE;
@@ -113,6 +139,7 @@ CREATE TABLE IF NOT EXISTS price_alert_deliveries (
   alert_id UUID NOT NULL REFERENCES price_alerts(id) ON DELETE CASCADE,
   price_history_id BIGINT NOT NULL REFERENCES price_history(id) ON DELETE CASCADE,
   reference_price_cents INT NOT NULL CHECK (reference_price_cents >= 0),
+  reference_currency TEXT NOT NULL CHECK (char_length(reference_currency) = 3),
   status TEXT NOT NULL DEFAULT 'pending',
   provider_message_id TEXT,
   error_message TEXT,
@@ -126,9 +153,36 @@ CREATE TABLE IF NOT EXISTS price_alert_deliveries (
 
 ALTER TABLE price_alert_deliveries
   ADD COLUMN IF NOT EXISTS reference_price_cents INT CHECK (reference_price_cents >= 0);
-
+ALTER TABLE price_alert_deliveries
+  ADD COLUMN IF NOT EXISTS reference_currency TEXT;
 ALTER TABLE price_alert_deliveries
   DROP CONSTRAINT IF EXISTS price_alert_deliveries_status_check;
+UPDATE price_alert_deliveries d
+SET status = 'skipped',
+    error_message = 'migration_missing_currency_reference',
+    reference_price_cents = COALESCE(
+      d.reference_price_cents,
+      a.baseline_price_cents
+    ),
+    reference_currency = COALESCE(d.reference_currency, a.baseline_currency)
+FROM price_alerts a
+WHERE d.alert_id = a.id
+  AND (d.reference_price_cents IS NULL OR d.reference_currency IS NULL);
+UPDATE price_alert_deliveries
+SET reference_price_cents = 0
+WHERE reference_price_cents IS NULL;
+UPDATE price_alert_deliveries
+SET reference_currency = 'EUR'
+WHERE reference_currency IS NULL;
+ALTER TABLE price_alert_deliveries
+  ALTER COLUMN reference_price_cents SET NOT NULL,
+  ALTER COLUMN reference_currency SET NOT NULL;
+ALTER TABLE price_alert_deliveries
+  DROP CONSTRAINT IF EXISTS price_alert_deliveries_reference_currency_check;
+ALTER TABLE price_alert_deliveries
+  ADD CONSTRAINT price_alert_deliveries_reference_currency_check
+  CHECK (char_length(reference_currency) = 3);
+
 ALTER TABLE price_alert_deliveries
   ADD CONSTRAINT price_alert_deliveries_status_check
   CHECK (status IN ('pending', 'processing', 'sent', 'failed', 'skipped'));

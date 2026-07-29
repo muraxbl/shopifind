@@ -233,7 +233,7 @@ Insert permitido a anónimos (`auth.uid() IS NULL OR auth.uid() = user_id`). RLS
 
 #### `price_history` + `price_alerts` + `price_alert_deliveries` — preparado, no aplicado
 
-La migración `20260728190000_price_history_alerts.sql` registra únicamente cambios reales de precio/stock mediante trigger, separa una alerta configurable por usuario-producto y añade un ledger de entregas con `UNIQUE (alert_id, price_history_id)` para impedir emails duplicados en reintentos. Incluye RLS owner-only para alertas, lectura pública del histórico y escrituras del ledger reservadas al service role. Falta dry-run/aplicación contra Supabase Cloud.
+La migración `20260728190000_price_history_alerts.sql` registra únicamente cambios reales de precio/stock/moneda mediante trigger, separa una alerta configurable por usuario-producto y añade un ledger de entregas con `UNIQUE (alert_id, price_history_id)` para impedir emails duplicados en reintentos. Precio y moneda de referencia quedan congelados juntos para no comparar céntimos de divisas diferentes. Incluye RLS owner-only para alertas, lectura pública del histórico y escrituras del ledger reservadas al service role. Falta dry-run/aplicación contra Supabase Cloud.
 
 #### `editorial_collections` — cápsulas SEO
 
@@ -303,7 +303,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | **Skimlinks affiliate redirect** | `src/app/go/[id]/route.ts` + `src/lib/skimlinks.ts` | ✅ publisher `306854X1795120`. |
 | **Eco-score badges en cards** | `src/components/product/ProductCard.tsx` | ✅ muestra `store_eco_score` + `eco_tags[..n]`. |
 | **Wishlist JSONB** | `src/actions/wishlist.ts` + `src/app/(shop)/wishlist/` | ✅ read/write · RLS owner-only · corazones reales y precio/URL resueltos server-side. |
-| **Gestión de price alerts** | `src/actions/priceAlerts.ts` + PDP + `/account` | 🟡 tres modos, owner-only y cursor de baseline preparados; UI se auto-desactiva mientras B-2 falte. Worker/email listos pero inactivos. |
+| **Gestión de price alerts** | `src/actions/priceAlerts.ts` + PDP + `/account` | 🟡 tres modos, owner-only y cursor precio+moneda preparados; UI se auto-desactiva mientras B-2 falte. Worker/email listos pero inactivos. |
 | **Pricing alerts email** | `src/lib/email/resend.ts` + `/api/cron/process-price-alerts` | 🟡 evaluator/outbox/sender preparados; falta migración Cloud, secretos, schedule y E2E real. |
 | **Comparador manual** | `src/components/compare/CompareSelection.tsx` + `src/app/(shop)/compare/page.tsx` | ✅ picker de 2-5 cards y tabla comparativa sin afirmar equivalencia de modelo. La comparación automática fuerte en iluminación sigue necesitando otro merchant. |
 
@@ -460,6 +460,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **32** | SEO de hubs públicos | metadata de `/explore/[niche]` y `/store/[slug]` | Cada nicho y tienda indexable publica título/descripción propios, canonical estable y tarjetas Open Graph/Twitter; slugs inválidos declaran `noindex` y el smoke live cubre los dos tipos de página. |
 | **33** | Tiendas activas en sitemap | `src/app/sitemap.ts` + smoke de release | Los cuatro perfiles reales pasan a ser descubribles por buscadores con `lastModified`; el filtro `active=true` evita reactivar merchants placeholder y el smoke exige Masterled en el XML. |
 | **34** | Copy factual de procedencia | PDP + `SITE_CONFIG.description` | La PDP deja de presentar el país de la marca como origen del envío, deriva logística/devoluciones al merchant y el smoke impide que reaparezca esa afirmación; la descripción global ya incluye iluminación. |
+| **35** | Alertas seguras por moneda | migration + evaluator + worker + cuenta | `baseline_currency` y `reference_currency` acompañan cada precio; cambios de divisa reinician alertas relativas, desactivan targets fijos y bloquean emails con moneda obsoleta. El preflight exige las columnas nuevas y el upgrade de borradores omite entregas ambiguas. |
 
 ### Métricas post-deploy
 
@@ -471,7 +472,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1465** (1 home + 4 explore + 4 stores + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 43/43 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 45/45 · rc=0 · rc=0 |
 | `pnpm audit` completo | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28) |
 | `pnpm smoke:production` | **16/16** contra `shopifind.app` (snapshot 2026-07-28) |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
@@ -506,6 +507,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 16. **Middleware con `src/app`**: el archivo activo es `src/middleware.ts`. Una copia en la raíz puede compilar sin proteger rutas en este layout; comprobar siempre `/wishlist` anónimo (307) y una ruta lookalike (no redirect).
 17. **APIs dinámicas de Next 15**: `cookies()`, `params` y `searchParams` son asíncronas. `createServerSupabaseClient()` devuelve una promesa y todos sus consumidores deben hacer `await`; un reemplazo incompleto puede compilar partes del árbol y fallar sólo en una ruta dinámica.
 18. **Cliente Supabase público vs. sesión**: las lecturas de catálogo sin identidad usan `createPublicSupabaseClient()` para permitir Data Cache/ISR. Auth, perfiles, wishlist y alertas siguen usando `createServerSupabaseClient()`; usar el cliente público ahí ignoraría la sesión. En rutas dinámicas de búsqueda, comparación y `/go`, pasar `{ revalidate: false }` para no servir decisiones request-time desde caché.
+19. **Precio sin moneda no es una referencia**: `baseline_price_cents` siempre viaja con `baseline_currency`, y el outbox congela ambos. Si cambia la moneda, no convertir ni comparar enteros directamente; los targets fijos se desactivan y los modos relativos adoptan el nuevo precio como baseline.
 
 ### Affiliate / Skimlinks
 

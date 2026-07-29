@@ -219,6 +219,7 @@ export interface Database {
           product_id: string;
           mode: 'any_drop' | 'target_price' | 'percentage_drop';
           baseline_price_cents: number;
+          baseline_currency: string;
           target_price_cents: number | null;
           percentage_drop: number | null;
           active: boolean;
@@ -234,6 +235,7 @@ export interface Database {
           product_id: string;
           mode?: 'any_drop' | 'target_price' | 'percentage_drop';
           baseline_price_cents: number;
+          baseline_currency: string;
           target_price_cents?: number | null;
           percentage_drop?: number | null;
           active?: boolean;
@@ -251,6 +253,7 @@ export interface Database {
           alert_id: string;
           price_history_id: number;
           reference_price_cents: number;
+          reference_currency: string;
           status: 'pending' | 'processing' | 'sent' | 'failed' | 'skipped';
           provider_message_id: string | null;
           error_message: string | null;
@@ -264,6 +267,7 @@ export interface Database {
           alert_id: string;
           price_history_id: number;
           reference_price_cents: number;
+          reference_currency: string;
           status?: 'pending' | 'processing' | 'sent' | 'failed' | 'skipped';
           provider_message_id?: string | null;
           error_message?: string | null;
