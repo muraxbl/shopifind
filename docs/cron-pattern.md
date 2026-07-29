@@ -4,8 +4,8 @@
 
 Los handlers `GET /api/cron/refresh-masterled` y
 `GET /api/cron/process-price-alerts` están preparados, pero **no están
-programados en `vercel.json`**. Mantenerlos así hasta completar todos los
-prerrequisitos de activación.
+programados en `vercel.json`**. El refresh de catálogo ya superó una ejecución
+manual en producción; mantener ambos sin schedule hasta completar el email E2E.
 
 ## Contrato de seguridad
 
@@ -36,23 +36,36 @@ prerrequisitos de activación.
 1. ✅ `supabase/migrations/20260728190000_price_history_alerts.sql` aplicada en
    Supabase Cloud el 2026-07-29; tipos regenerados y 1.613 snapshots baseline
    verificados.
-2. Configurar en Vercel, sin compartir valores por chat:
-   `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `MASTERLED_FEED_URL`,
-   `RESEND_API_KEY` y `RESEND_FROM_EMAIL` (dominio verificado).
-3. Invocar manualmente el deployment de producción desde un terminal seguro:
+2. ✅ Configurados en Vercel para catálogo, sin compartir valores por chat:
+   `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET` y `MASTERLED_FEED_URL`.
+   Pendientes de validar para email: `RESEND_API_KEY` y `RESEND_FROM_EMAIL`
+   (dominio verificado).
+3. ✅ Invocado manualmente el refresh del deployment de producción desde un
+   terminal seguro el 2026-07-29:
 
    ```bash
    curl --fail-with-body \
      -H "Authorization: Bearer $CRON_SECRET" \
      https://shopifind.app/api/cron/refresh-masterled
 
+   ```
+
+   Resultado: 1.562 filas vistas, 1.438 en stock y 9 referencias ausentes
+   marcadas como agotadas. La auditoría final confirmó 9 productos nuevos,
+   14 cambios de stock, ningún cambio de precio/moneda, 23 snapshots, 2 alertas
+   activas intactas y 0 entregas. Smoke público: 17/17.
+
+4. Configurar/validar Resend y ejecutar manualmente el worker desde un terminal
+   seguro:
+
+   ```bash
    curl --fail-with-body \
      -H "Authorization: Bearer $CRON_SECRET" \
      https://shopifind.app/api/cron/process-price-alerts
    ```
 
-4. Verificar el JSON de resultado, el histórico creado y una muestra de PDPs.
-5. Añadir entonces a `vercel.json`:
+5. Verificar el JSON, el ledger y la recepción de un email de prueba real.
+6. Añadir entonces a `vercel.json`:
 
    ```json
    {
