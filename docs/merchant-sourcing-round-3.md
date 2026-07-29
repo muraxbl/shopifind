@@ -203,6 +203,25 @@ verificar deep links para España y autorizar expresamente la escritura.
 
 ## Comprobaciones comerciales complementarias
 
+- **Wildling Shoes:** mejor siguiente candidato para `sustainable-fashion`.
+  Marca alemana independiente de calzado minimalista, programa directo público
+  (10 %, cookie de 30 días y ticket medio declarado superior a 150 €), envío a
+  la UE por 8,90 € y catálogo UCP/read-only expresamente autorizado en
+  `agents.md`. Documenta algodón, cáñamo, lino, corcho y lana, mayoritariamente
+  de cultivo o ganadería ecológica certificados, pero los claims deberán seguir
+  derivándose por modelo. El endpoint devolvió `429` durante el spike incluso
+  tras respetar `Retry-After`; no se insistió ni se creó adaptador. Reanudar con
+  una única lectura cuando se recupere, separando estrictamente adulto/niño.
+- **Philips Hue:** reserva comercial fuerte para iluminación inteligente, con
+  programa oficial para España, comisión mínima del 7 % (hasta 10 % el primer
+  mes) e información estructurada de producto. No es un merchant indie ni
+  aporta por sí solo equivalencias con Masterled, por lo que encaja mejor en
+  una capa comercial claramente identificada o una colección smart-home que
+  como sustituto del segundo merchant curado.
+- **efectoLED:** el PRO CLUB ofrece catálogos y contenido de producto a
+  profesionales, pero es un programa de descuentos/compra B2B, no un programa
+  público de afiliación para publishers. No tratar esos beneficios como
+  monetización ni usar el catálogo sin una licencia/feed específicos.
 - **PcComponentes:** programa editorial oficial en Awin para España (merchant
   20982), comisiones publicadas de hasta 7 %, más de 90.000 productos y uso de
   catálogo/comparadores contemplado. Es una reserva potente para comparación
@@ -220,6 +239,13 @@ verificar deep links para España y autorizar expresamente la escritura.
 
 Fuentes adicionales:
 
+- https://wildling.tapfiliate.com/
+- https://www.wildling.shoes/agents.md
+- https://www.wildling.shoes/.well-known/ucp
+- https://www.wildling.shoes/en/pages/versand
+- https://help.wildling.shoes/hc/en-us/articles/360013312440-What-materials-are-Wildling-shoes-made-from-and-where-are-they-sourced
+- https://www.philips-hue.com/es-es/explore-hue/affiliate-programme
+- https://www.efectoled.com/es/content/343-proclub
 - https://www.pccomponentes.com/afiliados
 - https://help.pccomponentes.com/hc/es-es/articles/21057190055197-FAQ-Afiliados
 - https://frame.work/about
