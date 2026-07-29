@@ -2,10 +2,9 @@
 
 ## Estado
 
-Los handlers `GET /api/cron/refresh-masterled` y
-`GET /api/cron/process-price-alerts` están preparados, pero **no están
-programados en `vercel.json`**. El refresh de catálogo ya superó una ejecución
-manual en producción; mantener ambos sin schedule hasta completar el email E2E.
+`GET /api/cron/refresh-masterled` está programado en `vercel.json` una vez al
+día, a las 03:15 UTC. `GET /api/cron/process-price-alerts` permanece sin
+schedule hasta completar el email E2E con Resend.
 
 ## Contrato de seguridad
 
@@ -65,22 +64,25 @@ manual en producción; mantener ambos sin schedule hasta completar el email E2E.
    ```
 
 5. Verificar el JSON, el ledger y la recepción de un email de prueba real.
-6. Añadir entonces a `vercel.json`:
+6. ✅ El refresh de catálogo está añadido a `vercel.json`:
 
    ```json
    {
      "crons": [
-       {
-         "path": "/api/cron/refresh-masterled",
-         "schedule": "15 3 * * *"
-       },
-       {
-         "path": "/api/cron/process-price-alerts",
-         "schedule": "15 4 * * *"
-       }
-     ]
-   }
+      {
+        "path": "/api/cron/refresh-masterled",
+        "schedule": "15 3 * * *"
+      }
+    ]
    ```
+
+}
+
+```
+
+7. Después del email E2E, añadir el worker en una segunda entrada diaria a las
+ 04:15 UTC. Mantener una hora de margen permite que el refresh termine antes
+ de evaluar las bajadas.
 
 ## Frecuencia
 
@@ -95,3 +97,4 @@ Fuentes oficiales consultadas el 2026-07-28:
 - https://vercel.com/docs/cron-jobs/usage-and-pricing
 - https://vercel.com/docs/cron-jobs/manage-cron-jobs
 - https://resend.com/docs/dashboard/emails/idempotency-keys
+```

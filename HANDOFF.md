@@ -150,11 +150,10 @@
 
 ### Crons / scheduled jobs
 
-> **Hoy:** refresh manual de producción verificado; ningún schedule activo todavía.
+> **Hoy:** refresh manual de producción verificado y schedule diario declarado; el worker de alertas sigue inactivo hasta completar el email E2E.
 >
 > **Pendientes** (backlog):
 >
-> - Activar refresh diario de Masterled después del email E2E; secretos de catálogo, B-2 y la ejecución manual controlada ya están completados.
 > - Scanner de precios 12h (price-alerts MVP).
 > - Configuración externa + prueba end-to-end del webhook Skimlinks. El receiver y el INSERT ya están implementados.
 
@@ -289,7 +288,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/robots.txt`                     | ✅ live                         | Allow `/` + disallow `/api/`, `/admin/`, `/auth/`, `/go/`, `/search` + sitemap reference.                                                                                   |
 | `/legal` / `/privacy` / `/about`  | ✅ Markdown scaffold            | Páginas-estatic SEO/disclaimer.                                                                                                                                             |
 | `/api/products/*` + `/api/auth/*` | ✅ implementado                 | Handlers server-side desplegados; Google OAuth habilitado y probado con sesión real.                                                                                        |
-| `/api/cron/refresh-masterled`     | ✅ live / inactivo              | Bearer auth, preflight real de `price_history`, feed allowlisted/acotado y guardias de integridad. Sin schedule ni secretos de activación; 401 anónimo verificado.          |
+| `/api/cron/refresh-masterled`     | ✅ live / diario 03:15 UTC      | Bearer auth, preflight real de `price_history`, feed allowlisted/acotado y guardias de integridad. Ejecución manual auditada; schedule Vercel diario declarado.             |
 | `/api/cron/process-price-alerts`  | ✅ live / inactivo              | Evaluator + outbox con claim, retries, skip de avisos obsoletos e idempotencia Resend. Sin schedule; 401 anónimo verificado; depende de B-2 y secretos Resend.              |
 | `/api/webhooks/skimlinks`         | ⚠ receiver live / E2E pendiente | Valida tamaño, CIDR, HMAC, payload y replay; inserta con dedupe. Falta conectar Skimlinks y probar evento real.                                                             |
 | `/api/test/*`                     | ✅ restringido                  | Gate default-deny y bloqueo absoluto en `NODE_ENV=production`; GET/POST verificados con 404 en `shopifind.app`.                                                             |
@@ -473,6 +472,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **43** | Google OAuth + perfiles E2E                                                                                            | Supabase Auth config + `/api/auth/*` + `/account`                    | Site URL HTTPS, allowlist y provider Google configurados; PKCE Shopifind→Supabase→Google verificado. Una identidad Google quedó vinculada a un perfil existente, con escritura persistente tras logout/login y sin duplicar usuario.                                                          |
 | **44** | SMTP Auth + magic link cross-device                                                                                    | `636f5ee` + Hestia/Supabase config                                   | `acceso@auth.shopifind.app` con STARTTLS; SPF, DKIM 2048 y DMARC pasan en Proton. `TokenHash` se muestra en una landing no consumidora y sólo el POST verifica: PC→móvil E2E, 63 tests, build y smoke 17/17.                                                                                  |
 | **45** | Primer refresh Masterled controlado                                                                                    | `/api/cron/refresh-masterled`                                        | Feed de 1.562 filas procesado en producción: 9 altas, 14 cambios de stock (1 entrada/13 salidas), 0 cambios de precio/moneda y 23 snapshots. Quedan 1.438 Masterled activos; 2 alertas intactas, 0 entregas y smoke 17/17.                                                                    |
+| **46** | Schedule diario de catálogo                                                                                            | `vercel.json`                                                        | Sólo `/api/cron/refresh-masterled`, a las 03:15 UTC. El worker de emails no se programa hasta verificar Resend; frecuencia compatible con Vercel Hobby y sin refrescos por minuto.                                                                                                            |
 
 ### Métricas post-deploy
 
@@ -559,15 +559,15 @@ tests/                                     # node:test: redirects, wishlist y Sk
 
 ### 🟠 Desarrollo inmediato (por dependencias)
 
-| #       | Item                                             | Bloqueado por                                   | Alcance                                                                                                                                        |
-| ------- | ------------------------------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **B-1** | ✅ **Completar `/account` + profiles**           | nada                                            | Lectura, escritura, persistencia y relogin probados con una sesión Google real; identidad vinculada al perfil existente sin duplicado.         |
-| **B-2** | ✅ **Modelo relacional de precios y alertas**    | nada                                            | Aplicado en Cloud: schema, trigger, RLS, ledger idempotente, 1.613 snapshots baseline y tipos regenerados/verificados.                         |
-| **B-3** | 🟡 **Refresh incremental + snapshots de precio** | schedule en Vercel                              | Ejecución manual controlada y auditada: 1.562 filas actuales, 23 snapshots correctos, sin alertas falsas. Falta programarlo tras el email E2E. |
-| **B-4** | 🟡 **Alertas de bajada**                         | activar cron + secretos Resend                  | UI y alerta `any_drop` E2E completadas; evaluator, outbox y sender idempotente preparados. Falta email E2E antes de programarlo.               |
-| **B-5** | ✅ **Corregir AI search actual**                 | nada                                            | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship.   |
-| **B-6** | ✅ **Comparador manual MVP**                     | nada                                            | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado.  |
-| **B-7** | 🟡 **Segundo merchant de iluminación**           | verificación Skimlinks + feed/permiso del owner | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`.   |
+| #       | Item                                             | Bloqueado por                                   | Alcance                                                                                                                                       |
+| ------- | ------------------------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **B-1** | ✅ **Completar `/account` + profiles**           | nada                                            | Lectura, escritura, persistencia y relogin probados con una sesión Google real; identidad vinculada al perfil existente sin duplicado.        |
+| **B-2** | ✅ **Modelo relacional de precios y alertas**    | nada                                            | Aplicado en Cloud: schema, trigger, RLS, ledger idempotente, 1.613 snapshots baseline y tipos regenerados/verificados.                        |
+| **B-3** | ✅ **Refresh incremental + snapshots de precio** | nada                                            | Manual auditado y schedule diario 03:15 UTC declarado: 1.562 filas actuales, 23 snapshots correctos y sin alertas falsas.                     |
+| **B-4** | 🟡 **Alertas de bajada**                         | activar cron + secretos Resend                  | UI y alerta `any_drop` E2E completadas; evaluator, outbox y sender idempotente preparados. Falta email E2E antes de programarlo.              |
+| **B-5** | ✅ **Corregir AI search actual**                 | nada                                            | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship.  |
+| **B-6** | ✅ **Comparador manual MVP**                     | nada                                            | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado. |
+| **B-7** | 🟡 **Segundo merchant de iluminación**           | verificación Skimlinks + feed/permiso del owner | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`.  |
 
 ### 🟡 Después del núcleo
 
