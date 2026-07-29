@@ -126,14 +126,17 @@ Tencel, EcoVero, SeaCell y GOTS, pero sólo los asignará si aparecen en la fich
 concreta. Una prenda sin material explícito aborta el lote.
 
 La tienda queda definida con `eco_score=0`, `active=false`,
-`verified=false` y `featured=false`. Falta desplegar/probar la allowlist y,
-antes de cualquier `--write`, comprobar `thinkingmu.com` y deep linking en
-Skimlinks.
+`verified=false` y `featured=false`. La allowlist llegó a producción en
+`e2e7b63`: la imagen Santos respondió `200 image/jpeg` a 1920 px (100.408
+bytes) mediante `/_next/image` y el smoke quedó 19/19. Antes de cualquier
+`--write`, Skimlinks debe aprobar la cuenta y después hay que comprobar
+`thinkingmu.com` y deep linking.
 
 ## Gates antes de escribir
 
 1. Owner elige uno o varios candidatos.
-2. Verificar el dominio exacto en Skimlinks, deep linking, territorios y
+2. Esperar la aprobación de la cuenta Skimlinks y después verificar el dominio
+   exacto, deep linking, territorios y
    restricciones; si no aparece, el piloto puede seguir siendo editorial pero
    no se describirá como monetizado.
 3. Seleccionar manualmente 10–15 IDs y rechazar precio cero, stock ambiguo,
