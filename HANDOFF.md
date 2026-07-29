@@ -136,7 +136,7 @@
 | Auth + DB | **Supabase** (`@supabase/ssr` + `supabase-js`)            | ssr 0.12 / js 2.43 | Service-role key SOLO server-side.                                                                                                                                                         |
 | AI        | **OpenAI** (`OPENAI_SEARCH_MODEL`, default `gpt-4o-mini`) | 4.47               | Chat Completions + Structured Outputs. 4s timeout, sin retry, caché de intent válido 1h, kill switch y fallback literal.                                                                   |
 | Affiliate | **Skimlinks** (publisher `306854X1795120`)                | —                  | `go.redirectingat.com` con `xcust=shopifind-<slug>`.                                                                                                                                       |
-| Email     | **Resend HTTP API** (prepared)                            | REST               | Builder HTML/text, idempotency key y sender preparados sin SDK; falta configuración y E2E real.                                                                                            |
+| Email     | **Resend HTTP API**                                       | REST               | Builder HTML/text, idempotency key y sender configurados sin SDK; clave rotada validada localmente y retry E2E pendiente de promoción en Vercel.                                           |
 | CRM email | **react-hook-form** + **zod**                             | 7.51 / 3.23        | Formularios de captura + validación.                                                                                                                                                       |
 | Build     | **tsx** (scripts), **pnpm**                               | 4.16 / 11.17       | Scripts en `/scripts/*.ts` corren vía `tsx`, no `next`. La versión queda fijada en `packageManager`; pnpm 11 lee permisos, overrides y excepciones de antigüedad en `pnpm-workspace.yaml`. |
 | Testing   | **playwright-core** (devDep)                              | 1.62               | Solo instalado si activamos Playwright para fix-source-urls SFCC.                                                                                                                          |
@@ -161,12 +161,13 @@
 
 ## 5. DB schema
 
-> Schema núcleo aplicado manualmente + 3 migraciones registradas como aplicadas en Cloud:
+> Schema núcleo aplicado manualmente + 4 migraciones registradas como aplicadas en Cloud:
 >
 > 1. `00000000000000_init.sql` (núcleo + RLS + view)
 > 2. `00000000000001_click_attribution.sql` (target Skimlinks webhook)
 > 3. `00000000000002_add_iluminacion_niche.sql` (cuarto nicho)
 > 4. `20260728190000_price_history_alerts.sql` (aplicada en Cloud el 2026-07-29)
+> 5. `20260729143000_account_erasure.sql` (aplicada y probada en Cloud el 2026-07-29)
 
 ### Tabla por tabla
 
@@ -282,7 +283,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/product/<slug>`                 | ✅ live                         | Canonical + Product/Offer JSON-LD seguro, compartir funcional, CTA afiliado, información de tienda, wishlist y alertas con fallback.                                        |
 | `/compare?ids=...`                | ✅ live                         | Comparador manual de 2-5 productos, `noindex`, atributos normalizados, mejor precio sólo entre monedas iguales y CTA afiliado por producto; smoke E2E con dos filas reales. |
 | `/wishlist`                       | ✅ live                         | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto.                                                    |
-| `/account`                        | ✅ live / E2E real              | Perfil owner-only: nombre, preferencias de nicho, plan visible y logout local; login Google, escritura, persistencia tras logout/login y vínculo de identidad verificados.  |
+| `/account`                        | ✅ live / E2E real              | Perfil owner-only, preferencias, alertas y logout; exportación JSON completa y borrado irreversible con confirmación por email añadidos en milestone 47.                    |
 | `/login` + `/api/auth/*`          | ✅ Google + magic link E2E      | Google conserva PKCE. Magic link usa SMTP propio y `TokenHash`: landing GET resistente a prefetch + POST `verifyOtp`, probado PC→móvil con sesión final en `/wishlist`.     |
 | `/sitemap.xml`                    | ✅ live                         | 1486 URLs esperadas tras milestone 41. Incluye tiendas activas y sólo productos in-stock de stores activas. ISR diario (`86400`); loop 1000/page.                           |
 | `/robots.txt`                     | ✅ live                         | Allow `/` + disallow `/api/`, `/admin/`, `/auth/`, `/go/`, `/search` + sitemap reference.                                                                                   |
@@ -290,6 +291,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/api/products/*` + `/api/auth/*` | ✅ implementado                 | Handlers server-side desplegados; Google OAuth habilitado y probado con sesión real.                                                                                        |
 | `/api/cron/refresh-masterled`     | ✅ live / diario 03:15 UTC      | Bearer auth, preflight real de `price_history`, feed allowlisted/acotado y guardias de integridad. Ejecución manual auditada; schedule Vercel diario declarado.             |
 | `/api/cron/process-price-alerts`  | ✅ live / inactivo              | Evaluator + outbox con claim, retries, skip de avisos obsoletos e idempotencia Resend. Sin schedule; 401 anónimo verificado; depende de B-2 y secretos Resend.              |
+| `/api/account/export`             | ✅ privado / no-store           | Exporta Auth/identidades, perfil, wishlist, búsquedas, alertas y entregas con paginación estable; anónimo recibe 401 y nunca se cachea.                                     |
 | `/api/webhooks/skimlinks`         | ⚠ receiver live / E2E pendiente | Valida tamaño, CIDR, HMAC, payload y replay; inserta con dedupe. Falta conectar Skimlinks y probar evento real.                                                             |
 | `/api/test/*`                     | ✅ restringido                  | Gate default-deny y bloqueo absoluto en `NODE_ENV=production`; GET/POST verificados con 404 en `shopifind.app`.                                                             |
 
@@ -306,6 +308,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | **Wishlist JSONB**               | `src/actions/wishlist.ts` + `src/app/(shop)/wishlist/`                            | ✅ read/write · RLS owner-only · corazones reales y precio/URL resueltos server-side.                                                                           |
 | **Gestión de price alerts**      | `src/actions/priceAlerts.ts` + PDP + `/account`                                   | ✅ tres modos, owner-only y cursor precio+moneda; alerta `any_drop` creada con sesión real y baseline/currency/cursor verificados en Cloud.                     |
 | **Pricing alerts email**         | `src/lib/email/resend.ts` + `/api/cron/process-price-alerts`                      | 🟡 evaluator/outbox/sender preparados; faltan secretos Resend, schedule y E2E real.                                                                             |
+| **Autoservicio de datos**        | `/api/account/export` + `src/actions/account.ts`                                  | ✅ exportación autenticada y borrado hard-delete; trigger transaccional elimina búsquedas atribuibles antes de la cascada del perfil.                           |
 | **Comparador manual**            | `src/components/compare/CompareSelection.tsx` + `src/app/(shop)/compare/page.tsx` | ✅ picker de 2-5 cards y tabla comparativa sin afirmar equivalencia de modelo. La comparación automática fuerte en iluminación sigue necesitando otro merchant. |
 
 ### AI search semantics (`parseQueryIntent`)
@@ -473,6 +476,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **44** | SMTP Auth + magic link cross-device                                                                                    | `636f5ee` + Hestia/Supabase config                                   | `acceso@auth.shopifind.app` con STARTTLS; SPF, DKIM 2048 y DMARC pasan en Proton. `TokenHash` se muestra en una landing no consumidora y sólo el POST verifica: PC→móvil E2E, 63 tests, build y smoke 17/17.                                                                                  |
 | **45** | Primer refresh Masterled controlado                                                                                    | `/api/cron/refresh-masterled`                                        | Feed de 1.562 filas procesado en producción: 9 altas, 14 cambios de stock (1 entrada/13 salidas), 0 cambios de precio/moneda y 23 snapshots. Quedan 1.438 Masterled activos; 2 alertas intactas, 0 entregas y smoke 17/17.                                                                    |
 | **46** | Schedule diario de catálogo                                                                                            | `40ddcb2` + `vercel.json`                                            | Sólo `/api/cron/refresh-masterled`, a las 03:15 UTC. Deployment aceptado, sitemap actualizado a 1.483 URLs y smoke 17/17; el worker de emails no se programa hasta verificar Resend.                                                                                                          |
+| **47** | Exportación y borrado autoservicio                                                                                     | migration `20260729143000` + cuenta                                  | Export JSON paginado, privado y no-store; hard-delete sólo del usuario autenticado tras escribir su email. Cloud E2E con fixture: Auth/perfil/búsqueda 1/1/1 → 0/0/0; cookie posterior recibe 401. 68 tests y build pasan.                                                                    |
 
 ### Métricas post-deploy
 
@@ -484,7 +488,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true                          | **4**                                                                                                                            |
 | `<loc>` URLs en sitemap.xml                           | **1483 live** (1 home + 4 explore + 4 stores + 4 collections + 1470 productos; verificado tras deploy 2026-07-29)                |
 | HTTP 200 en smoke                                     | 100% de rutas navegables                                                                                                         |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 63/63 · rc=0 · rc=0                                                                                                              |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 68/68 · rc=0 · rc=0                                                                                                              |
 | `pnpm audit` completo                                 | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28)                                        |
 | `pnpm smoke:production`                               | **17/17** contra `shopifind.app` (snapshot 2026-07-29)                                                                           |
 | CLS / LCP / Lighthouse mobile (rough)                 | Home en 78 mobile / 92 desktop · LCP ≈1.8s                                                                                       |

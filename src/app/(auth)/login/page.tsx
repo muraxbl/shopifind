@@ -14,6 +14,7 @@ export default async function LoginPage({
     error?: string;
     sent?: string;
     signed_out?: string;
+    account_deleted?: string;
   }>;
 }) {
   const resolvedSearchParams = await searchParams;
@@ -44,6 +45,11 @@ export default async function LoginPage({
         {resolvedSearchParams.signed_out && (
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
             Has cerrado sesión correctamente.
+          </div>
+        )}
+        {resolvedSearchParams.account_deleted && (
+          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            Tu cuenta y los datos asociados se han eliminado correctamente.
           </div>
         )}
 

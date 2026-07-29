@@ -288,6 +288,19 @@ async function main(): Promise<void> {
       run: () => expectLoginRedirect(baseUrl, "/account"),
     },
     {
+      name: "export de cuenta protegido",
+      run: async () => {
+        const response = await request(siteUrl(baseUrl, "/api/account/export"));
+        expectStatus(response, 401);
+        expectText(
+          response.headers.get("cache-control") ?? "",
+          "no-store",
+          "cache privada",
+        );
+        return "HTTP 401 + no-store";
+      },
+    },
+    {
       name: "robots",
       run: async () => {
         const response = await request(siteUrl(baseUrl, "/robots.txt"));

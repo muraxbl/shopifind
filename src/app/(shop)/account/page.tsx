@@ -1,6 +1,15 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { CheckCircle2, LogOut, Settings2, UserRound } from 'lucide-react';
+import {
+  CheckCircle2,
+  Download,
+  LogOut,
+  Settings2,
+  ShieldCheck,
+  Trash2,
+  UserRound,
+} from 'lucide-react';
+import { deleteAccount } from '@/actions/account';
 import { updateProfile, signOut } from '@/actions/profile';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,6 +53,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_name: `El nombre debe tener como máximo ${MAX_PROFILE_NAME_LENGTH} caracteres.`,
   invalid_niche: 'Alguna preferencia seleccionada no es válida.',
   save_failed: 'No hemos podido guardar el perfil. Inténtalo de nuevo.',
+  delete_confirmation:
+    'Para eliminar la cuenta debes escribir exactamente el email de acceso.',
+  delete_failed:
+    'No hemos podido eliminar la cuenta. No se ha cerrado la sesión; inténtalo de nuevo.',
 };
 
 export default async function AccountPage({
@@ -209,6 +222,62 @@ export default async function AccountPage({
         available={!alertResult.error && !alertProductsResult.error}
         initialAlerts={accountAlerts}
       />
+
+      <section className="mt-6 rounded-2xl border bg-card p-5 shadow-sm md:p-7">
+        <div className="flex items-start gap-3">
+          <div className="rounded-full bg-primary/10 p-3 text-primary">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-display text-xl">Tus datos y privacidad</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Descarga una copia en JSON de tu perfil, wishlist, búsquedas y
+              alertas.
+            </p>
+          </div>
+        </div>
+
+        <Button asChild variant="outline" className="mt-5 gap-2">
+          <a href="/api/account/export" download>
+            <Download className="h-4 w-4" /> Descargar mis datos
+          </a>
+        </Button>
+
+        <details className="mt-6 border-t pt-5">
+          <summary className="cursor-pointer text-sm font-medium text-rose-700">
+            Eliminar mi cuenta definitivamente
+          </summary>
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-950">
+            <p>
+              Esta acción elimina tu acceso, perfil, wishlist, búsquedas
+              asociadas, alertas y su historial de entregas. No se puede
+              deshacer.
+            </p>
+            <form action={deleteAccount} className="mt-4 space-y-3">
+              <label className="block">
+                <span className="text-xs">
+                  Escribe <strong>{user.email}</strong> para confirmar
+                </span>
+                <Input
+                  className="mt-2 border-rose-300 bg-white"
+                  type="email"
+                  name="confirmation"
+                  autoComplete="off"
+                  spellCheck={false}
+                  required
+                />
+              </label>
+              <Button
+                type="submit"
+                variant="outline"
+                className="gap-2 border-rose-300 bg-white text-rose-700 hover:bg-rose-100 hover:text-rose-800"
+              >
+                <Trash2 className="h-4 w-4" /> Eliminar cuenta
+              </Button>
+            </form>
+          </div>
+        </details>
+      </section>
 
       <section className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-5">
         <div>

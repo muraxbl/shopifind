@@ -2,6 +2,28 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildPriceAlertEmail } from '../src/lib/email/resend';
 
+test('price alert email defaults to the verified notification subdomain', () => {
+  const previous = process.env.RESEND_FROM_EMAIL;
+  delete process.env.RESEND_FROM_EMAIL;
+  try {
+    const email = buildPriceAlertEmail({
+      to: 'buyer@example.test',
+      productTitle: 'Lamp',
+      oldPriceCents: 3000,
+      newPriceCents: 2500,
+      productPath: '/go/safe-lamp',
+      idempotencyKey: 'price-alert/delivery-id',
+    });
+    assert.equal(
+      email.from,
+      'Shopifind <alertas@notify.shopifind.app>',
+    );
+  } finally {
+    if (previous === undefined) delete process.env.RESEND_FROM_EMAIL;
+    else process.env.RESEND_FROM_EMAIL = previous;
+  }
+});
+
 test('price alert email escapes merchant text and keeps links on Shopifind', () => {
   const email = buildPriceAlertEmail({
     to: 'buyer@example.test',

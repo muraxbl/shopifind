@@ -48,7 +48,9 @@ Antes de activar cualquier script de analítica, publicidad o afiliación en cli
 2. Centralizar la identidad pública y emails en una configuración legal única.
 3. Reescribir `/legal` y `/privacy` con los datos, fines, bases, destinatarios, conservación, derechos y transferencias decididos.
 4. Quitar redes o proveedores no usados; no prometer anonimato, ausencia de tracking o regiones que no se hayan verificado.
-5. Añadir flujo de borrado/exportación de cuenta antes de promocionar auth y alertas.
+5. ✅ Flujo de borrado/exportación de cuenta implementado y probado: JSON
+   paginado/no-store y hard-delete con confirmación explícita. Una migración
+   elimina las búsquedas atribuibles dentro de la misma transacción de cascada.
 6. Ejecutar un smoke de links, accesibilidad y almacenamiento de navegador.
 7. Revisar profesionalmente el riesgo de marca: un disclaimer no reemplaza una búsqueda de disponibilidad ni una autorización.
 
@@ -57,5 +59,11 @@ Antes de activar cualquier script de analítica, publicidad o afiliación en cli
 - La PDP ya muestra el aviso justo debajo del CTA afiliado.
 - El comparador también muestra el aviso junto a sus CTAs desde este gate.
 - `rel="sponsored"` identifica los enlaces afiliados para navegadores y buscadores.
+- `/account` permite exportar Auth/identidades, perfil, wishlist, búsquedas,
+  alertas y entregas; el endpoint privado responde 401 sin sesión y nunca se
+  cachea.
+- El borrado usa el usuario validado server-side, exige escribir su email y
+  elimina perfil, wishlist, alertas, entregas y búsquedas asociadas. Un E2E
+  temporal en Cloud verificó la cascada completa sin usar una cuenta real.
 
 Hasta completar este gate, no activar AdSense, newsletters promocionales ni campañas de adquisición pagada.

@@ -37,7 +37,9 @@ function absoluteShopifindUrl(path: string): string {
 }
 
 export function buildPriceAlertEmail(input: AlertEmailInput): BuiltAlertEmail {
-  const from = process.env.RESEND_FROM_EMAIL ?? 'hello@shopifind.app';
+  const from =
+    process.env.RESEND_FROM_EMAIL ??
+    'Shopifind <alertas@notify.shopifind.app>';
   const currency = input.currency ?? 'EUR';
   const formatCents = (cents: number) =>
     new Intl.NumberFormat('es-ES', { style: 'currency', currency }).format(
