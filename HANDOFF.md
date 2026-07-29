@@ -472,22 +472,22 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **43** | Google OAuth + perfiles E2E                                                                                            | Supabase Auth config + `/api/auth/*` + `/account`                    | Site URL HTTPS, allowlist y provider Google configurados; PKCE Shopifind→Supabase→Google verificado. Una identidad Google quedó vinculada a un perfil existente, con escritura persistente tras logout/login y sin duplicar usuario.                                                          |
 | **44** | SMTP Auth + magic link cross-device                                                                                    | `636f5ee` + Hestia/Supabase config                                   | `acceso@auth.shopifind.app` con STARTTLS; SPF, DKIM 2048 y DMARC pasan en Proton. `TokenHash` se muestra en una landing no consumidora y sólo el POST verifica: PC→móvil E2E, 63 tests, build y smoke 17/17.                                                                                  |
 | **45** | Primer refresh Masterled controlado                                                                                    | `/api/cron/refresh-masterled`                                        | Feed de 1.562 filas procesado en producción: 9 altas, 14 cambios de stock (1 entrada/13 salidas), 0 cambios de precio/moneda y 23 snapshots. Quedan 1.438 Masterled activos; 2 alertas intactas, 0 entregas y smoke 17/17.                                                                    |
-| **46** | Schedule diario de catálogo                                                                                            | `vercel.json`                                                        | Sólo `/api/cron/refresh-masterled`, a las 03:15 UTC. El worker de emails no se programa hasta verificar Resend; frecuencia compatible con Vercel Hobby y sin refrescos por minuto.                                                                                                            |
+| **46** | Schedule diario de catálogo                                                                                            | `40ddcb2` + `vercel.json`                                            | Sólo `/api/cron/refresh-masterled`, a las 03:15 UTC. Deployment aceptado, sitemap actualizado a 1.483 URLs y smoke 17/17; el worker de emails no se programa hasta verificar Resend.                                                                                                          |
 
 ### Métricas post-deploy
 
-| Métrica                                               | Valor                                                                                                                                    |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Tiendas históricas en seeds/DB                        | permanecen en DB; sólo **4 merchants saneados** están expuestos públicamente (`masterled-es`, `rapanui`, `oakywood`, `shiftcam`)         |
-| Productos activos en DB                               | **1470** (1438 Masterled + 12 Rapanui + 10 Oakywood + 10 ShiftCam; snapshot DB 2026-07-29)                                               |
-| Nichos activos                                        | **4**                                                                                                                                    |
-| Colecciones publicado = true                          | **4**                                                                                                                                    |
-| `<loc>` URLs en sitemap.xml                           | **1486 live** hasta el siguiente ISR diario; **1483 esperadas** después (1 home + 4 explore + 4 stores + 4 collections + 1470 productos) |
-| HTTP 200 en smoke                                     | 100% de rutas navegables                                                                                                                 |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 63/63 · rc=0 · rc=0                                                                                                                      |
-| `pnpm audit` completo                                 | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28)                                                |
-| `pnpm smoke:production`                               | **17/17** contra `shopifind.app` (snapshot 2026-07-29)                                                                                   |
-| CLS / LCP / Lighthouse mobile (rough)                 | Home en 78 mobile / 92 desktop · LCP ≈1.8s                                                                                               |
+| Métrica                                               | Valor                                                                                                                            |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Tiendas históricas en seeds/DB                        | permanecen en DB; sólo **4 merchants saneados** están expuestos públicamente (`masterled-es`, `rapanui`, `oakywood`, `shiftcam`) |
+| Productos activos en DB                               | **1470** (1438 Masterled + 12 Rapanui + 10 Oakywood + 10 ShiftCam; snapshot DB 2026-07-29)                                       |
+| Nichos activos                                        | **4**                                                                                                                            |
+| Colecciones publicado = true                          | **4**                                                                                                                            |
+| `<loc>` URLs en sitemap.xml                           | **1483 live** (1 home + 4 explore + 4 stores + 4 collections + 1470 productos; verificado tras deploy 2026-07-29)                |
+| HTTP 200 en smoke                                     | 100% de rutas navegables                                                                                                         |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 63/63 · rc=0 · rc=0                                                                                                              |
+| `pnpm audit` completo                                 | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28)                                        |
+| `pnpm smoke:production`                               | **17/17** contra `shopifind.app` (snapshot 2026-07-29)                                                                           |
+| CLS / LCP / Lighthouse mobile (rough)                 | Home en 78 mobile / 92 desktop · LCP ≈1.8s                                                                                       |
 
 ---
 
@@ -685,7 +685,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - **¿Cómo se cambia un nicho?** Editar `src/lib/config.ts → primaryNiches + NICHE_LABEL`. Vercel auto-redeploy.
 - **¿Cómo se añade un producto?** Vía `pnpm scripts:seed:products` (multi-merchant) o `pnpm scripts:seed:lighting` (masterled) → usar `--dry-run` primero.
 - **¿Cómo se mide?** Plausible (setup pendiente de verificar) + `click_attribution`; el receiver existe, falta conexión y prueba E2E con Skimlinks.
-- **¿Cuál es el siguiente milestone live pendiente?** Ejecutar el refresh de precios manual controlado y completar el email de alertas E2E antes de programar crons; en paralelo, enviar sitemap a GSC y validar el segundo merchant en Skimlinks.
+- **¿Cuál es el siguiente milestone live pendiente?** Completar el email de alertas E2E con Resend antes de programar su worker; en paralelo, enviar el sitemap ya validado a GSC y validar el segundo merchant en Skimlinks.
 
 ---
 
