@@ -6,7 +6,7 @@ Shopifind está técnicamente listo para enviar su sitemap a Google Search
 Console. La última comprobación de producción, el 29 de julio de 2026, confirma:
 
 - `https://shopifind.app/robots.txt` responde y declara el sitemap canónico.
-- `https://shopifind.app/sitemap.xml` responde con un `urlset` válido y 1.483
+- `https://shopifind.app/sitemap.xml` responde con un `urlset` válido y 95
   URLs absolutas.
 - El sitemap contiene las páginas públicas de producto, tienda, colección y
   nicho; excluye búsquedas, autenticación, APIs y redirects `/go/`.
@@ -36,7 +36,7 @@ que Google pudo leer el archivo, no que haya indexado todas sus entradas.
    `https://shopifind.app/sitemap.xml`. Si la interfaz ya fija el origen y sólo
    acepta el sufijo, introducir `sitemap.xml`.
 7. Esperar a que el informe muestre `Success`. El número de URLs descubiertas
-   debería estar cerca de 1.483; puede variar después de una actualización
+   debería estar cerca de 95; puede variar después de una actualización
    legítima del catálogo.
 
 Referencias oficiales:
@@ -58,7 +58,7 @@ muestra pequeña y representativa:
 
 La inspección sirve para comprobar acceso, canonical y renderizado. Solicitar
 indexación de la home y, si hace falta, de alguna página editorial clave; no
-solicitar manualmente la indexación de las 1.470 PDP. Para muchas páginas,
+solicitar manualmente la indexación de las 82 PDP. Para muchas páginas,
 Google recomienda usar el sitemap.
 
 ## Seguimiento sin falsos positivos

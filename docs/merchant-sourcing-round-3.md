@@ -14,7 +14,7 @@ muy estrecha:
 | sustainable-fashion | Rapanui         |        12 |
 | indie-gadgets       | ShiftCam        |        10 |
 | home-deco           | Oakywood        |        10 |
-| iluminacion         | Masterled       |      1438 |
+| iluminacion         | Masterled       |        50 |
 
 El siguiente objetivo no es clonar catálogos completos: es publicar pilotos de
 10–15 productos con procedencia, precio, stock, destino e imagen de origen
@@ -131,6 +131,62 @@ La tienda queda definida con `eco_score=0`, `active=false`,
 bytes) mediante `/_next/image` y el smoke quedó 19/19. Antes de cualquier
 `--write`, Skimlinks debe aprobar la cuenta y después hay que comprobar
 `thinkingmu.com` y deep linking.
+
+## Piloto técnico Native Union preparado
+
+El piloto de 10 productos quedó también preparado sin escribir en Supabase:
+
+| Producto | Caso de uso | Precio observado |
+| --- | --- | ---: |
+| (Re)Classic Case · iPhone 17 | funda magnética | 59,99 € |
+| (Re)Classic Case · AirPods 4 | funda de auriculares | 39,99 € |
+| Belt Cable 2-in-1 140W | cable de carga | 29,99 € |
+| Pocket Cable 60W | cable compacto | 29,99 € |
+| Fast Desktop Charger 140W | carga de escritorio | 129,99 € |
+| (Re)Classic Power Bank 5000mAh | batería magnética | 69,99 € |
+| Fold Laptop Stand | soporte portátil | 39,99 € |
+| Desk Mat | escritorio | 49,99 € |
+| W.F.A Backpack | mochila | 119,99 € |
+| Stow Organizer | organizador tecnológico | 49,99 € |
+
+El dry-run UCP devolvió 10/10 disponibles en EUR y las diez imágenes de origen
+respondieron como `image/*`. Los destinos se restringen a
+`www.nativeunion.com/products/...` y los assets a la carpeta exacta
+`cdn.shopify.com/s/files/1/0066/9050/4822/`. Tras el deployment, una imagen
+real de la funda iPhone respondió 200 tanto en origen como mediante
+`/_next/image` a 1920 px.
+
+La tienda permanece `active=false`, `verified=false`, `featured=false` y con
+`eco_score=0`. Sólo se derivan materiales, garantía y etiquetas ambientales de
+la ficha completa de cada producto; diseño o independencia no se convierten en
+claims ambientales. Native Union publica un programa propio de colaboración,
+pero no se activa ni se presenta como monetizado mientras Skimlinks siga en
+revisión.
+
+## Comprobaciones comerciales complementarias
+
+- **PcComponentes:** programa editorial oficial en Awin para España (merchant
+  20982), comisiones publicadas de hasta 7 %, más de 90.000 productos y uso de
+  catálogo/comparadores contemplado. Es una reserva potente para comparación
+  de precio, no una tienda indie: sólo se integraría mediante admisión y feed
+  autorizado, en una capa claramente diferenciada del directorio D2C.
+- **Framework:** encaje editorial excelente por modularidad, reparación y
+  actualizaciones compatibles, pero no se localizó una solicitud pública de
+  afiliación vigente. Queda como candidato editorial sin monetización
+  confirmada, no como piloto de catálogo.
+- **GreenIce:** el catálogo técnico sigue siendo el mejor candidato de
+  iluminación (3.572 productos/4.952 variantes observadas), pero la única
+  recompensa pública localizada es un apadrinamiento de clientes, no un
+  programa para publishers. Continúa bloqueado por validación Skimlinks y
+  feed/permiso; además, dio cero coincidencias exactas de SKU con Masterled.
+
+Fuentes adicionales:
+
+- https://www.pccomponentes.com/afiliados
+- https://help.pccomponentes.com/hc/es-es/articles/21057190055197-FAQ-Afiliados
+- https://frame.work/about
+- https://community.frame.work/t/framework-youtube-sponsorship/80593
+- https://greenice.com/pages/programa-de-apadrinamiento
 
 ## Gates antes de escribir
 

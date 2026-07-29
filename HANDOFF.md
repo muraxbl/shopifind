@@ -1,6 +1,6 @@
 # Shopifind — Handoff del proyecto
 
-> Documento vivo. Última actualización: 2026-07-29. **Estado:** MVP live en `shopifind.app` (Vercel) con DB poblada en Supabase Cloud. 4 nichos curados · 4 stores activas saneadas · 1470 productos activos expuestos · 4 colecciones editoriales · sitemap.xml + robots.txt operacionales.
+> Documento vivo. Última actualización: 2026-07-29. **Estado:** MVP live en `shopifind.app` (Vercel) con DB poblada en Supabase Cloud. 4 nichos curados · 4 stores activas saneadas · 82 productos públicos · 4 colecciones editoriales · sitemap.xml + robots.txt operacionales.
 
 ---
 
@@ -12,7 +12,7 @@
 | **Quién monetiza** | Redirect afiliado server-side preparado con Skimlinks publisher `306854X1795120`; la cuenta sigue en revisión y no hay comisión E2E verificada. Comparador manual live; AdSense no integrado.                    |
 | **Stack core**     | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (`fra1`) · Hestia SMTP (Auth) · Resend (alertas) · Skimlinks · OpenAI · Plausible · Tailwind + shadcn/ui                        |
 | **Live URL**       | https://shopifind.app                                                                                                                                                                                            |
-| **Status**         | MVP público. Catálogo Masterled incremental: 1572 referencias conservadas · 1438 in-stock tras el refresh del 2026-07-29.                                                                                        |
+| **Status**         | MVP público. Masterled curado a 50 productos: 1.572 referencias históricas conservadas, 1.388 desactivadas reversiblemente y 8 filas protegidas por familia.                                                     |
 
 ---
 
@@ -264,7 +264,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | Stores seed                               | 6                    | `stores`                | `supabase/seed.sql` (everlane-eu, b-corp-outfitters, killiney-audio, gridloom, casa-vereda, nordic-folk) |
 | Productos seed SF/IG/HD                   | 10                   | `products`              | `seed.sql`                                                                                               |
 | Productos seed SF extra (ethical-staples) | 4                    | `products`              | `seed.sql` (extend para cápsula curated)                                                                 |
-| Productos masterled.es                    | 1572 (in-stock 1438) | `products`              | seed inicial + refresh incremental desde CSV PrestaShop                                                  |
+| Productos masterled.es                    | 1572 (públicos 50)   | `products`              | feed CSV completo + selección editorial determinista; histórico no borrado                               |
 | **Cápsulas editoriales**                  | 4                    | `editorial_collections` | `seed-editorial-collection.ts` + `seed-lighting-collections-v1.ts`                                       |
 | **Iluminación store**                     | 1                    | `stores`                | seed-lighting-v1.ts (masterled-es · niche = iluminacion · eco_score 78)                                  |
 
@@ -286,7 +286,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/wishlist`                       | ✅ live                         | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto.                                                    |
 | `/account`                        | ✅ live / E2E real              | Perfil owner-only, preferencias, alertas y logout; exportación JSON completa y borrado irreversible con confirmación por email añadidos en milestone 47.                    |
 | `/login` + `/api/auth/*`          | ✅ Google + magic link E2E      | Google conserva PKCE. Magic link usa SMTP propio y `TokenHash`: landing GET resistente a prefetch + POST `verifyOtp`, probado PC→móvil con sesión final en `/wishlist`.     |
-| `/sitemap.xml`                    | ✅ live                         | 1483 URLs verificadas: 1 home + 4 nichos + 4 tiendas + 4 colecciones + 1470 PDP. ISR diario (`86400`); loop 1000/page.                                                      |
+| `/sitemap.xml`                    | ✅ live                         | 95 URLs: 1 home + 4 nichos + 4 tiendas + 4 colecciones + 82 PDP. ISR diario (`86400`); sólo productos públicos.                                                            |
 | `/robots.txt`                     | ✅ live                         | Allow `/` + disallow `/api/`, `/admin/`, `/auth/`, `/go/`, `/search` + sitemap reference.                                                                                   |
 | `/legal` / `/privacy` / `/about`  | ✅ Markdown scaffold            | Páginas-estatic SEO/disclaimer.                                                                                                                                             |
 | `/api/products/*` + `/api/auth/*` | ✅ implementado                 | Handlers server-side desplegados; Google OAuth habilitado y probado con sesión real.                                                                                        |
@@ -486,19 +486,21 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **53** | Readiness de Bing Webmaster Tools                                                                                      | `docs/bing-webmaster-launch.md`                                      | Bingbot recibe robots y 1.483 URLs correctamente. Importación desde GSC, alternativa manual, permisos persistentes y seguimiento quedan documentados; se difiere IndexNow hasta medir latencia real de descubrimiento.                                                                        |
 | **54** | Piloto técnico Woodendot sin escritura                                                                                 | `315f25a` + adaptador/seed UCP                                       | 12/12 disponibles en EUR; allowlist live e imagen 1920 px = 200, smoke 19/19. Runner respeta el máximo UCP de 10 IDs con lotes 10+2. Store oculta, no verificada y eco-score 0; no hay filas Cloud hasta superar Skimlinks y autorizar escritura/activación.                                  |
 | **55** | Piloto técnico Thinking MU sin escritura                                                                               | `e2e7b63` + adaptador/seed UCP                                       | 12/12 prendas disponibles en EUR, reparto mujer/hombre 6/6 y composición obligatoria. Allowlist live, imagen 1920 px = 200 y smoke 19/19. Store oculta y eco-score 0; sin filas Cloud mientras la cuenta Skimlinks siga pendiente de aprobación.                                              |
+| **56** | Piloto técnico Native Union sin escritura                                                                              | `b901695` + adaptador/seed UCP                                       | 10/10 accesorios disponibles en EUR e imágenes de origen válidas. Allowlist exacta desplegada; una imagen real a 1920 px respondió 200. Store oculta, no verificada y eco-score 0; ninguna fila Cloud mientras Skimlinks siga pendiente.                                                   |
+| **57** | Masterled reducido a catálogo editorial                                                                                | `f0abcad` + `docs/masterled-curation.md`                             | 50/50 variantes públicas, 8 protegidas (3 ventiladores + 2 carriles + 3 mecanismos), 1.388 desactivadas sin borrar y 1.572 filas históricas conservadas. Colecciones 6/6, 5/5 y 6/6; alerta G4 preservada.                                                                              |
 
 ### Métricas post-deploy
 
 | Métrica                                               | Valor                                                                                                                            |
 | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | Tiendas históricas en seeds/DB                        | permanecen en DB; sólo **4 merchants saneados** están expuestos públicamente (`masterled-es`, `rapanui`, `oakywood`, `shiftcam`) |
-| Productos activos en DB                               | **1470** (1438 Masterled + 12 Rapanui + 10 Oakywood + 10 ShiftCam; snapshot DB 2026-07-29)                                       |
+| Productos en la vista pública                         | **82** (50 Masterled + 12 Rapanui + 10 Oakywood + 10 ShiftCam; snapshot 2026-07-29)                                             |
 | Nichos activos                                        | **4**                                                                                                                            |
 | Nichos con inventario público                         | **4/4** (Rapanui · ShiftCam · Oakywood · Masterled)                                                                              |
 | Colecciones publicado = true                          | **4**                                                                                                                            |
-| `<loc>` URLs en sitemap.xml                           | **1483 live** (1 home + 4 explore + 4 stores + 4 collections + 1470 productos; verificado tras deploy 2026-07-29)                |
+| `<loc>` URLs en sitemap.xml                           | **95 live** (1 home + 4 explore + 4 stores + 4 collections + 82 productos; verificado tras deploy 2026-07-29)                    |
 | HTTP 200 en smoke                                     | 100% de rutas navegables                                                                                                         |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 76/76 · rc=0 · rc=0                                                                                                              |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 80/80 · rc=0 · rc=0                                                                                                              |
 | `pnpm audit` completo                                 | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28)                                        |
 | `pnpm smoke:production`                               | **19/19** contra `shopifind.app` (snapshot 2026-07-29)                                                                           |
 | CLS / LCP / Lighthouse mobile (rough)                 | Home en 78 mobile / 92 desktop · LCP ≈1.8s                                                                                       |
@@ -569,7 +571,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | #       | Item                                       | Estado / efecto                                                                                                                                                                                                        |
 | ------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **M-1** | ✅ **Completar Supabase Auth**             | Google OAuth/perfiles y magic link E2E completados. SMTP propio de marca, autenticación DNS y flujo cross-device resistente a prefetch verificados en producción.                                                      |
-| **M-2** | **Submit sitemap a Google Search Console** | El sitio está listo: robots + 1.483 URLs live verificados. Registrar la propiedad de dominio, mantener el TXT DNS y enviar el XML siguiendo `docs/search-console-launch.md`.                                           |
+| **M-2** | **Submit sitemap a Google Search Console** | El sitio está listo: robots + 95 URLs live. Registrar la propiedad de dominio, mantener el TXT DNS y enviar el XML siguiendo `docs/search-console-launch.md`.                                                          |
 | **M-3** | **Conectar webhook Skimlinks**             | Configurar secret, salt y CIDRs en Vercel; registrar `/api/webhooks/skimlinks` en Skimlinks y enviar evento de prueba. El receiver ya existe.                                                                          |
 | **M-4** | **Completar identidad legal y privacidad** | El sitio live aún usa scaffolds. Facilitar/decidir los datos y bases de `docs/launch-compliance-checklist.md` antes de escalar tráfico, AdSense o newsletters.                                                         |
 | **M-5** | **Fijar presupuesto de OpenAI**            | En Project settings > Limits: decidir importe, activar `Enforce a hard limit` y alertas previas según `docs/ai-search-operations.md`. El fallback literal ya cubre `429 insufficient_quota`; falta el control externo. |
@@ -580,12 +582,12 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | -------- | ------------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **B-1**  | ✅ **Completar `/account` + profiles**           | nada                                            | Lectura, escritura, persistencia y relogin probados con una sesión Google real; identidad vinculada al perfil existente sin duplicado.                                                                                    |
 | **B-2**  | ✅ **Modelo relacional de precios y alertas**    | nada                                            | Aplicado en Cloud: schema, trigger, RLS, ledger idempotente, 1.613 snapshots baseline y tipos regenerados/verificados.                                                                                                    |
-| **B-3**  | ✅ **Refresh incremental + snapshots de precio** | nada                                            | Manual auditado y schedule diario 03:15 UTC declarado: 1.562 filas actuales, 23 snapshots correctos y sin alertas falsas.                                                                                                 |
+| **B-3**  | ✅ **Refresh incremental + snapshots de precio** | nada                                            | Schedule diario 03:15 UTC: valida el feed completo de 1.562 filas y refresca sólo 50 curadas; 8 familias protegidas y fallo cerrado si la selección queda incompleta.                                                   |
 | **B-4**  | ✅ **Alertas de bajada**                         | nada                                            | UI/evaluator/outbox, Resend E2E e idempotencia verificados; cron diario 04:15 UTC declarado. Sólo queda confirmar recepción y limpiar el fixture temporal.                                                                |
 | **B-5**  | ✅ **Corregir AI search actual**                 | nada                                            | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship.                                                                              |
 | **B-6**  | ✅ **Comparador manual MVP**                     | nada                                            | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado.                                                                             |
 | **B-7**  | 🟡 **Segundo merchant de iluminación**           | verificación Skimlinks + feed/permiso del owner | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`.                                                                              |
-| **B-7A** | 🟡 **Segundos merchants en los otros nichos**    | aprobación/verificación Skimlinks + activación  | Woodendot y Thinking MU tienen dry-run 12/12, allowlist e imagen live. Ambos siguen fuera de Cloud mientras Skimlinks no apruebe la cuenta. Siguiente piloto técnico: Native Union (`docs/merchant-sourcing-round-3.md`). |
+| **B-7A** | 🟡 **Segundos merchants en los otros nichos**    | aprobación/verificación Skimlinks + activación  | Woodendot 12/12, Thinking MU 12/12 y Native Union 10/10 tienen dry-run e imagen live. Los tres siguen fuera de Cloud mientras Skimlinks no apruebe la cuenta (`docs/merchant-sourcing-round-3.md`).                     |
 
 ### 🟡 Después del núcleo
 
@@ -697,6 +699,7 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - [ ] Skimlinks: la cuenta sigue pendiente de aprobación aunque el publisher/domain ID esté configurado en Vercel. Tras aprobarse, comprobar `oakywood.shop`, `rapanuiclothing.com` y `shiftcam.com`; ninguna comisión está verificada todavía.
 - [ ] Woodendot: tras la aprobación, comprobar `woodendot.com` y deep linking; el piloto de 12 y la imagen live están validados, pero seguirá fuera de Supabase hasta autorizar escritura/activación.
 - [ ] Thinking MU: tras la aprobación, comprobar `thinkingmu.com` y deep linking; el piloto de 12 y la imagen live están validados, pero seguirá fuera de Supabase hasta autorizar escritura/activación.
+- [ ] Native Union: tras la aprobación, comprobar `nativeunion.com`, territorios y deep linking; el piloto de 10 y la imagen live están validados, pero seguirá fuera de Supabase hasta autorizar escritura/activación.
 
 ---
 

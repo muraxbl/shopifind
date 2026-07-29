@@ -7,7 +7,7 @@ de producción del 29 de julio de 2026 usando User-Agent de Bingbot confirma:
 
 - `https://shopifind.app/robots.txt` permite el catálogo público y declara el
   sitemap canónico;
-- `https://shopifind.app/sitemap.xml` responde con 1.483 URLs absolutas;
+- `https://shopifind.app/sitemap.xml` responde con 95 URLs absolutas;
 - búsquedas, autenticación, APIs y redirects `/go/` permanecen fuera del área de
   rastreo indicada por robots.
 
@@ -29,7 +29,7 @@ Google Search Console:
 5. Confirmar que la propiedad aparece verificada automáticamente.
 6. Abrir **Sitemaps** y comprobar que
    `https://shopifind.app/sitemap.xml` figura como importado o procesándose.
-7. Cuando termine, el total descubierto debería estar cerca de 1.483 URLs; el
+7. Cuando termine, el total descubierto debería estar cerca de 95 URLs; el
    catálogo puede hacer que el número cambie legítimamente.
 
 Bing indica que los primeros datos pueden tardar hasta 48 horas. La conexión con
@@ -66,7 +66,7 @@ Después de completar el alta:
 - inspeccionar una muestra: home, un nicho, una tienda y dos PDP de merchants
   distintos;
 - usar **URL Inspection** para investigar una URL concreta, no para enviar las
-  1.470 PDP manualmente;
+  82 PDP manualmente;
 - registrar fecha, método de verificación, estado y URLs descubiertas en
   `HANDOFF.md`.
 

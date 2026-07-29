@@ -22,6 +22,10 @@ evaluar bajadas.
   exista. Así no puede refrescar precios sin conservar snapshots.
 - Sólo marca como agotados los productos ausentes después de que todos los
   lotes del feed hayan terminado correctamente.
+- El catálogo público de Masterled pasa primero por una selección humana de 50
+  variantes. Ventiladores de techo y la categoría `Carril Enchufes
+  Deslizantes` están protegidos dinámicamente; el cron aborta antes de ocultar
+  filas si no puede completar la selección.
 - El trigger de `price_history` registra únicamente cambios de precio, moneda
   o stock, por lo que una invocación duplicada no duplica snapshots.
 - El worker evalúa el último estado disponible, encola mediante una clave
@@ -73,7 +77,11 @@ evaluar bajadas.
 
 5. ✅ JSON y ledger verificados. Queda únicamente la confirmación humana de
    llegada al buzón y, después, borrar el fixture oculto de producción.
-6. ✅ Ambos jobs están añadidos a `vercel.json`:
+6. ✅ Curación Masterled aplicada el 2026-07-29 sobre el feed live: 1.562
+   candidatas, 50 seleccionadas, 8 protegidas y 1.388 filas puestas fuera de
+   stock sin borrado. La vista pública quedó en 82 productos; detalles y
+   criterios en `docs/masterled-curation.md`.
+7. ✅ Ambos jobs están añadidos a `vercel.json`:
 
    ```json
    {
