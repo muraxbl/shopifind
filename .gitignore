@@ -45,6 +45,8 @@ supabase/.temp
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS
 Thumbs.db
