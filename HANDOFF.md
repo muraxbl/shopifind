@@ -480,6 +480,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **47** | Exportación y borrado autoservicio                                                                                     | `da50273` + migration `20260729143000`                               | Export JSON paginado, privado y no-store; hard-delete sólo del usuario autenticado tras escribir su email. Cloud E2E: Auth/perfil/búsqueda 1/1/1 → 0/0/0; cookie posterior recibe 401. Live y smoke 18/18; 68 tests y build pasan.                                                            |
 | **48** | Resend E2E + schedule diario de alertas                                                                                 | fixture oculto + `vercel.json`                                       | El intento con clave antigua falló sin perderse; tras rotarla, el mismo asiento fue `sent` en el intento 2 con provider ID y cursor a 90 EUR. La repetición envió 0 emails. Worker declarado a las 04:15 UTC, una hora después del catálogo.                                                   |
 | **49** | Línea base analítica limpia + Plausible actualizado                                                                     | `c72571f` + `docs/analytics-operations.md`                            | Deployment aceptado y smoke 18/18: `search_history` permaneció exactamente en 167 filas antes/después, probando que el runner ya no contamina métricas. Eventos humanos nuevos usan `schema_version=2`; Plausible espera la URL `pa-…js` específica del sitio.                           |
+| **50** | Cobertura pública 4/4 por nicho                                                                                         | `82b0d7c` + migration `20260729151000`                               | Oakywood pasa a `home-deco`, encaje más fiel para organización/mobiliario de escritorio; ShiftCam conserva gadgets. Migración registrada en Cloud, hubs muestran 10 productos cada uno y deployment/smoke 19/19 verificados.                                                           |
 
 ### Métricas post-deploy
 
@@ -494,7 +495,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | HTTP 200 en smoke                                     | 100% de rutas navegables                                                                                                         |
 | `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 70/70 · rc=0 · rc=0                                                                                                              |
 | `pnpm audit` completo                                 | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28)                                        |
-| `pnpm smoke:production`                               | **18/18** contra `shopifind.app` (snapshot 2026-07-29)                                                                           |
+| `pnpm smoke:production`                               | **19/19** contra `shopifind.app` (snapshot 2026-07-29)                                                                           |
 | CLS / LCP / Lighthouse mobile (rough)                 | Home en 78 mobile / 92 desktop · LCP ≈1.8s                                                                                       |
 
 ---
@@ -578,6 +579,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **B-5** | ✅ **Corregir AI search actual**                 | nada                                            | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship.  |
 | **B-6** | ✅ **Comparador manual MVP**                     | nada                                            | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado. |
 | **B-7** | 🟡 **Segundo merchant de iluminación**           | verificación Skimlinks + feed/permiso del owner | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`.  |
+| **B-7A** | 🟡 **Segundos merchants en los otros nichos**    | selección del owner + verificación Skimlinks    | Ronda 3 lista: Woodendot → Thinking MU → Native Union. Todos con UCP/agent contract; debatir y aprobar antes del piloto (`docs/merchant-sourcing-round-3.md`). |
 
 ### 🟡 Después del núcleo
 
