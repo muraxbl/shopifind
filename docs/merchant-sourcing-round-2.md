@@ -18,10 +18,12 @@
    recuperación de producto y garantía de cinco años. Su programa Awin publica
    10 % y cookie de 15 días; Shopifind conserva Skimlinks como click-out y
    `verified=false` hasta validar el merchant en el dashboard real.
-3. **ShiftCam — candidato condicionado.** Buen encaje indie y programa directo
-   al 10 %, pero el storefront mantuvo `429` durante el spike. No se fuerza ni
-   se publica hasta poder refrescarlo por UCP/feed con estabilidad y confirmar
-   costes de importación para España.
+3. **ShiftCam — piloto publicado.** El HTML/JSON convencional mantuvo `429`,
+   pero la marca publica UCP y sus instrucciones autorizan ese catálogo para
+   agentes. Diez accesorios de fotografía móvil quedaron localizados en EUR
+   para España. Tiene programa directo al 10 % y envío mundial; Shopifind avisa
+   de posibles impuestos/aranceles y mantiene `verified=false` hasta validar
+   Skimlinks.
 4. **Kave Home — candidato siguiente, bloqueado por feed.** Su programa oficial
    anuncia más de 5.000 referencias, comisión e imágenes en alta resolución. La
    ruta pública de sitemap devolvió un checkpoint anti-bot durante el spike; no
@@ -66,6 +68,27 @@
   de producto y garantía de cinco años; las etiquetas de producto sólo se
   derivan de la descripción concreta.
 
+## Piloto ShiftCam
+
+- 10 IDs explícitos: grips, soportes, luz, montura, almacenamiento y lentes para
+  fotografía móvil; precios entre 20,95 y 179,99 EUR en el snapshot.
+- Una consulta `lookup_catalog` UCP con contexto España/EUR y `available=true`;
+  10/10 productos, destinos e imágenes validados.
+- Imágenes enlazadas desde la carpeta exacta de ShiftCam en Shopify CDN; no se
+  copian ni alojan assets.
+- `eco_score=0` y `eco_tags=[]`: se presenta como “Sin evaluación eco”. Ser
+  independiente o modular no se convierte artificialmente en una credencial
+  ambiental.
+- El perfil de tienda informa de que IVA, aranceles y costes de importación
+  pueden variar en checkout.
+
+## Base Shopify-UCP reutilizable
+
+`scripts/lib/curated-shopify-ucp.ts` concentra una única operación de lookup,
+contexto España/EUR, límite 512 KiB, timeout, prueba de imágenes, dry-run y
+upsert reversible. Cada merchant mantiene aparte IDs, host/carpeta, copy y
+mapeo editorial. Oakywood y ShiftCam usan el mismo runner.
+
 Fuentes oficiales:
 
 - Rapanui: <https://rapanuiclothing.com/affiliate/>,
@@ -83,7 +106,9 @@ Fuentes oficiales:
   <https://shopify.dev/docs/agents/catalog/storefront-catalog>.
 - ShiftCam: <https://affiliate.shiftcam.com/shiftcam-us/register>,
   <https://www.shiftcam.com/policies/shipping-policy> y
-  <https://www.shiftcam.com/pages/about-us>.
+  <https://www.shiftcam.com/pages/about-us>,
+  <https://www.shiftcam.com/agents.md> y
+  <https://www.shiftcam.com/.well-known/ucp>.
 
 ## Política de calidad resultante
 

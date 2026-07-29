@@ -23,6 +23,7 @@
     "scripts:hide:placeholder": "tsx scripts/hide-placeholder-rows.ts",
     "scripts:seed:rapanui": "tsx scripts/seed-rapanui-v1.ts",
     "scripts:seed:oakywood": "tsx scripts/seed-oakywood-v1.ts",
+    "scripts:seed:shiftcam": "tsx scripts/seed-shiftcam-v1.ts",
     "smoke:production": "tsx scripts/smoke-production.ts"
   },
   "dependencies": {

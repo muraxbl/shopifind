@@ -1,6 +1,6 @@
 # Shopifind — Handoff del proyecto
 
-> Documento vivo. Última actualización: 2026-07-29. **Estado:** MVP live en `shopifind.app` (Vercel) con DB poblada en Supabase Cloud. 4 nichos curados · 3 stores activas saneadas · 1463 productos activos expuestos · 4 colecciones editoriales · sitemap.xml + robots.txt operacionales.
+> Documento vivo. Última actualización: 2026-07-29. **Estado:** MVP live en `shopifind.app` (Vercel) con DB poblada en Supabase Cloud. 4 nichos curados · 4 stores activas saneadas · 1473 productos activos expuestos · 4 colecciones editoriales · sitemap.xml + robots.txt operacionales.
 
 ---
 
@@ -285,7 +285,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/wishlist`                       | ✅ live                                  | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto.                                                    |
 | `/account`                        | ✅ código listo                          | Perfil owner-only: nombre, preferencias de nicho, plan visible y logout local. Falta smoke E2E con sesión real tras corregir M-1.                                           |
 | `/login` + `/api/auth/callback`   | ⚠ código live / config externa pendiente | Middleware protege `/wishlist`, `/account`, `/settings`; magic link necesita corregir redirects/plantilla en Supabase y Google requiere habilitar su provider.              |
-| `/sitemap.xml`                    | ✅ live                                  | 1475 URLs esperadas tras milestone 40. Incluye tiendas activas y sólo productos in-stock de stores activas. ISR diario (`86400`); loop 1000/page.                           |
+| `/sitemap.xml`                    | ✅ live                                  | 1486 URLs esperadas tras milestone 41. Incluye tiendas activas y sólo productos in-stock de stores activas. ISR diario (`86400`); loop 1000/page.                           |
 | `/robots.txt`                     | ✅ live                                  | Allow `/` + disallow `/api/`, `/admin/`, `/auth/`, `/go/`, `/search` + sitemap reference.                                                                                   |
 | `/legal` / `/privacy` / `/about`  | ✅ Markdown scaffold                     | Páginas-estatic SEO/disclaimer.                                                                                                                                             |
 | `/api/products/*` + `/api/auth/*` | ✅ implementado                          | Handlers server-side desplegados; los providers OAuth siguen dependiendo de configuración externa.                                                                          |
@@ -468,21 +468,22 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **38** | Catálogo completo por merchant                                                                                         | filtro `store` + perfil de tienda                                    | La ficha conserva ISR y muestra el total real; si supera las 36 cards iniciales enlaza a `/search?store=…`, cuyo slug está validado, se conserva en filtros/paginación y nunca mezcla otros merchants.                                                                                        |
 | **39** | Saneado de enlaces + piloto Rapanui                                                                                    | auditor + ingestor curado                                            | 11 fixtures no-Masterled con placeholder se pusieron fuera de stock y 3 tiendas vacías se desactivaron sin borrar datos. Rapanui queda activo con 12/12 PDPs, stock y precios GBP verificados e imágenes enlazadas desde el CDN de origen; dry-run, allowlists y límites cubiertos por tests. |
 | **40** | Piloto Oakywood vía Shopify UCP                                                                                        | `src/lib/feeds/oakywood.ts` + ingestor                               | 10 IDs curados consultados en una sola operación UCP con contexto España/EUR: 10/10 stock, destino e imagen 200. Hotlink restringido a su carpeta Shopify CDN; sin scraping de HTML. La UI distingue además eco-score 0 de “sin evaluar”.                                                     |
+| **41** | Piloto ShiftCam + runner Shopify UCP común                                                                             | `src/lib/feeds/shiftcam.ts` + `scripts/lib/curated-shopify-ucp.ts`   | 10 accesorios de fotografía móvil en EUR: 10/10 stock, destino e imagen 200. ShiftCam usa eco-score 0/sin evaluación, advierte importación y restringe su carpeta CDN. Oakywood migra al mismo runner de lookup/dry-run/upsert.                                                               |
 
 ### Métricas post-deploy
 
-| Métrica                                               | Valor                                                                                                                |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Tiendas históricas en seeds/DB                        | permanecen en DB; sólo **3 merchants saneados** están expuestos públicamente (`masterled-es`, `rapanui`, `oakywood`) |
-| Productos activos expuestos por sitemap               | **1463** (1441 Masterled + 12 Rapanui + 10 Oakywood; snapshot DB 2026-07-29)                                         |
-| Nichos activos                                        | **4**                                                                                                                |
-| Colecciones publicado = true                          | **4**                                                                                                                |
-| `<loc>` URLs esperadas en sitemap.xml                 | **1475** (1 home + 4 explore + 3 stores + 4 collections + 1463 products; confirmar tras deploy/ISR)                  |
-| HTTP 200 en smoke                                     | 100% de rutas navegables                                                                                             |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 52/52 · rc=0 · rc=0                                                                                                  |
-| `pnpm audit` completo                                 | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28)                            |
-| `pnpm smoke:production`                               | **17/17** contra `shopifind.app` (snapshot 2026-07-29)                                                               |
-| CLS / LCP / Lighthouse mobile (rough)                 | Home en 78 mobile / 92 desktop · LCP ≈1.8s                                                                           |
+| Métrica                                               | Valor                                                                                                                            |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Tiendas históricas en seeds/DB                        | permanecen en DB; sólo **4 merchants saneados** están expuestos públicamente (`masterled-es`, `rapanui`, `oakywood`, `shiftcam`) |
+| Productos activos expuestos por sitemap               | **1473** (1441 Masterled + 12 Rapanui + 10 Oakywood + 10 ShiftCam; snapshot DB 2026-07-29)                                       |
+| Nichos activos                                        | **4**                                                                                                                            |
+| Colecciones publicado = true                          | **4**                                                                                                                            |
+| `<loc>` URLs esperadas en sitemap.xml                 | **1486** (1 home + 4 explore + 4 stores + 4 collections + 1473 products; confirmar tras deploy/ISR)                              |
+| HTTP 200 en smoke                                     | 100% de rutas navegables                                                                                                         |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 52/52 · rc=0 · rc=0                                                                                                              |
+| `pnpm audit` completo                                 | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28)                                        |
+| `pnpm smoke:production`                               | **17/17** contra `shopifind.app` (snapshot 2026-07-29)                                                                           |
+| CLS / LCP / Lighthouse mobile (rough)                 | Home en 78 mobile / 92 desktop · LCP ≈1.8s                                                                                       |
 
 ---
 
@@ -509,7 +510,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 11. **`/sitemap.xml` revalidate=86400**: no es un cron; se regenera bajo demanda como máximo una vez al día. El TTL de la ruta y el de sus lecturas Supabase deben permanecer sincronizados. Después de una alta/baja deliberada, verificar el XML live antes de enviarlo a GSC; para un release urgente puede bajarse temporalmente el mismo constante, desplegar, validar y restaurar el valor diario.
 12. **`<loc>` debe ser absolute URL** (sitemap protocol). `SITE_CONFIG.url.replace(/\/+$/, '')` quita trailing slash antes de concatenar.
 13. **canonical + og:url** en `metadata` de cada page export → consolidación de signals en GSC + share cards correctas en Twitter/LinkedIn/Facebook.
-14. **`dangerouslyAllowSVG: true`** sigue temporalmente por covers editoriales legacy de `placehold.co`; los productos públicos ya no pueden usar placeholders. Masterled sirve imágenes raster, Rapanui usa `images.podos.io` y Oakywood su carpeta exacta en `cdn.shopify.com`. Retirar host + flag cuando se reemplacen esos covers.
+14. **`dangerouslyAllowSVG: true`** sigue temporalmente por covers editoriales legacy de `placehold.co`; los productos públicos ya no pueden usar placeholders. Masterled sirve imágenes raster, Rapanui usa `images.podos.io`; Oakywood y ShiftCam tienen carpetas exactas separadas en `cdn.shopify.com`. Retirar host + flag cuando se reemplacen esos covers.
 15. **`SEARCH` bloqueado en robots.txt** porque `?q=*&niche=*&tag=*&page=*` genera infinite permutation → crawler trap.
 16. **Middleware con `src/app`**: el archivo activo es `src/middleware.ts`. Una copia en la raíz puede compilar sin proteger rutas en este layout; comprobar siempre `/wishlist` anónimo (307) y una ruta lookalike (no redirect).
 17. **APIs dinámicas de Next 15**: `cookies()`, `params` y `searchParams` son asíncronas. `createServerSupabaseClient()` devuelve una promesa y todos sus consumidores deben hacer `await`; un reemplazo incompleto puede compilar partes del árbol y fallar sólo en una ruta dinámica.
@@ -563,14 +564,14 @@ tests/                                     # node:test: redirects, wishlist y Sk
 
 ### 🟡 Después del núcleo
 
-| #        | Item                                                  | Nota                                                                                                                                                     |
-| -------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **B-8**  | **Comparación automática cross-store**                | Requiere segundo merchant y una estrategia explícita de matching/canonical SKU.                                                                          |
-| **B-9**  | **Embeddings / similarity search**                    | Sólo después de medir la búsqueda estructurada corregida; estimar coste y latencia con datos reales.                                                     |
-| **B-10** | ✅ **Ocultar merchants/URLs placeholder**             | Sólo tres merchants saneados están activos; las rutas placeholder históricas no aparecen en catálogo ni sitemap. Sustituir/reactivar sólo tras sourcing. |
-| **B-11** | ✅ **Restringir `/api/test/*`**                       | Ya existe gate absoluto de producción y ambas rutas devuelven 404 en live.                                                                               |
-| **B-12** | **AdSense**                                           | `/search` está bloqueado en robots; no describirlo como página indexable. Esperar tráfico y revisar CWV/UX.                                              |
-| **B-13** | Gift finder, featured stores, newsletter, marca EUIPO | Expansión una vez medidos search → PDP → click-out y retención.                                                                                          |
+| #        | Item                                                  | Nota                                                                                                                                                       |
+| -------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **B-8**  | **Comparación automática cross-store**                | Requiere segundo merchant y una estrategia explícita de matching/canonical SKU.                                                                            |
+| **B-9**  | **Embeddings / similarity search**                    | Sólo después de medir la búsqueda estructurada corregida; estimar coste y latencia con datos reales.                                                       |
+| **B-10** | ✅ **Ocultar merchants/URLs placeholder**             | Sólo cuatro merchants saneados están activos; las rutas placeholder históricas no aparecen en catálogo ni sitemap. Sustituir/reactivar sólo tras sourcing. |
+| **B-11** | ✅ **Restringir `/api/test/*`**                       | Ya existe gate absoluto de producción y ambas rutas devuelven 404 en live.                                                                                 |
+| **B-12** | **AdSense**                                           | `/search` está bloqueado en robots; no describirlo como página indexable. Esperar tráfico y revisar CWV/UX.                                                |
+| **B-13** | Gift finder, featured stores, newsletter, marca EUIPO | Expansión una vez medidos search → PDP → click-out y retención.                                                                                            |
 
 ### 📋 Deuda recurrente
 

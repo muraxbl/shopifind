@@ -136,6 +136,7 @@ async function main(): Promise<void> {
   let sitemapXml = "";
   let productUrl: URL | null = null;
   let oakywoodProductUrl: URL | null = null;
+  let shiftcamProductUrl: URL | null = null;
   let productHtml = "";
   let failures = 0;
 
@@ -320,6 +321,11 @@ async function main(): Promise<void> {
           `<loc>${siteUrl(baseUrl, "/store/oakywood").toString()}</loc>`,
           "Oakywood activo en sitemap",
         );
+        expectText(
+          sitemapXml,
+          `<loc>${siteUrl(baseUrl, "/store/shiftcam").toString()}</loc>`,
+          "ShiftCam activo en sitemap",
+        );
         if (sitemapXml.includes("/store/everlane-eu")) {
           throw new Error("el sitemap conserva un merchant retirado");
         }
@@ -329,7 +335,12 @@ async function main(): Promise<void> {
           baseUrl,
           "oakywood-",
         );
-        return `3 tiendas saneadas + PDP Rapanui/Oakywood`;
+        shiftcamProductUrl = productUrlFromSitemap(
+          sitemapXml,
+          baseUrl,
+          "shiftcam-",
+        );
+        return `4 tiendas saneadas + PDP Rapanui/Oakywood/ShiftCam`;
       },
     },
     {
@@ -369,40 +380,64 @@ async function main(): Promise<void> {
         if (!oakywoodProductUrl) {
           throw new Error("dependencia PDP Oakywood no disponible");
         }
+        if (!shiftcamProductUrl) {
+          throw new Error("dependencia PDP ShiftCam no disponible");
+        }
         const masterledUrl = productUrlFromSitemap(
           sitemapXml,
           baseUrl,
           "masterled-",
         );
-        const [masterledPage, oakywoodPage] = await Promise.all([
+        const [masterledPage, oakywoodPage, shiftcamPage] = await Promise.all([
           request(masterledUrl),
           request(oakywoodProductUrl),
+          request(shiftcamProductUrl),
         ]);
         expectStatus(masterledPage, 200);
         expectStatus(oakywoodPage, 200);
-        const [masterledHtml, oakywoodHtml] = await Promise.all([
+        expectStatus(shiftcamPage, 200);
+        const [masterledHtml, oakywoodHtml, shiftcamHtml] = await Promise.all([
           masterledPage.text(),
           oakywoodPage.text(),
+          shiftcamPage.text(),
         ]);
         expectText(oakywoodHtml, "Oakywood", "merchant en PDP Oakywood");
+        expectText(shiftcamHtml, "ShiftCam", "merchant en PDP ShiftCam");
+        expectText(
+          shiftcamHtml,
+          "Sin evaluación eco",
+          "estado eco honesto de ShiftCam",
+        );
         const imageUrls = [
           firstOptimizedImageUrl(productHtml, baseUrl),
           firstOptimizedImageUrl(masterledHtml, baseUrl),
           firstOptimizedImageUrl(oakywoodHtml, baseUrl),
+          firstOptimizedImageUrl(shiftcamHtml, baseUrl),
         ];
-        const [firstImage, masterledImage, oakywoodImage, blockedHost] =
-          await Promise.all([
-            request(imageUrls[0]!),
-            request(imageUrls[1]!),
-            request(imageUrls[2]!),
-            request(
-              siteUrl(
-                baseUrl,
-                "/_next/image?url=https%3A%2F%2Fexample.com%2Fblocked.jpg&w=640&q=75",
-              ),
+        const [
+          firstImage,
+          masterledImage,
+          oakywoodImage,
+          shiftcamImage,
+          blockedHost,
+        ] = await Promise.all([
+          request(imageUrls[0]!),
+          request(imageUrls[1]!),
+          request(imageUrls[2]!),
+          request(imageUrls[3]!),
+          request(
+            siteUrl(
+              baseUrl,
+              "/_next/image?url=https%3A%2F%2Fexample.com%2Fblocked.jpg&w=640&q=75",
             ),
-          ]);
-        const allowedImages = [firstImage, masterledImage, oakywoodImage];
+          ),
+        ]);
+        const allowedImages = [
+          firstImage,
+          masterledImage,
+          oakywoodImage,
+          shiftcamImage,
+        ];
         for (const response of allowedImages) {
           expectStatus(response, 200);
           const contentType = response.headers.get("content-type") ?? "";
