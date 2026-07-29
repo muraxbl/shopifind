@@ -137,9 +137,11 @@ export default async function ComparePage({
   const bestPrice = oneCurrency
     ? Math.min(...products.map((product) => product.price_cents))
     : null;
-  const bestEco = Math.max(
-    ...products.map((product) => product.store_eco_score),
-  );
+  const evaluatedEcoScores = products
+    .map((product) => product.store_eco_score)
+    .filter((score) => score > 0);
+  const bestEco =
+    evaluatedEcoScores.length > 0 ? Math.max(...evaluatedEcoScores) : null;
   const attributeRows = ATTRIBUTE_ROWS.filter((row) =>
     products.some((product) => displayAttribute(product, row.keys) !== "—"),
   ).slice(0, 8);
@@ -165,7 +167,7 @@ export default async function ComparePage({
         </p>
         <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground">
           Los botones &quot;Ver en tienda&quot; son enlaces afiliados: podemos
-          recibir una comisión si compras, sin coste adicional para ti.{' '}
+          recibir una comisión si compras, sin coste adicional para ti.{" "}
           <Link href="/legal" className="underline">
             Más información
           </Link>
@@ -252,12 +254,15 @@ export default async function ComparePage({
                   key={product.id}
                   className={cn(
                     "border-b border-l p-4",
-                    product.store_eco_score === bestEco &&
+                    bestEco !== null &&
+                      product.store_eco_score === bestEco &&
                       "bg-emerald-50 text-emerald-800",
                   )}
                 >
-                  {product.store_eco_score}/100
-                  {product.store_eco_score === bestEco && (
+                  {product.store_eco_score > 0
+                    ? `${product.store_eco_score}/100`
+                    : "Sin evaluar"}
+                  {bestEco !== null && product.store_eco_score === bestEco && (
                     <span className="ml-2 text-[10px] uppercase">
                       Mejor score
                     </span>

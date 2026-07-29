@@ -1,20 +1,20 @@
-import { cache } from 'react';
-import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import { Leaf, ExternalLink, Globe, RotateCcw } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { formatPrice, formatEcoScore, cn } from '@/lib/utils';
-import { SITE_CONFIG } from '@/lib/config';
-import { createPublicSupabaseClient } from '@/lib/supabase/public';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { AddToWishlistButton } from '@/components/product/AddToWishlistButton';
-import { PriceAlertCard } from '@/components/product/PriceAlertCard';
-import { hasWishlistItem, normalizeWishlistItems } from '@/lib/wishlist/items';
-import { readPriceAlertState } from '@/lib/alerts/read';
-import { ShareButton } from '@/components/product/ShareButton';
-import { buildProductJsonLd, serializeJsonLd } from '@/lib/seo/jsonLd';
+import { cache } from "react";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { Leaf, ExternalLink, Globe, RotateCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { formatPrice, formatEcoScore, cn } from "@/lib/utils";
+import { SITE_CONFIG } from "@/lib/config";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { AddToWishlistButton } from "@/components/product/AddToWishlistButton";
+import { PriceAlertCard } from "@/components/product/PriceAlertCard";
+import { hasWishlistItem, normalizeWishlistItems } from "@/lib/wishlist/items";
+import { readPriceAlertState } from "@/lib/alerts/read";
+import { ShareButton } from "@/components/product/ShareButton";
+import { buildProductJsonLd, serializeJsonLd } from "@/lib/seo/jsonLd";
 
 type ProductDetail = {
   id: string;
@@ -39,41 +39,43 @@ type ProductDetail = {
   niche: string;
 };
 
-const fetchProduct = cache(async (slug: string): Promise<ProductDetail | null> => {
-  const sb = createPublicSupabaseClient();
-  const { data } = await sb
-    .from('v_products_with_store')
-    .select(
-      'id, slug, title, description, price_cents, currency, image_url, source_url, affiliate_url, attributes, eco_tags, in_stock, store_name, store_slug, store_eco_score, store_values, country, short_description, verified, niche',
-    )
-    .eq('slug', slug)
-    .eq('in_stock', true)
-    .maybeSingle();
-  if (!data) return null;
-  const d = data as any; // The view Row type is permissive here until proper generation.
-  return {
-    id: d.id,
-    slug: d.slug,
-    title: d.title,
-    description: d.description ?? null,
-    price_cents: d.price_cents,
-    currency: d.currency,
-    image_url: d.image_url,
-    source_url: d.source_url,
-    affiliate_url: d.affiliate_url ?? null,
-    attributes: (d.attributes ?? {}) as Record<string, string>,
-    eco_tags: d.eco_tags ?? [],
-    in_stock: d.in_stock,
-    store_name: d.store_name,
-    store_slug: d.store_slug,
-    country: d.country ?? null,
-    store_eco_score: d.store_eco_score,
-    store_values: d.store_values ?? [],
-    short_description: d.short_description ?? null,
-    verified: d.verified ?? false,
-    niche: d.niche,
-  };
-});
+const fetchProduct = cache(
+  async (slug: string): Promise<ProductDetail | null> => {
+    const sb = createPublicSupabaseClient();
+    const { data } = await sb
+      .from("v_products_with_store")
+      .select(
+        "id, slug, title, description, price_cents, currency, image_url, source_url, affiliate_url, attributes, eco_tags, in_stock, store_name, store_slug, store_eco_score, store_values, country, short_description, verified, niche",
+      )
+      .eq("slug", slug)
+      .eq("in_stock", true)
+      .maybeSingle();
+    if (!data) return null;
+    const d = data as any; // The view Row type is permissive here until proper generation.
+    return {
+      id: d.id,
+      slug: d.slug,
+      title: d.title,
+      description: d.description ?? null,
+      price_cents: d.price_cents,
+      currency: d.currency,
+      image_url: d.image_url,
+      source_url: d.source_url,
+      affiliate_url: d.affiliate_url ?? null,
+      attributes: (d.attributes ?? {}) as Record<string, string>,
+      eco_tags: d.eco_tags ?? [],
+      in_stock: d.in_stock,
+      store_name: d.store_name,
+      store_slug: d.store_slug,
+      country: d.country ?? null,
+      store_eco_score: d.store_eco_score,
+      store_values: d.store_values ?? [],
+      short_description: d.short_description ?? null,
+      verified: d.verified ?? false,
+      niche: d.niche,
+    };
+  },
+);
 
 async function fetchInitialWishlistState(productId: string): Promise<boolean> {
   const sb = await createServerSupabaseClient();
@@ -83,9 +85,9 @@ async function fetchInitialWishlistState(productId: string): Promise<boolean> {
   if (!user) return false;
 
   const { data } = await sb
-    .from('wishlists')
-    .select('items')
-    .eq('user_id', user.id)
+    .from("wishlists")
+    .select("items")
+    .eq("user_id", user.id)
     .maybeSingle();
   const row = data as { items: unknown } | null;
   return hasWishlistItem(normalizeWishlistItems(row?.items), productId);
@@ -98,8 +100,8 @@ export async function generateMetadata({
 }) {
   const { slug } = await params;
   const p = await fetchProduct(slug);
-  if (!p) return { title: 'Producto no encontrado' };
-  const canonicalUrl = `${SITE_CONFIG.url.replace(/\/+$/, '')}/product/${p.slug}`;
+  if (!p) return { title: "Producto no encontrado" };
+  const canonicalUrl = `${SITE_CONFIG.url.replace(/\/+$/, "")}/product/${p.slug}`;
   return {
     title: `${p.title} — ${p.store_name}`,
     description: (p.description ?? `${p.title} en ${p.store_name}`).slice(
@@ -109,7 +111,7 @@ export async function generateMetadata({
     alternates: { canonical: canonicalUrl },
     openGraph: {
       title: p.title,
-      description: p.description ?? '',
+      description: p.description ?? "",
       images: [p.image_url],
       url: canonicalUrl,
     },
@@ -130,7 +132,7 @@ export default async function ProductPage({
     readPriceAlertState(product.id),
   ]);
   const eco = formatEcoScore(product.store_eco_score);
-  const canonicalUrl = `${SITE_CONFIG.url.replace(/\/+$/, '')}/product/${product.slug}`;
+  const canonicalUrl = `${SITE_CONFIG.url.replace(/\/+$/, "")}/product/${product.slug}`;
   const jsonLd = buildProductJsonLd({
     slug: product.slug,
     title: product.title,
@@ -153,14 +155,14 @@ export default async function ProductPage({
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link href="/" className="hover:text-primary">
           Inicio
-        </Link>{' '}
-        {' / '}
+        </Link>{" "}
+        {" / "}
         <Link
           href={`/explore/${product.niche}`}
           className="capitalize hover:text-primary"
         >
-          {product.niche.replace('-', ' ')}
-        </Link>{' '}
+          {product.niche.replace("-", " ")}
+        </Link>{" "}
         / <span className="text-foreground">{product.title}</span>
       </nav>
 
@@ -186,9 +188,11 @@ export default async function ProductPage({
             <Badge variant="outline">{product.store_name}</Badge>
             <Badge
               variant="eco"
-              className={cn('border-transparent', eco.variant)}
+              className={cn("border-transparent", eco.variant)}
             >
-              Eco-score {product.store_eco_score}/100 · {eco.label}
+              {eco.evaluated
+                ? `Eco-score ${product.store_eco_score}/100 · ${eco.label}`
+                : "Sin evaluación eco"}
             </Badge>
           </div>
 
@@ -200,10 +204,10 @@ export default async function ProductPage({
             <span className="font-display text-3xl text-primary">
               {formatPrice(product.price_cents, product.currency)}
             </span>
-            {product.attributes?.['old_price_cents'] && (
+            {product.attributes?.["old_price_cents"] && (
               <span className="text-sm text-muted-foreground line-through">
                 {formatPrice(
-                  Number(product.attributes['old_price_cents']),
+                  Number(product.attributes["old_price_cents"]),
                   product.currency,
                 )}
               </span>
@@ -258,8 +262,8 @@ export default async function ProductPage({
 
           <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
             Al hacer click en &quot;Ver en {product.store_name}&quot; podemos
-            recibir una pequeña comisión de afiliado.{' '}
-            <strong>No tiene coste extra para ti.</strong> Lee más en nuestra{' '}
+            recibir una pequeña comisión de afiliado.{" "}
+            <strong>No tiene coste extra para ti.</strong> Lee más en nuestra{" "}
             <Link href="/legal" className="underline">
               divulgación FTC / UE
             </Link>
@@ -273,7 +277,7 @@ export default async function ProductPage({
                 <div className="font-medium">
                   {product.country
                     ? `Marca de ${product.country}`
-                    : 'Origen no especificado'}
+                    : "Origen no especificado"}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Procedencia declarada de la tienda

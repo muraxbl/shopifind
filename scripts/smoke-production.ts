@@ -135,6 +135,7 @@ async function main(): Promise<void> {
   const baseUrl = normalizeBaseUrl(process.argv[2]);
   let sitemapXml = "";
   let productUrl: URL | null = null;
+  let oakywoodProductUrl: URL | null = null;
   let productHtml = "";
   let failures = 0;
 
@@ -314,11 +315,21 @@ async function main(): Promise<void> {
           `<loc>${siteUrl(baseUrl, "/store/rapanui").toString()}</loc>`,
           "Rapanui activo en sitemap",
         );
+        expectText(
+          sitemapXml,
+          `<loc>${siteUrl(baseUrl, "/store/oakywood").toString()}</loc>`,
+          "Oakywood activo en sitemap",
+        );
         if (sitemapXml.includes("/store/everlane-eu")) {
           throw new Error("el sitemap conserva un merchant retirado");
         }
         productUrl = productUrlFromSitemap(sitemapXml, baseUrl, "rapanui-");
-        return `2 tiendas saneadas + PDP Rapanui: ${productUrl.pathname}`;
+        oakywoodProductUrl = productUrlFromSitemap(
+          sitemapXml,
+          baseUrl,
+          "oakywood-",
+        );
+        return `3 tiendas saneadas + PDP Rapanui/Oakywood`;
       },
     },
     {
@@ -355,29 +366,43 @@ async function main(): Promise<void> {
       run: async () => {
         if (!productHtml) throw new Error("dependencia PDP no disponible");
         if (!sitemapXml) throw new Error("dependencia sitemap no disponible");
+        if (!oakywoodProductUrl) {
+          throw new Error("dependencia PDP Oakywood no disponible");
+        }
         const masterledUrl = productUrlFromSitemap(
           sitemapXml,
           baseUrl,
           "masterled-",
         );
-        const masterledPage = await request(masterledUrl);
+        const [masterledPage, oakywoodPage] = await Promise.all([
+          request(masterledUrl),
+          request(oakywoodProductUrl),
+        ]);
         expectStatus(masterledPage, 200);
-        const masterledHtml = await masterledPage.text();
+        expectStatus(oakywoodPage, 200);
+        const [masterledHtml, oakywoodHtml] = await Promise.all([
+          masterledPage.text(),
+          oakywoodPage.text(),
+        ]);
+        expectText(oakywoodHtml, "Oakywood", "merchant en PDP Oakywood");
         const imageUrls = [
           firstOptimizedImageUrl(productHtml, baseUrl),
           firstOptimizedImageUrl(masterledHtml, baseUrl),
+          firstOptimizedImageUrl(oakywoodHtml, baseUrl),
         ];
-        const [firstImage, masterledImage, blockedHost] = await Promise.all([
-          request(imageUrls[0]!),
-          request(imageUrls[1]!),
-          request(
-            siteUrl(
-              baseUrl,
-              "/_next/image?url=https%3A%2F%2Fexample.com%2Fblocked.jpg&w=640&q=75",
+        const [firstImage, masterledImage, oakywoodImage, blockedHost] =
+          await Promise.all([
+            request(imageUrls[0]!),
+            request(imageUrls[1]!),
+            request(imageUrls[2]!),
+            request(
+              siteUrl(
+                baseUrl,
+                "/_next/image?url=https%3A%2F%2Fexample.com%2Fblocked.jpg&w=640&q=75",
+              ),
             ),
-          ),
-        ]);
-        const allowedImages = [firstImage, masterledImage];
+          ]);
+        const allowedImages = [firstImage, masterledImage, oakywoodImage];
         for (const response of allowedImages) {
           expectStatus(response, 200);
           const contentType = response.headers.get("content-type") ?? "";

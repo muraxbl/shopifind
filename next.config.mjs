@@ -31,6 +31,11 @@ const nextConfig = {
       // Keep this allowlist synchronized with active catalog image hosts.
       { protocol: "https", hostname: "masterled.es" },
       { protocol: "https", hostname: "images.podos.io" },
+      {
+        protocol: "https",
+        hostname: "cdn.shopify.com",
+        pathname: "/s/files/1/2447/0423/**",
+      },
       { protocol: "https", hostname: "placehold.co" },
     ],
     // placehold.co y otros placeholders devuelven SVG; next/image los rechaza por defecto.

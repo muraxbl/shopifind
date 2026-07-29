@@ -1,7 +1,7 @@
-import Link from 'next/link';
-import { BadgeCheck, Globe } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { formatEcoScore, cn } from '@/lib/utils';
+import Link from "next/link";
+import { BadgeCheck, Globe } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { formatEcoScore, cn } from "@/lib/utils";
 
 export interface StoreBadgeProps {
   store: {
@@ -22,8 +22,8 @@ export function StoreBadge({ store }: StoreBadgeProps) {
     <Link
       href={`/store/${store.slug}`}
       className={cn(
-        'group flex flex-col gap-2 rounded-2xl border border-border/60 bg-card p-5 transition-all',
-        'hover:-translate-y-0.5 hover:border-border hover:shadow-md'
+        "group flex flex-col gap-2 rounded-2xl border border-border/60 bg-card p-5 transition-all",
+        "hover:-translate-y-0.5 hover:border-border hover:shadow-md",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -31,7 +31,12 @@ export function StoreBadge({ store }: StoreBadgeProps) {
           <div className="font-display text-base text-foreground">
             <span className="inline-flex items-center gap-1">
               {store.name}
-              {store.verified && <BadgeCheck className="h-4 w-4 text-primary" aria-label="Verified" />}
+              {store.verified && (
+                <BadgeCheck
+                  className="h-4 w-4 text-primary"
+                  aria-label="Verified"
+                />
+              )}
             </span>
           </div>
           {store.country && (
@@ -44,7 +49,9 @@ export function StoreBadge({ store }: StoreBadgeProps) {
       </div>
 
       {store.short_description && (
-        <p className="line-clamp-2 text-sm text-muted-foreground">{store.short_description}</p>
+        <p className="line-clamp-2 text-sm text-muted-foreground">
+          {store.short_description}
+        </p>
       )}
 
       <div className="mt-1 flex flex-wrap gap-1">
@@ -59,8 +66,15 @@ export function StoreBadge({ store }: StoreBadgeProps) {
       </div>
 
       <div className="mt-1 text-xs">
-        <span className={cn('inline-block rounded-full px-2 py-0.5 font-medium', eco.variant)}>
-          Eco-score {store.eco_score}/100
+        <span
+          className={cn(
+            "inline-block rounded-full px-2 py-0.5 font-medium",
+            eco.variant,
+          )}
+        >
+          {eco.evaluated
+            ? `Eco-score ${store.eco_score}/100`
+            : "Sin evaluación eco"}
         </span>
       </div>
     </Link>

@@ -12,18 +12,28 @@
    acceso a creatividades. Shopifind mantiene, no obstante, `skimlinks` como
    mecanismo de click-out y `verified=false` hasta comprobar el merchant en el
    dashboard real.
-2. **Kave Home — candidato siguiente, bloqueado por feed.** Su programa oficial
+2. **Oakywood — piloto publicado.** Diez accesorios de escritorio y carga
+   localizados para España en EUR mediante el Storefront Catalog UCP oficial de
+   Shopify. La marca fabrica en Polonia, documenta madera responsable/FSC,
+   recuperación de producto y garantía de cinco años. Su programa Awin publica
+   10 % y cookie de 15 días; Shopifind conserva Skimlinks como click-out y
+   `verified=false` hasta validar el merchant en el dashboard real.
+3. **ShiftCam — candidato condicionado.** Buen encaje indie y programa directo
+   al 10 %, pero el storefront mantuvo `429` durante el spike. No se fuerza ni
+   se publica hasta poder refrescarlo por UCP/feed con estabilidad y confirmar
+   costes de importación para España.
+4. **Kave Home — candidato siguiente, bloqueado por feed.** Su programa oficial
    anuncia más de 5.000 referencias, comisión e imágenes en alta resolución. La
    ruta pública de sitemap devolvió un checkpoint anti-bot durante el spike; no
    se intentará eludirlo. Sólo se integrará una selección editorial cuando el
    programa entregue feed o acceso autorizado.
-3. **GreenIce — prioridad para iluminación/comparador.** Sigue siendo el mejor
+5. **GreenIce — prioridad para iluminación/comparador.** Sigue siendo el mejor
    segundo catálogo técnico por cobertura y estructura, pero se mantiene el
    gate documentado en `merchant-sourcing-lighting.md`: confirmar Skimlinks y
    obtener feed o permiso de reutilización.
-4. **Barcelona LED — fallback de GreenIce.** Buen catálogo español y fichas
+6. **Barcelona LED — fallback de GreenIce.** Buen catálogo español y fichas
    técnicas; mismos gates de afiliación y derechos.
-5. **Fairphone — reserva editorial para gadgets.** El programa público localizado
+7. **Fairphone — reserva editorial para gadgets.** El programa público localizado
    es de partners comerciales B2B, no un programa editorial de afiliación. No se
    ingesta en esta ronda.
 
@@ -41,6 +51,21 @@
 - Dry-run por defecto, allowlist exacta de hosts, límite de bytes, timeout,
   validación de canonical, precio, imagen y stock antes de cualquier upsert.
 
+## Piloto Oakywood
+
+- 10 IDs explícitos: soportes para portátil/auriculares, organización de cable y
+  carga inalámbrica; no se importa el catálogo completo.
+- Una consulta `lookup_catalog` por UCP, con contexto `ES`, `es-ES`, `EUR` y
+  `available=true`; 10/10 disponibles en el snapshot de publicación.
+- Precio en minor units EUR y URL/media devueltos por el catálogo oficial. Las
+  imágenes se enlazan desde la carpeta de Oakywood en `cdn.shopify.com`, sin
+  copiarlas ni alojarlas.
+- Allowlist de host y prefijo de carpeta exactos, respuesta limitada a 512 KiB,
+  timeout, dry-run por defecto y comprobación `image/*` previa al upsert.
+- Eco-score humano 84: materiales responsables/FSC, taller local, recuperación
+  de producto y garantía de cinco años; las etiquetas de producto sólo se
+  derivan de la descripción concreta.
+
 Fuentes oficiales:
 
 - Rapanui: <https://rapanuiclothing.com/affiliate/>,
@@ -49,6 +74,16 @@ Fuentes oficiales:
 - Kave Home: <https://kavehome.com/es/es/e/affiliate> y
   <https://help.kavehome.com/hc/es/sections/10492292732957-Programa-de-afiliaci%C3%B3n>.
 - Fairphone: <https://www.fairphone.com/partner-program>.
+- Oakywood: <https://oakywood.shop/pages/materials>,
+  <https://oakywood.shop/pages/our-process>,
+  <https://oakywood.shop/en-de/pages/returns>,
+  <https://ui.awin.com/merchant-profile/92799> y
+  <https://oakywood.shop/.well-known/ucp>.
+- Shopify UCP Storefront Catalog:
+  <https://shopify.dev/docs/agents/catalog/storefront-catalog>.
+- ShiftCam: <https://affiliate.shiftcam.com/shiftcam-us/register>,
+  <https://www.shiftcam.com/policies/shipping-policy> y
+  <https://www.shiftcam.com/pages/about-us>.
 
 ## Política de calidad resultante
 
