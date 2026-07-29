@@ -6,7 +6,10 @@ import { CompareSelectionProvider } from '@/components/compare/CompareSelection'
 import { Pagination } from '@/components/pagination/Pagination';
 import { AiSearchBox } from '@/components/search/AiSearchBox';
 import { searchProducts } from '@/actions/search';
-import { normalizeEcoTagFilters } from '@/lib/ai/queryIntent';
+import {
+  getSearchEcoFacets,
+  normalizeEcoTagFilters,
+} from '@/lib/ai/queryIntent';
 import {
   isSearchSort,
   normalizePageNumber,
@@ -92,6 +95,7 @@ export default async function SearchPage({
   const sort = isSearchSort(resolvedSearchParams.sort)
     ? resolvedSearchParams.sort
     : undefined;
+  const ecoFacets = getSearchEcoFacets(niche, ecoTags[0]);
   const hasSearchCriteria =
     Boolean(q) ||
     niche !== null ||
@@ -244,22 +248,15 @@ export default async function SearchPage({
 
           <div>
             <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Eco-tags
+              Valores y atributos
             </h3>
             <div className="flex flex-wrap gap-1.5">
-              {[
-                'vegan',
-                'eu-made',
-                'recycled',
-                'organic',
-                'b-corp',
-                'female-founded',
-              ].map((t) => {
-                const active = ecoTags[0] === t;
+              {ecoFacets.map((facet) => {
+                const active = ecoTags[0] === facet.id;
                 return (
                   <a
-                    key={t}
-                    href={tagHref(t)}
+                    key={facet.id}
+                    href={tagHref(facet.id)}
                     aria-current={active ? 'page' : undefined}
                     className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
                       active
@@ -267,7 +264,7 @@ export default async function SearchPage({
                         : 'border-border bg-card hover:border-primary hover:text-primary'
                     }`}
                   >
-                    {t}
+                    {facet.label}
                   </a>
                 );
               })}

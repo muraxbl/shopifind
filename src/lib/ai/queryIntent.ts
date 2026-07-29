@@ -51,6 +51,38 @@ export const SEARCH_ECO_TAGS = [
 export type SearchEcoTag = (typeof SEARCH_ECO_TAGS)[number];
 const SearchEcoTagSchema = z.enum(SEARCH_ECO_TAGS);
 
+type SearchEcoFacet = { id: SearchEcoTag; label: string };
+
+const DEFAULT_SEARCH_ECO_FACETS: readonly SearchEcoFacet[] = [
+  { id: 'vegan', label: 'Vegano' },
+  { id: 'eu-made', label: 'Hecho en UE' },
+  { id: 'recycled', label: 'Reciclado' },
+  { id: 'organic', label: 'Orgánico' },
+  { id: 'b-corp', label: 'B Corp' },
+  { id: 'female-founded', label: 'Fundada por mujeres' },
+];
+
+const LIGHTING_SEARCH_ECO_FACETS: readonly SearchEcoFacet[] = [
+  { id: 'long-lifespan', label: 'Larga vida útil' },
+  { id: 'recyclable', label: 'Reciclable' },
+  { id: 'certified', label: 'CE + RoHS' },
+];
+
+export function getSearchEcoFacets(
+  niche: string | null,
+  activeTag?: string,
+): SearchEcoFacet[] {
+  const base =
+    niche === 'iluminacion'
+      ? [...LIGHTING_SEARCH_ECO_FACETS]
+      : [...DEFAULT_SEARCH_ECO_FACETS];
+  const active = normalizeEcoTagFilters([activeTag])[0];
+  if (active && !base.some((facet) => facet.id === active)) {
+    base.unshift({ id: active, label: active.replaceAll('-', ' ') });
+  }
+  return base;
+}
+
 /**
  * Convert a free-text user query into typed search filters using
  * OpenAI Structured Outputs (function-calling-equivalent). Then

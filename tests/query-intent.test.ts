@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   MAX_SEARCH_QUERY_LENGTH,
+  getSearchEcoFacets,
   isAiSearchEnabled,
   normalizeEcoTagFilters,
   normalizeSearchQuery,
@@ -78,6 +79,24 @@ test('search input normalization bounds cost and filters unknown tags', () => {
   assert.deepEqual(
     normalizeEcoTagFilters(['led', 'unknown', 'led', 'recycled']),
     ['led', 'recycled'],
+  );
+});
+
+test('search facets follow the niche and preserve a valid active tag', () => {
+  assert.deepEqual(
+    getSearchEcoFacets('iluminacion').map((facet) => facet.id),
+    ['long-lifespan', 'recyclable', 'certified'],
+  );
+  assert.equal(getSearchEcoFacets(null)[0]?.id, 'vegan');
+  assert.deepEqual(getSearchEcoFacets(null, 'led')[0], {
+    id: 'led',
+    label: 'led',
+  });
+  assert.equal(
+    getSearchEcoFacets('iluminacion', 'invented-tag')
+      .map((facet) => String(facet.id))
+      .includes('invented-tag'),
+    false,
   );
 });
 

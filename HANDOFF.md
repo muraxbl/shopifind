@@ -461,6 +461,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **33** | Tiendas activas en sitemap | `src/app/sitemap.ts` + smoke de release | Los cuatro perfiles reales pasan a ser descubribles por buscadores con `lastModified`; el filtro `active=true` evita reactivar merchants placeholder y el smoke exige Masterled en el XML. |
 | **34** | Copy factual de procedencia | PDP + `SITE_CONFIG.description` | La PDP deja de presentar el país de la marca como origen del envío, deriva logística/devoluciones al merchant y el smoke impide que reaparezca esa afirmación; la descripción global ya incluye iluminación. |
 | **35** | Alertas seguras por moneda | migration + evaluator + worker + cuenta | `baseline_currency` y `reference_currency` acompañan cada precio; cambios de divisa reinician alertas relativas, desactivan targets fijos y bloquean emails con moneda obsoleta. El preflight exige las columnas nuevas y el upgrade de borradores omite entregas ambiguas. |
+| **36** | Facetas de búsqueda por nicho | `getSearchEcoFacets()` + `/search` | Iluminación muestra filtros con cobertura real (`long-lifespan`, `recyclable`, `certified`) en vez de chips de moda; los labels son legibles y cualquier tag activo válido permanece visible al cambiar de nicho. |
 
 ### Métricas post-deploy
 
@@ -472,7 +473,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | Colecciones publicado = true | **4** |
 | `<loc>` URLs en sitemap.xml | **1465** (1 home + 4 explore + 4 stores + 4 collections + 1452 products) |
 | HTTP 200 en smoke | 100% de rutas navegables |
-| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 45/45 · rc=0 · rc=0 |
+| `pnpm test` / `pnpm exec tsc --noEmit` / `pnpm build` | 46/46 · rc=0 · rc=0 |
 | `pnpm audit` completo | **0** vulnerabilidades (runtime y dev; 0 low/moderate/high/critical; snapshot 2026-07-28) |
 | `pnpm smoke:production` | **16/16** contra `shopifind.app` (snapshot 2026-07-28) |
 | CLS / LCP / Lighthouse mobile (rough) | Home en 78 mobile / 92 desktop · LCP ≈1.8s |
