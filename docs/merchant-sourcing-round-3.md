@@ -9,12 +9,12 @@
 Los cuatro nichos ya tienen inventario público, pero la cobertura sigue siendo
 muy estrecha:
 
-| Nicho | Merchant activo | Productos |
-| --- | --- | ---: |
-| sustainable-fashion | Rapanui | 12 |
-| indie-gadgets | ShiftCam | 10 |
-| home-deco | Oakywood | 10 |
-| iluminacion | Masterled | 1438 |
+| Nicho               | Merchant activo | Productos |
+| ------------------- | --------------- | --------: |
+| sustainable-fashion | Rapanui         |        12 |
+| indie-gadgets       | ShiftCam        |        10 |
+| home-deco           | Oakywood        |        10 |
+| iluminacion         | Masterled       |      1438 |
 
 El siguiente objetivo no es clonar catálogos completos: es publicar pilotos de
 10–15 productos con procedencia, precio, stock, destino e imagen de origen
@@ -23,14 +23,14 @@ verificados. El segundo merchant de iluminación conserva su gate específico en
 
 ## Shortlist para decisión
 
-| Prioridad | Candidato | Nicho | Permiso/fuente técnica | Afiliación pública | Juicio editorial |
-| ---: | --- | --- | --- | --- | --- |
-| 1 | **Woodendot** | home-deco | UCP + `agents.md` permiten lectura de catálogo sin auth | Página oficial de afiliados | Mejor candidato: marca española independiente, fabricación local, madera FSC y circularidad documentadas |
-| 2 | **Thinking MU** | sustainable-fashion | UCP + `agents.md` permiten lectura de catálogo sin auth | No localizada públicamente; exige gate Skimlinks | Muy buen encaje: fundada en Barcelona, trazabilidad, fibras certificadas y envío EUR desde Girona |
-| 3 | **Native Union** | indie-gadgets | UCP + `agents.md` permiten lectura de catálogo sin auth | Programa de creadores/afiliados oficial | Buen catálogo y EUR para España; claims ambientales deben evaluarse producto a producto, sin eco-score automático |
-| 4 | Orbitkey | indie-gadgets | UCP + `agents.md` públicos | Programa oficial disponible previa solicitud | Reserva sólida, pero origen australiano y logística EU deben validarse por producto |
-| 5 | HANNUN | home-deco | UCP + `agents.md` permiten lectura de catálogo sin auth | Sólo se encontró rewards/referral de cliente | Catálogo útil, pero menor encaje “indie” y sin señal afiliada pública suficiente |
-| 6 | TWOTHIRDS | sustainable-fashion | UCP público; `agents.md` respondió 403 en el snapshot | No localizada públicamente | Encaje editorial fuerte, pero Thinking MU ofrece hoy un contrato técnico más claro |
+| Prioridad | Candidato        | Nicho               | Permiso/fuente técnica                                  | Afiliación pública                               | Juicio editorial                                                                                                  |
+| --------: | ---------------- | ------------------- | ------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+|         1 | **Woodendot**    | home-deco           | UCP + `agents.md` permiten lectura de catálogo sin auth | Página oficial de afiliados                      | Mejor candidato: marca española independiente, fabricación local, madera FSC y circularidad documentadas          |
+|         2 | **Thinking MU**  | sustainable-fashion | UCP + `agents.md` permiten lectura de catálogo sin auth | No localizada públicamente; exige gate Skimlinks | Muy buen encaje: fundada en Barcelona, trazabilidad, fibras certificadas y envío EUR desde Girona                 |
+|         3 | **Native Union** | indie-gadgets       | UCP + `agents.md` permiten lectura de catálogo sin auth | Programa de creadores/afiliados oficial          | Buen catálogo y EUR para España; claims ambientales deben evaluarse producto a producto, sin eco-score automático |
+|         4 | Orbitkey         | indie-gadgets       | UCP + `agents.md` públicos                              | Programa oficial disponible previa solicitud     | Reserva sólida, pero origen australiano y logística EU deben validarse por producto                               |
+|         5 | HANNUN           | home-deco           | UCP + `agents.md` permiten lectura de catálogo sin auth | Sólo se encontró rewards/referral de cliente     | Catálogo útil, pero menor encaje “indie” y sin señal afiliada pública suficiente                                  |
+|         6 | TWOTHIRDS        | sustainable-fashion | UCP público; `agents.md` respondió 403 en el snapshot   | No localizada públicamente                       | Encaje editorial fuerte, pero Thinking MU ofrece hoy un contrato técnico más claro                                |
 
 ## Recomendación
 
@@ -49,6 +49,47 @@ Cada piloto reutilizará el runner UCP existente con contexto `ES`, `es-ES`,
 `EUR`, IDs curados, allowlist exacta de host/carpeta de imágenes, dry-run por
 defecto y upsert reversible. Antes de `--write` se presentará la lista exacta de
 productos y el resultado del dry-run.
+
+## Piloto técnico Woodendot preparado
+
+El 2026-07-29 quedó preparado, pero **no escrito en Supabase**, un piloto de 12
+productos:
+
+| Producto                        | Tipo                      | Precio observado |
+| ------------------------------- | ------------------------- | ---------------: |
+| Pelican · roble medio           | Estante de pared          |            101 € |
+| Lua · roble medio               | Lámpara de mesa           |            186 € |
+| Ka XL · negro                   | Lámpara de pie            |            449 € |
+| Ibon M · nogal                  | Mesa auxiliar             |            279 € |
+| Alba Slim · roble ovalado       | Mesita flotante           |            186 € |
+| Etna · azul                     | Portavelas de pie         |            549 € |
+| Savia · madera oscura           | Banco                     |            799 € |
+| Kesito · azul/mostaza/madera    | Organizador de escritorio |             39 € |
+| Cielo · roble pigmentado blanco | Estantes y ganchos        |            250 € |
+| Sedona · blanco medio           | Jarrón                    |             83 € |
+| Cloe · roble/puertas de madera  | Mesa auxiliar             |            696 € |
+| Batea L · roble/blanco          | Mesa de centro            |            599 € |
+
+El dry-run oficial UCP devolvió 12/12 disponibles en EUR y la comprobación
+directa de cada imagen respondió con contenido `image/*`. La primera selección
+incluía el escritorio Alada (`gid://shopify/Product/7941047943416`), pero el
+lookup con `available=true` ya no lo devolvía; se rechazó antes de publicar y se
+sustituyó por Kesito. El endpoint JSON de producto respondió 429 durante el
+spike, por lo que no se usa ni se reintenta: la fuente del piloto es únicamente
+el catálogo UCP autorizado por `agents.md`.
+
+Shopify limita `lookup_catalog` a 10 IDs. El runner compartido divide esta
+selección en lotes 10 + 2, valida después el conjunto exacto y falla mostrando
+IDs ausentes o inesperados. Imágenes limitadas a
+`cdn.shopify.com/s/files/1/0661/7029/0424/`; destinos limitados a
+`https://woodendot.com/es/products/…`.
+
+La tienda permanece `active=false`, `verified=false`, `featured=false` y con
+`eco_score=0`. La evidencia oficial permite etiquetar el piloto como madera
+certificada, fabricación UE, circularidad y vocación de larga duración, pero no
+justifica todavía una puntuación numérica. Antes de `--write` sigue faltando el
+gate del owner en Skimlinks; después hay que desplegar la allowlist, verificar
+una imagen mediante `/_next/image` y decidir expresamente la activación.
 
 ## Gates antes de escribir
 

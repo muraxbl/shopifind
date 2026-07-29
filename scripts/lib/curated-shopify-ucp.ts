@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import {
   SHOPIFY_UCP_AGENT_PROFILE,
+  chunkShopifyLookupIds,
+  mergeShopifyLookupPayloads,
   type CuratedCatalogProduct,
 } from "../../src/lib/feeds/shopifyUcp";
 
@@ -38,7 +40,10 @@ function exactUcpEndpoint(value: string): string {
   return url.toString();
 }
 
-async function fetchLookup(config: CuratedUcpSeedConfig): Promise<unknown> {
+async function fetchLookup(
+  config: CuratedUcpSeedConfig,
+  productIds: readonly string[],
+): Promise<unknown> {
   const response = await fetch(exactUcpEndpoint(config.endpoint), {
     method: "POST",
     cache: "no-store",
@@ -58,7 +63,7 @@ async function fetchLookup(config: CuratedUcpSeedConfig): Promise<unknown> {
             "ucp-agent": { profile: SHOPIFY_UCP_AGENT_PROFILE },
           },
           catalog: {
-            ids: config.productIds,
+            ids: productIds,
             context: {
               address_country: "ES",
               language: "es-ES",
@@ -118,8 +123,12 @@ export async function runCuratedShopifyUcpSeed(
   console.log(
     `${config.label} curated UCP ingest: ${config.productIds.length} products (${write ? "WRITE" : "DRY RUN"})`,
   );
+  const lookupPayloads: unknown[] = [];
+  for (const productIds of chunkShopifyLookupIds(config.productIds)) {
+    lookupPayloads.push(await fetchLookup(config, productIds));
+  }
   const products = config.parse(
-    await fetchLookup(config),
+    mergeShopifyLookupPayloads(lookupPayloads),
     write ? "pending" : config.dryRunStoreId,
     observedAt,
   );

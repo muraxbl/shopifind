@@ -3,6 +3,7 @@ import { z } from "zod";
 export const SHOPIFY_UCP_AGENT_PROFILE =
   "https://shopify.dev/ucp/agent-profiles/examples/2026-04-08/valid-with-capabilities.json";
 export const SHOPIFY_IMAGE_HOST = "cdn.shopify.com";
+export const SHOPIFY_STOREFRONT_LOOKUP_MAX_IDS = 10;
 
 const MoneySchema = z.object({
   amount: z.number().int().positive(),
@@ -89,12 +90,17 @@ export function exactShopifySourceUrl(input: {
   hostname: string;
   handle: string;
   merchant: string;
+  pathPrefix?: string;
 }): string {
   const url = new URL(input.value);
+  const pathPrefix = input.pathPrefix ?? "/products";
+  if (!/^\/(?:[a-z]{2}\/)?products$/.test(pathPrefix)) {
+    throw new Error(`Unexpected ${input.merchant} product path prefix.`);
+  }
   if (
     url.protocol !== "https:" ||
     url.hostname !== input.hostname ||
-    url.pathname !== `/products/${input.handle}` ||
+    url.pathname !== `${pathPrefix}/${input.handle}` ||
     url.username ||
     url.password ||
     url.search ||
@@ -103,6 +109,43 @@ export function exactShopifySourceUrl(input: {
     throw new Error(`Unexpected ${input.merchant} product URL: ${input.value}`);
   }
   return url.toString();
+}
+
+export function chunkShopifyLookupIds(
+  productIds: readonly string[],
+): string[][] {
+  if (productIds.length === 0) {
+    throw new Error("Shopify UCP lookup requires at least one product ID.");
+  }
+  if (new Set(productIds).size !== productIds.length) {
+    throw new Error("Shopify UCP lookup product IDs must be unique.");
+  }
+  const chunks: string[][] = [];
+  for (
+    let offset = 0;
+    offset < productIds.length;
+    offset += SHOPIFY_STOREFRONT_LOOKUP_MAX_IDS
+  ) {
+    chunks.push(
+      productIds.slice(offset, offset + SHOPIFY_STOREFRONT_LOOKUP_MAX_IDS),
+    );
+  }
+  return chunks;
+}
+
+export function mergeShopifyLookupPayloads(payloads: unknown[]): unknown {
+  if (payloads.length === 0) {
+    throw new Error("Shopify UCP lookup returned no payloads.");
+  }
+  const products = payloads.flatMap(
+    (payload) =>
+      LookupResponseSchema.parse(payload).result.structuredContent.products,
+  );
+  const ids = products.map((product) => product.id);
+  if (new Set(ids).size !== ids.length) {
+    throw new Error("Shopify UCP lookup returned duplicate products.");
+  }
+  return { result: { structuredContent: { products } } };
 }
 
 export function exactShopifyImageUrl(input: {
@@ -137,9 +180,10 @@ export function parseCuratedShopifyLookup(input: {
   );
   const expected = new Set(input.productIds);
   const unexpected = [...byId.keys()].filter((id) => !expected.has(id));
+  const missing = input.productIds.filter((id) => !byId.has(id));
   if (unexpected.length > 0 || byId.size !== input.productIds.length) {
     throw new Error(
-      `${input.merchant} lookup mismatch: expected ${input.productIds.length}, received ${byId.size}`,
+      `${input.merchant} lookup mismatch: expected ${input.productIds.length}, received ${byId.size}; missing=${missing.join(",") || "none"}; unexpected=${unexpected.join(",") || "none"}`,
     );
   }
   return input.productIds.map((id) => {

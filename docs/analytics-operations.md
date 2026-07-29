@@ -9,6 +9,19 @@ Shopifind mantiene dos capas separadas:
 2. Plausible medirá páginas, fuentes y sesiones cuando el owner cree el sitio y
    active su snippet específico. No está cargando todavía en producción.
 
+Decisión de infraestructura del 2026-07-29: mientras la aplicación permanezca
+en Vercel se usará **Plausible Cloud**. No se instalará Matomo en el VPS ni se
+añadirá GA4 en paralelo. Cuando Shopifind migre a Hestia podrá reevaluarse
+Plausible Community Edition o Matomo como servicio aislado, incluyendo antes
+backup, actualizaciones, archivado, capacidad y retención. GA4 sólo se
+reconsiderará si la atribución de Google Ads aporta una necesidad concreta que
+compense Consent Mode y la complejidad legal/técnica adicional en el EEE.
+
+Plausible declara que su tracker estándar no usa cookies ni identificadores
+persistentes. La configuración actual se mantiene agregada y sin tracking
+personalizado; debe seguir descrita en la política de privacidad aunque no se
+añada un banner sólo para analítica.
+
 El snapshot anterior a la versión 2 contiene 74 filas legacy, 61 búsquedas y
 32 click-outs. Varias proceden del smoke de producción, así que no deben usarse
 como conversión histórica. No se borran porque no existe una forma fiable de
@@ -53,6 +66,9 @@ Fuentes oficiales consultadas el 2026-07-29:
 - https://plausible.io/docs/plausible-script
 - https://plausible.io/docs/script-update-guide
 - https://plausible.io/docs/spa-support
+- https://plausible.io/privacy-focused-web-analytics
+- https://matomo.org/faq/on-premise/matomo-requirements/
+- https://support.google.com/analytics/answer/12334711?hl=es
 
 ## Consultas operativas
 
