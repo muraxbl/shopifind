@@ -535,6 +535,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 25. **Cambios mecánicos**: al reemplazar un bloque, revisar también consumidores y referencias. Ejecutar `pnpm test`, typecheck, build y `git diff --check`; el typecheck por sí solo no detecta fallos de comportamiento.
 26. **Verificación post-deploy**: esperar el estado `success` de Vercel y ejecutar `pnpm smoke:production`; descubre una PDP desde el sitemap y valida rutas, auth, SEO, imágenes, Skimlinks, cron y APIs de test sin secretos. El hash enviado a Git no demuestra por sí solo qué versión está sirviendo el dominio.
 27. **Preflight de tablas PostgREST**: no usar `select(..., { head: true })` para comprobar que una tabla existe; puede devolver 204 aunque falte del schema cache. Usar un GET acotado con `.select('id').limit(1)` y comprobar `error`.
+28. **Alta segura de merchants con imágenes remotas**: desplegar primero el `remotePatterns` exacto y mantener la tienda inactiva; comprobar en producción una URL real de `/_next/image` (incluido el ancho mayor usado por la UI) y sólo entonces activar la tienda. Como el sitemap usa ISR diario, tras activarla hay que provocar/verificar una regeneración con la tienda ya activa antes de dar el release por cerrado. Si falla el optimizador, desactivar la tienda es el rollback reversible: no se borran productos.
 
 ---
 
