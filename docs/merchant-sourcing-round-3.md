@@ -28,7 +28,7 @@ verificados. El segundo merchant de iluminación conserva su gate específico en
 |         1 | **Woodendot**    | home-deco           | UCP + `agents.md` permiten lectura de catálogo sin auth | Página oficial de afiliados                      | Mejor candidato: marca española independiente, fabricación local, madera FSC y circularidad documentadas          |
 |         2 | **Thinking MU**  | sustainable-fashion | UCP + `agents.md` permiten lectura de catálogo sin auth | No localizada públicamente; exige gate Skimlinks | Muy buen encaje: fundada en Barcelona, trazabilidad, fibras certificadas y envío EUR desde Girona                 |
 |         3 | **Native Union** | indie-gadgets       | UCP + `agents.md` permiten lectura de catálogo sin auth | Programa de creadores/afiliados oficial          | Buen catálogo y EUR para España; claims ambientales deben evaluarse producto a producto, sin eco-score automático |
-|         4 | Orbitkey         | indie-gadgets       | UCP + `agents.md` públicos                              | Programa oficial disponible previa solicitud     | Reserva sólida, pero origen australiano y logística EU deben validarse por producto                               |
+|         4 | **Orbitkey**     | indie-gadgets       | UCP + `agents.md` permiten lectura de catálogo sin auth | Programa oficial disponible previa solicitud     | Piloto validado: diseño australiano, catálogo EUR y expedición europea desde Países Bajos                         |
 |         5 | HANNUN           | home-deco           | UCP + `agents.md` permiten lectura de catálogo sin auth | Sólo se encontró rewards/referral de cliente     | Catálogo útil, pero menor encaje “indie” y sin señal afiliada pública suficiente                                  |
 |         6 | TWOTHIRDS        | sustainable-fashion | UCP público; `agents.md` respondió 403 en el snapshot   | No localizada públicamente                       | Encaje editorial fuerte, pero Thinking MU ofrece hoy un contrato técnico más claro                                |
 
@@ -136,18 +136,18 @@ bytes) mediante `/_next/image` y el smoke quedó 19/19. Antes de cualquier
 
 El piloto de 10 productos quedó también preparado sin escribir en Supabase:
 
-| Producto | Caso de uso | Precio observado |
-| --- | --- | ---: |
-| (Re)Classic Case · iPhone 17 | funda magnética | 59,99 € |
-| (Re)Classic Case · AirPods 4 | funda de auriculares | 39,99 € |
-| Belt Cable 2-in-1 140W | cable de carga | 29,99 € |
-| Pocket Cable 60W | cable compacto | 29,99 € |
-| Fast Desktop Charger 140W | carga de escritorio | 129,99 € |
-| (Re)Classic Power Bank 5000mAh | batería magnética | 69,99 € |
-| Fold Laptop Stand | soporte portátil | 39,99 € |
-| Desk Mat | escritorio | 49,99 € |
-| W.F.A Backpack | mochila | 119,99 € |
-| Stow Organizer | organizador tecnológico | 49,99 € |
+| Producto                       | Caso de uso             | Precio observado |
+| ------------------------------ | ----------------------- | ---------------: |
+| (Re)Classic Case · iPhone 17   | funda magnética         |          59,99 € |
+| (Re)Classic Case · AirPods 4   | funda de auriculares    |          39,99 € |
+| Belt Cable 2-in-1 140W         | cable de carga          |          29,99 € |
+| Pocket Cable 60W               | cable compacto          |          29,99 € |
+| Fast Desktop Charger 140W      | carga de escritorio     |         129,99 € |
+| (Re)Classic Power Bank 5000mAh | batería magnética       |          69,99 € |
+| Fold Laptop Stand              | soporte portátil        |          39,99 € |
+| Desk Mat                       | escritorio              |          49,99 € |
+| W.F.A Backpack                 | mochila                 |         119,99 € |
+| Stow Organizer                 | organizador tecnológico |          49,99 € |
 
 El dry-run UCP devolvió 10/10 disponibles en EUR y las diez imágenes de origen
 respondieron como `image/*`. Los destinos se restringen a
@@ -162,6 +162,42 @@ la ficha completa de cada producto; diseño o independencia no se convierten en
 claims ambientales. Native Union publica un programa propio de colaboración,
 pero no se activa ni se presenta como monetizado mientras Skimlinks siga en
 revisión.
+
+## Piloto técnico Orbitkey preparado
+
+El cuarto piloto oculto contiene 10 productos, sin escritura en Supabase:
+
+| Producto                      | Caso de uso                            | Precio observado |
+| ----------------------------- | -------------------------------------- | ---------------: |
+| Key Organiser · lona encerada | llaves · algodón BCI                   |          27,97 € |
+| Key Organiser · cactus        | llaves · alternativa al cuero          |          23,97 € |
+| Nest v2                       | organizador/cargador de escritorio     |         129,90 € |
+| Foldable Tote                 | bolsa plegable reutilizable            |          16,90 € |
+| 2-in-1 Tech Pouch             | organización tecnológica               |          69,90 € |
+| Essentials Pouch Trio         | organización modular                   |          35,00 € |
+| Compendium Leather Free       | documentación y notas                  |         129,90 € |
+| Hybrid Laptop Sleeve v2       | funda, soporte y superficie de trabajo |          79,90 € |
+| Orbitkey x Chipolo Tracker v2 | localizador con pila reemplazable      |          27,93 € |
+| Desk Mat · mediano            | escritorio · fieltro PET reciclado     |          62,93 € |
+
+El dry-run UCP respondió 10/10 disponibles para España, con precio EUR y las
+diez imágenes accesibles como `image/*`. Los destinos se limitan a
+`https://www.orbitkey.eu/es/products/...` y los assets a
+`cdn.shopify.com/s/files/1/2161/4233/`; cualquier desvío de host, locale o
+carpeta aborta el lote.
+
+Las etiquetas se derivan exclusivamente de la descripción y tags de cada ficha:
+algodón BCI, cuero de cactus, cuero vegano, Cyclepet/PET o poliéster reciclado,
+y certificación GRS cuando se declara explícitamente. El tracker conserva como
+atributo su pila CR1632 reemplazable. La marca publica dos años de garantía y
+expide el resto de Europa desde Países Bajos, pero esos datos de marca no se
+convierten automáticamente en claims ambientales de cada artículo.
+
+La tienda queda `active=false`, `verified=false`, `featured=false` y
+`eco_score=0`. Orbitkey declara un programa afiliado propio cuyos detalles se
+facilitan bajo solicitud: no se presenta como activo y no se ha usado
+`--write`. Antes de publicar hay que solicitar/admitir la relación comercial,
+verificar deep links para España y autorizar expresamente la escritura.
 
 ## Comprobaciones comerciales complementarias
 
@@ -226,6 +262,9 @@ Fuentes adicionales:
 - https://www.nativeunion.com/.well-known/ucp
 - https://www.nativeunion.com/pages/shipping
 - https://www.orbitkey.com/pages/contact
-- https://www.orbitkey.com/agents.md
+- https://www.orbitkey.eu/agents.md
+- https://www.orbitkey.eu/.well-known/ucp
+- https://www.orbitkey.eu/pages/shipping
+- https://www.orbitkey.eu/pages/sustainability
 - https://hannun.com/agents.md
 - https://twothirds.com/.well-known/ucp

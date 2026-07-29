@@ -27,6 +27,7 @@
     "scripts:seed:woodendot": "tsx scripts/seed-woodendot-v1.ts",
     "scripts:seed:thinkingmu": "tsx scripts/seed-thinkingmu-v1.ts",
     "scripts:seed:native-union": "tsx scripts/seed-native-union-v1.ts",
+    "scripts:seed:orbitkey": "tsx scripts/seed-orbitkey-v1.ts",
     "smoke:production": "tsx scripts/smoke-production.ts"
   },
   "dependencies": {
