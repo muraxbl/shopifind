@@ -1,5 +1,5 @@
-import type { MetadataRoute } from 'next';
-import { SITE_CONFIG } from '@/lib/config';
+import type { MetadataRoute } from "next";
+import { SITE_CONFIG } from "@/lib/config";
 
 /**
  * Dynamic /robots.txt (Next.js 13+ convention from src/app/robots.ts).
@@ -14,9 +14,8 @@ import { SITE_CONFIG } from '@/lib/config';
  *   /admin/ — private ops/admin tools (future-proof even if empty now
  *             — Google will find the path once it exists).
  *   /auth/  — login / OAuth callback endpoints; never indexable.
- *   /go/    — \u2192 Skimlinks affiliate redirects (302 to go.redirectingat.com).
- *             Crawling these counts as Skimlinks click-outs and causes
- *             pure noise in our affiliate dashboard. Block the bot path.
+ *   /go/    — redirects comerciales y medición de click-outs. El crawling
+ *             contaminaría métricas y podría consumir atribución afiliada.
  *   /search — infinite permutational URL space (?q=*, &niche=*, &tag=*);
  *             disallow prevents crawler traps and duplicate-content
  *             dilution.
@@ -25,13 +24,13 @@ import { SITE_CONFIG } from '@/lib/config';
  * same fetch.
  */
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = SITE_CONFIG.url.replace(/\/+$/, '');
+  const baseUrl = SITE_CONFIG.url.replace(/\/+$/, "");
   return {
     rules: [
       {
-        userAgent: '*',
-        allow: '/',
-        disallow: ['/api/', '/admin/', '/auth/', '/go/', '/search'],
+        userAgent: "*",
+        allow: "/",
+        disallow: ["/api/", "/admin/", "/auth/", "/go/", "/search"],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

@@ -505,7 +505,7 @@ async function main(): Promise<void> {
       },
     },
     {
-      name: "redirect Skimlinks",
+      name: "redirect comercial directo",
       run: async () => {
         if (!productUrl) throw new Error("dependencia sitemap no disponible");
         const goPath = productUrl.pathname.replace("/product/", "/go/");
@@ -519,10 +519,10 @@ async function main(): Promise<void> {
         if (!location) throw new Error("redirect sin cabecera Location");
         const target = new URL(location);
         if (
-          target.hostname !== "go.redirectingat.com" ||
-          !target.searchParams.get("xcust")?.startsWith("shopifind-")
+          target.protocol !== "https:" ||
+          target.hostname !== "rapanuiclothing.com"
         ) {
-          throw new Error("destino o atribución Skimlinks incorrectos");
+          throw new Error("el click-out no termina en el merchant esperado");
         }
         return `${response.status} → ${target.hostname}`;
       },
