@@ -508,7 +508,7 @@ async function main(): Promise<void> {
       name: "redirect comercial directo",
       run: async () => {
         if (!productUrl) throw new Error("dependencia sitemap no disponible");
-        const goPath = productUrl.pathname.replace("/product/", "/go/");
+        const goPath = `${productUrl.pathname.replace("/product/", "/go/")}?placement=pdp`;
         const response = await request(siteUrl(baseUrl, goPath));
         if (!REDIRECT_STATUSES.has(response.status)) {
           throw new Error(
@@ -524,7 +524,30 @@ async function main(): Promise<void> {
         ) {
           throw new Error("el click-out no termina en el merchant esperado");
         }
-        return `${response.status} → ${target.hostname}`;
+        const expectedUtm = {
+          utm_source: "shopifind",
+          utm_medium: "referral",
+          utm_campaign: "product_discovery",
+        } as const;
+        for (const [key, value] of Object.entries(expectedUtm)) {
+          if (target.searchParams.get(key) !== value) {
+            throw new Error(`atribución UTM incorrecta o ausente: ${key}`);
+          }
+        }
+        if (!target.searchParams.get("utm_content")?.startsWith("pdp-")) {
+          throw new Error("utm_content no conserva el placement PDP");
+        }
+        return `${response.status} → ${target.hostname} + UTM`;
+      },
+    },
+    {
+      name: "webhook de agregador retirado",
+      run: async () => {
+        const response = await request(
+          siteUrl(baseUrl, "/api/webhooks/skimlinks"),
+        );
+        expectStatus(response, 404);
+        return "HTTP 404";
       },
     },
     {
