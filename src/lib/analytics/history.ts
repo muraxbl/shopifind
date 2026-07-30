@@ -1,6 +1,7 @@
 import type { Json } from '@/types/database.types';
+import type { ClickoutChannel, ClickoutPlacement } from '@/lib/affiliate';
 
-export const ANALYTICS_SCHEMA_VERSION = 2;
+export const ANALYTICS_SCHEMA_VERSION = 3;
 export const RELEASE_SMOKE_USER_AGENT = 'shopifind-release-smoke/1.0';
 
 export function shouldRecordHistoryEvent(
@@ -44,17 +45,35 @@ export function buildSearchHistoryEvent(
   };
 }
 
+type ClickOutHistoryInput = {
+  productId: string;
+  productSlug: string;
+  storeSlug: string | null;
+  placement: ClickoutPlacement;
+  channel: ClickoutChannel;
+  merchantHost: string;
+  targetHost: string;
+  utmApplied: boolean;
+};
+
 export function buildClickOutHistoryEvent(
-  productSlug: string,
+  input: ClickOutHistoryInput,
 ): SearchHistoryInsert {
-  const slug = productSlug.slice(0, 160);
+  const slug = input.productSlug.slice(0, 160);
   return {
     user_id: null,
     query: `[click-out] /product/${slug}`,
     filters: {
       event: 'click_out',
       schema_version: ANALYTICS_SCHEMA_VERSION,
+      product_id: input.productId.slice(0, 64),
       product_slug: slug,
+      store_slug: input.storeSlug?.slice(0, 100) ?? null,
+      placement: input.placement,
+      channel: input.channel,
+      merchant_host: input.merchantHost.slice(0, 253),
+      target_host: input.targetHost.slice(0, 253),
+      utm_applied: input.utmApplied,
     },
     results_count: 1,
   };

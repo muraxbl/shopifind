@@ -28,7 +28,7 @@ const STORE = {
     "circular-take-back",
   ],
   country: "ES",
-  affiliate_program: "skimlinks",
+  affiliate_program: "direct-pending",
   affiliate_id: null,
   feed_source: "shopify-ucp-curated",
   active: false,

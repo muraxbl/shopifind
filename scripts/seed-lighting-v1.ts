@@ -103,7 +103,7 @@ type StoreSeed = {
   eco_score: 78;
   values: string[];
   country: 'ES';
-  affiliate_program: 'skimlinks';
+  affiliate_program: 'pro-bono';
   active: true;
   verified: true;
   featured: true;
@@ -133,7 +133,7 @@ const STORE_FIXTURE: StoreSeed = {
   eco_score: 78,
   values: ['eu-made', 'long-lifespan', 'recyclable', 'certified', 'low-energy'],
   country: 'ES',
-  affiliate_program: 'skimlinks',
+  affiliate_program: 'pro-bono',
   active: true,
   verified: true,
   featured: true,
@@ -361,7 +361,7 @@ async function main() {
   console.log(`
 Operator next steps:
   • Live verify:  curl https://shopifind.app/explore/iluminacion → expect 200 + ~${stockTrue} products.
-  • Skimlinks:    /go/<slug> click-out now wraps the masterled.es PDP via SKIMLINKS_DOMAIN_ID.
+  • Click-out:    /go/<slug> records attribution and uses an approved affiliate URL or UTM fallback.
   • Categories:   categories table is EMPTY (intentional — TODO post-MVP).
   • Categories auto-parse: Categories column was multi-value comma-separated; we left
     it null in MVP. (Re-introduce later by splitting on ',' + creating the categories table rows.)

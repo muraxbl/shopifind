@@ -21,7 +21,7 @@ const ProductUpsertSchema = z.object({
 });
 
 /**
- * Protected cron endpoint to ingest products from Skimlinks / direct feeds.
+ * Protected cron endpoint to ingest products from approved merchant feeds.
  *
  * Authorization: header `x-ingest-secret` must match INGEST_SECRET env var.
  *

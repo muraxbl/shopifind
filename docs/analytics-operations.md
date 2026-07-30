@@ -6,21 +6,21 @@ Shopifind mantiene dos capas separadas:
 
 1. `search_history` en Supabase registra búsquedas y click-outs anónimos para
    métricas operativas propias.
-2. Plausible medirá páginas, fuentes y sesiones cuando el owner cree el sitio y
-   active su snippet específico. No está cargando todavía en producción.
+2. Una analítica web autoalojada medirá páginas, fuentes, sesiones, funnels y
+   UTMs. No hay tracker general cargando todavía en producción.
 
-Decisión de infraestructura del 2026-07-29: mientras la aplicación permanezca
-en Vercel se usará **Plausible Cloud**. No se instalará Matomo en el VPS ni se
-añadirá GA4 en paralelo. Cuando Shopifind migre a Hestia podrá reevaluarse
-Plausible Community Edition o Matomo como servicio aislado, incluyendo antes
-backup, actualizaciones, archivado, capacidad y retención. GA4 sólo se
-reconsiderará si la atribución de Google Ads aporta una necesidad concreta que
-compense Consent Mode y la complejidad legal/técnica adicional en el EEE.
+Decisión revisada el 2026-07-30: no contratar Plausible Cloud mientras la
+economía del proyecto no esté validada. La primera opción es **Umami v3
+self-hosted** en uno de los VPS existentes, con subdominio, base de datos,
+backups y actualizaciones aislados. Su tracker no usa cookies, admite SPA,
+eventos, funnels y UTMs. Matomo queda como alternativa si más adelante hacen
+falta informes de marketing más complejos. GA4 sólo se reconsiderará si Google
+Ads crea una necesidad concreta que compense Consent Mode y la complejidad
+legal/técnica adicional en el EEE.
 
-Plausible declara que su tracker estándar no usa cookies ni identificadores
-persistentes. La configuración actual se mantiene agregada y sin tracking
-personalizado; debe seguir descrita en la política de privacidad aunque no se
-añada un banner sólo para analítica.
+No desplegar Umami aún: primero el owner debe elegir VPS y subdominio. Antes de
+activarlo se documentarán HTTPS, CSP, acceso administrativo, retención, backup
+y el texto exacto de privacidad.
 
 El snapshot anterior a la versión 2 contiene 74 filas legacy, 61 búsquedas y
 32 click-outs. Varias proceden del smoke de producción, así que no deben usarse
@@ -32,29 +32,38 @@ Desde `schema_version = 2`, el smoke usa el User-Agent exacto
 humanos siguen registrándose, incluso cuando falta User-Agent. Esta versión es
 la primera línea base válida para el embudo interno.
 
+`schema_version = 3` amplía cada click-out con producto, tienda, placement,
+canal comercial, host del merchant, host técnico de destino y presencia de
+UTMs. No almacena IP, cookie ni identificador de usuario. Los clicks canónicos
+usan las convenciones descritas en `docs/affiliate-strategy-spain.md`; los deep
+links firmados de redes no se modifican automáticamente.
+
 Verificación de producción del 2026-07-29: el conteo quedó en 167 filas totales
 y 0 filas v2 tanto antes como después de ejecutar el smoke 18/18 completo.
 
-## Activar Plausible
+## Integración Plausible conservada, no activa
 
-Plausible cambió su integración en octubre de 2025: cada sitio utiliza ahora
+El código conserva compatibilidad por si se revisa la decisión. Plausible cambió
+su integración en octubre de 2025: cada sitio utiliza ahora
 un script único `https://plausible.io/js/pa-XXXXX.js` y una llamada explícita a
 `plausible.init()`. El antiguo `https://plausible.io/js/script.js` no se acepta.
 
-1. Crear o abrir el sitio `shopifind.app` en Plausible.
-2. Ir a **Site settings → General → Site Installation → Review Installation**.
-3. Copiar sólo la URL exacta `https://plausible.io/js/pa-….js`.
-4. Añadir en Vercel, para Production:
+No ejecutar estos pasos ahora. Si se reactiva Plausible: crear o abrir el sitio
+`shopifind.app`, obtener el script y seguir las validaciones ya implementadas:
+
+1. Abrir **Site settings → General → Site Installation → Review Installation**.
+2. Copiar sólo la URL exacta `https://plausible.io/js/pa-….js`.
+3. Añadir en Vercel, para Production:
 
    ```text
    NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC=https://plausible.io/js/pa-….js
    ```
 
-5. Eliminar la variable legacy `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` si existe y hacer
+4. Eliminar la variable legacy `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` si existe y hacer
    redeploy. No activar medición en Preview para no mezclar pruebas con tráfico.
-6. Usar el verificador de instalación de Plausible y comprobar en el HTML una
+5. Usar el verificador de instalación de Plausible y comprobar en el HTML una
    sola URL `pa-….js` y una sola llamada `plausible.init()`.
-7. Navegar entre dos rutas: el router `pushState` está soportado de forma
+6. Navegar entre dos rutas: el router `pushState` está soportado de forma
    automática. Confirmar la sesión en el dashboard antes de declararlo activo.
 
 El código valida host, ruta y formato del script; una URL genérica o externa se
@@ -70,6 +79,13 @@ Fuentes oficiales consultadas el 2026-07-29:
 - https://matomo.org/faq/on-premise/matomo-requirements/
 - https://support.google.com/analytics/answer/12334711?hl=es
 
+Fuentes de la decisión revisada el 2026-07-30:
+
+- https://docs.umami.is/docs
+- https://docs.umami.is/docs/about
+- https://plausible.io/self-hosted-web-analytics
+- https://matomo.org/guide/installation-maintenance/matomo-on-premise-self-hosted/
+
 ## Consultas operativas
 
 Conteo de la línea base fiable:
@@ -81,10 +97,25 @@ SELECT
   min(created_at) AS first_seen,
   max(created_at) AS last_seen
 FROM public.search_history
-WHERE filters->>'schema_version' = '2'
+WHERE filters->>'schema_version' IN ('2', '3')
 GROUP BY 1
 ORDER BY 1;
 ```
 
+Desglose comercial de click-outs v3:
+
+```sql
+SELECT
+  filters->>'store_slug' AS store,
+  filters->>'placement' AS placement,
+  filters->>'channel' AS channel,
+  count(*) AS clicks
+FROM public.search_history
+WHERE filters->>'event' = 'click_out'
+  AND filters->>'schema_version' = '3'
+GROUP BY 1, 2, 3
+ORDER BY clicks DESC;
+```
+
 No interpretar `searches / click_outs` como usuarios únicos: son eventos. La
-conversión por sesión y adquisición corresponde a Plausible cuando esté activo.
+conversión por sesión y adquisición corresponderá a Umami cuando esté activo.

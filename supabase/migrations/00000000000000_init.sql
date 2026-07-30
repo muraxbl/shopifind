@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS stores (
   eco_score INT DEFAULT 0 CHECK (eco_score BETWEEN 0 AND 100),
   values TEXT[] DEFAULT '{}',                 -- ['vegan','female-founded','eu-made','b-corp']
   country TEXT,
-  affiliate_program TEXT DEFAULT 'skimlinks', -- 'skimlinks' | 'direct' | 'awin'
+  affiliate_program TEXT,                     -- merchant/network status, e.g. 'direct', 'awin', 'rakuten-pending'
   affiliate_id TEXT,                          -- ID del programa cuando es directo
   feed_source TEXT,                           -- 'csv' | 'rss' | 'api' | 'manual'
   active BOOLEAN DEFAULT FALSE,               -- manual moderation gate

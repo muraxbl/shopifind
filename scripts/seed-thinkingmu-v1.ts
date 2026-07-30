@@ -26,7 +26,7 @@ const STORE = {
     "zero-stock-policy",
   ],
   country: "ES",
-  affiliate_program: "skimlinks",
+  affiliate_program: "direct-outreach",
   affiliate_id: null,
   feed_source: "shopify-ucp-curated",
   active: false,

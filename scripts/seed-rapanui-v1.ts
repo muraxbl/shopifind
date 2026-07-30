@@ -35,7 +35,7 @@ const STORE = {
   eco_score: 90,
   values: ["organic", "circular", "low-impact", "plastic-free", "fair-trade"],
   country: "GB",
-  affiliate_program: "skimlinks",
+  affiliate_program: "rakuten-pending",
   affiliate_id: null,
   feed_source: "curated-product-api",
   active: true,

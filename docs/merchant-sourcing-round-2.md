@@ -1,29 +1,28 @@
 # Ronda 2 de sourcing — moda, deco e iluminación
 
 > Snapshot técnico y editorial: 2026-07-29. La presencia de un programa de
-> afiliación público no confirma que el merchant esté monetizable en la cuenta
-> concreta de Skimlinks.
+> afiliación público no confirma que Shopifind esté aprobado: cada programa o
+> red exige alta, términos y una prueba de deep linking.
 
 ## Decisión
 
 1. **Rapanui — piloto publicado.** Es el mejor encaje entre identidad,
    trazabilidad técnica y potencial comercial. Su programa oficial de afiliados
    publica Rakuten Programme ID 50425, comisión desde 6 %, ventana de 10 días y
-   acceso a creatividades. Shopifind mantiene, no obstante, `skimlinks` como
-   mecanismo de click-out y `verified=false` hasta comprobar el merchant en el
-   dashboard real.
+   acceso a creatividades. Shopifind debe solicitar Rakuten 50425 y mantiene
+   `verified=false` hasta completar la admisión y el deep link real.
 2. **Oakywood — piloto publicado en home-deco.** Diez accesorios de escritorio y carga
    localizados para España en EUR mediante el Storefront Catalog UCP oficial de
    Shopify. La marca fabrica en Polonia, documenta madera responsable/FSC,
-   recuperación de producto y garantía de cinco años. Su programa Awin publica
-   10 % y cookie de 15 días; Shopifind conserva Skimlinks como click-out y
-   `verified=false` hasta validar el merchant en el dashboard real.
+   recuperación de producto y garantía de cinco años. No se localizó una ruta
+   publisher pública vigente en la revisión del 2026-07-30: requiere contacto
+   directo y mantiene `verified=false`.
 3. **ShiftCam — piloto publicado.** El HTML/JSON convencional mantuvo `429`,
    pero la marca publica UCP y sus instrucciones autorizan ese catálogo para
    agentes. Diez accesorios de fotografía móvil quedaron localizados en EUR
    para España. Tiene programa directo al 10 % y envío mundial; Shopifind avisa
-   de posibles impuestos/aranceles y mantiene `verified=false` hasta validar
-   Skimlinks.
+   de posibles impuestos/aranceles y mantiene `verified=false` hasta que su
+   programa directo apruebe Shopifind para España.
 4. **Kave Home — candidato siguiente, bloqueado por feed.** Su programa oficial
    anuncia más de 5.000 referencias, comisión e imágenes en alta resolución. La
    ruta pública de sitemap devolvió un checkpoint anti-bot durante el spike; no
@@ -31,8 +30,8 @@
    programa entregue feed o acceso autorizado.
 5. **GreenIce — prioridad para iluminación/comparador.** Sigue siendo el mejor
    segundo catálogo técnico por cobertura y estructura, pero se mantiene el
-   gate documentado en `merchant-sourcing-lighting.md`: confirmar Skimlinks y
-   obtener feed o permiso de reutilización.
+   gate documentado en `merchant-sourcing-lighting.md`: conseguir programa/red
+   y obtener feed o permiso de reutilización.
 6. **Barcelona LED — fallback de GreenIce.** Buen catálogo español y fichas
    técnicas; mismos gates de afiliación y derechos.
 7. **Fairphone — reserva editorial para gadgets.** El programa público localizado

@@ -4,7 +4,9 @@ export default function LegalPage() {
   return (
     <div className="container py-16">
       <h1 className="font-display text-4xl">Aviso legal y afiliados</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Última actualización: hoy</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Última actualización: 30 de julio de 2026
+      </p>
 
       <div className="prose prose-stone mt-8 max-w-3xl">
         <h2>1. Sobre Shopifind</h2>
@@ -24,13 +26,19 @@ export default function LegalPage() {
           escríbenos a <a href="mailto:legal@shopifind.app">legal@shopifind.app</a>.
         </div>
 
-        <h2>3. Programa de afiliados (FTC / UE disclosure)</h2>
+        <h2>3. Divulgación de afiliación</h2>
         <p>
-          Shopifind participa en programas de afiliación con merchants y plataformas como
-          Skimlinks, ShareASale y Awin. Cuando recomendamos un producto y haces click en su enlace,
-          puede que recibamos una pequeña comisión si completas una compra —{' '}
+          Algunos enlaces de Shopifind pueden formar parte de programas de afiliación
+          contratados directamente con la tienda o mediante una red. Cuando un enlace
+          afiliado está activo y haces una compra que cumple sus condiciones, podemos
+          recibir una pequeña comisión —{' '}
           <strong>sin coste adicional para ti</strong>. Esto nos permite mantener el servicio,
           seguir curando y mejorar la búsqueda con IA.
+        </p>
+        <p>
+          También enlazamos tiendas con las que todavía no existe un acuerdo comercial.
+          Esos destinos pueden incluir parámetros de campaña para que la tienda reconozca
+          el tráfico enviado por Shopifind, pero no generan una comisión por sí solos.
         </p>
         <p>
           Las recomendaciones siempre son independientes y priorizamos relevancia, calidad

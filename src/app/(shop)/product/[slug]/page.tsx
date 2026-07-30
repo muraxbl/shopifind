@@ -236,9 +236,13 @@ export default async function ProductPage({
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="flex-1 gap-2">
               <a
-                href={`/go/${product.slug}`}
+                href={`/go/${product.slug}?placement=pdp`}
                 target="_blank"
-                rel="sponsored noopener noreferrer"
+                rel={
+                  product.affiliate_url
+                    ? "sponsored noopener noreferrer"
+                    : "noopener noreferrer"
+                }
               >
                 Ver en {product.store_name} <ExternalLink className="h-4 w-4" />
               </a>
@@ -261,11 +265,20 @@ export default async function ProductPage({
           />
 
           <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-            Al hacer click en &quot;Ver en {product.store_name}&quot; podemos
-            recibir una pequeña comisión de afiliado.{" "}
-            <strong>No tiene coste extra para ti.</strong> Lee más en nuestra{" "}
+            {product.affiliate_url ? (
+              <>
+                Este enlace tiene afiliación activa: podemos recibir una pequeña
+                comisión si compras, sin coste extra para ti.
+              </>
+            ) : (
+              <>
+                Este enlace no tiene afiliación activa. Registramos la salida de
+                forma anónima y la tienda puede reconocer a Shopifind mediante
+                parámetros de campaña.
+              </>
+            )}{" "}
             <Link href="/legal" className="underline">
-              divulgación FTC / UE
+              divulgación de afiliación
             </Link>
             .
           </p>

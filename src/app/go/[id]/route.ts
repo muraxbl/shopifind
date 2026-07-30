@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
-import { resolveClickoutUrl } from "@/lib/skimlinks";
+import {
+  normalizeClickoutPlacement,
+  resolveClickoutTarget,
+} from "@/lib/affiliate";
 import { buildClickOutHistoryEvent } from "@/lib/analytics/history";
 import { recordHistoryEvent } from "@/lib/analytics/record";
 
@@ -9,6 +12,7 @@ type GoProduct = {
   slug: string;
   source_url: string;
   affiliate_url: string | null;
+  store_slug: string | null;
 };
 
 /**
@@ -26,7 +30,7 @@ export async function GET(
   const sb = createPublicSupabaseClient({ revalidate: false });
   const res = await sb
     .from("v_products_with_store")
-    .select("id, slug, source_url, affiliate_url")
+    .select("id, slug, source_url, affiliate_url, store_slug")
     .eq("slug", id)
     .eq("in_stock", true)
     .maybeSingle();
@@ -36,24 +40,39 @@ export async function GET(
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  let targetUrl: string;
+  const placement = normalizeClickoutPlacement(
+    request.nextUrl.searchParams.get("placement"),
+  );
+
+  let target;
   try {
-    targetUrl = resolveClickoutUrl({
+    target = resolveClickoutTarget({
       sourceUrl: product.source_url,
       affiliateUrl: product.affiliate_url,
       productSlug: product.slug,
+      placement,
     });
   } catch {
-    targetUrl = product.source_url;
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   // Await the best-effort event so the serverless invocation cannot terminate
   // before the write has been handed to Supabase.
-  await recordHistoryEvent(buildClickOutHistoryEvent(product.slug), {
-    userAgent: request.headers.get("user-agent"),
-  });
+  await recordHistoryEvent(
+    buildClickOutHistoryEvent({
+      productId: product.id,
+      productSlug: product.slug,
+      storeSlug: product.store_slug,
+      placement,
+      channel: target.channel,
+      merchantHost: target.merchantHost,
+      targetHost: target.targetHost,
+      utmApplied: target.utmApplied,
+    }),
+    { userAgent: request.headers.get("user-agent") },
+  );
 
-  return NextResponse.redirect(targetUrl, {
+  return NextResponse.redirect(target.url, {
     status: 302,
     headers: { "X-Robots-Tag": "noindex" },
   });

@@ -97,7 +97,7 @@ type StoreSeed = {
   eco_score: number;
   values: string[];
   country: string;
-  affiliate_program: 'skimlinks';
+  affiliate_program: 'unconfigured';
   active: true;
   verified: false;
   featured: boolean;
@@ -115,7 +115,7 @@ const STORE_FIXTURE: StoreSeed[] = [
     eco_score: 85,
     values: ['b-corp', 'fair-trade', 'recycled', 'repair-program'],
     country: 'US',
-    affiliate_program: 'skimlinks',
+    affiliate_program: 'unconfigured',
     active: true,
     verified: false,
     featured: true,
@@ -131,7 +131,7 @@ const STORE_FIXTURE: StoreSeed[] = [
     eco_score: 82,
     values: ['transparent-supply-chain', 'recycled', 'eu-made', 'female-founded'],
     country: 'US',
-    affiliate_program: 'skimlinks',
+    affiliate_program: 'unconfigured',
     active: true,
     verified: false,
     featured: true,
@@ -147,7 +147,7 @@ const STORE_FIXTURE: StoreSeed[] = [
     eco_score: 88,
     values: ['fair-trade', 'organic', 'recycled', 'low-impact'],
     country: 'FR',
-    affiliate_program: 'skimlinks',
+    affiliate_program: 'unconfigured',
     active: true,
     verified: false,
     featured: true,
@@ -163,7 +163,7 @@ const STORE_FIXTURE: StoreSeed[] = [
     eco_score: 78,
     values: ['vegan', 'cruelty-free', 'recycled', 'innovative-materials'],
     country: 'UK',
-    affiliate_program: 'skimlinks',
+    affiliate_program: 'unconfigured',
     active: true,
     verified: false,
     featured: false,
@@ -179,7 +179,7 @@ const STORE_FIXTURE: StoreSeed[] = [
     eco_score: 91,
     values: ['transparent-supply-chain', 'gots', 'slow-fashion', 'permanent-collection'],
     country: 'SE',
-    affiliate_program: 'skimlinks',
+    affiliate_program: 'unconfigured',
     active: true,
     verified: false,
     featured: true,
@@ -195,7 +195,7 @@ const STORE_FIXTURE: StoreSeed[] = [
     eco_score: 86,
     values: ['organic', 'gots', 'eu-made', 'transparent-supply-chain'],
     country: 'DE',
-    affiliate_program: 'skimlinks',
+    affiliate_program: 'unconfigured',
     active: true,
     verified: false,
     featured: false,
@@ -211,7 +211,7 @@ const STORE_FIXTURE: StoreSeed[] = [
     eco_score: 89,
     values: ['b-corp', 'recycled', 'ocean-plastic', 'eu-made'],
     country: 'ES',
-    affiliate_program: 'skimlinks',
+    affiliate_program: 'unconfigured',
     active: true,
     verified: false,
     featured: true,
@@ -227,7 +227,7 @@ const STORE_FIXTURE: StoreSeed[] = [
     eco_score: 92,
     values: ['circular', 'recycled', 'organic', 'lease-program'],
     country: 'NL',
-    affiliate_program: 'skimlinks',
+    affiliate_program: 'unconfigured',
     active: true,
     verified: false,
     featured: true,
@@ -243,7 +243,7 @@ const STORE_FIXTURE: StoreSeed[] = [
     eco_score: 87,
     values: ['organic', 'renewable-energy', 'on-demand', 'transparent-supply-chain'],
     country: 'UK',
-    affiliate_program: 'skimlinks',
+    affiliate_program: 'unconfigured',
     active: true,
     verified: false,
     featured: false,
@@ -259,7 +259,7 @@ const STORE_FIXTURE: StoreSeed[] = [
     eco_score: 88,
     values: ['organic', 'gots', 'eu-made', 'rws-wool'],
     country: 'DK',
-    affiliate_program: 'skimlinks',
+    affiliate_program: 'unconfigured',
     active: true,
     verified: false,
     featured: false,

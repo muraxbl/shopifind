@@ -35,6 +35,7 @@ type CompareProduct = {
   eco_tags: string[];
   in_stock: boolean;
   attributes: unknown;
+  affiliate_url: string | null;
 };
 
 const ATTRIBUTE_ROWS = [
@@ -118,7 +119,7 @@ export default async function ComparePage({
   const { data, error } = await sb
     .from("v_products_with_store")
     .select(
-      "id, slug, title, image_url, price_cents, currency, store_name, store_slug, store_eco_score, niche, eco_tags, in_stock, attributes",
+      "id, slug, title, image_url, price_cents, currency, store_name, store_slug, store_eco_score, niche, eco_tags, in_stock, attributes, affiliate_url",
     )
     .in("id", ids)
     .eq("in_stock", true);
@@ -142,6 +143,7 @@ export default async function ComparePage({
     .filter((score) => score > 0);
   const bestEco =
     evaluatedEcoScores.length > 0 ? Math.max(...evaluatedEcoScores) : null;
+  const hasAffiliateLinks = products.some((product) => product.affiliate_url);
   const attributeRows = ATTRIBUTE_ROWS.filter((row) =>
     products.some((product) => displayAttribute(product, row.keys) !== "—"),
   ).slice(0, 8);
@@ -166,8 +168,9 @@ export default async function ComparePage({
           distintas; Shopifind no afirma que sean el mismo modelo.
         </p>
         <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-          Los botones &quot;Ver en tienda&quot; son enlaces afiliados: podemos
-          recibir una comisión si compras, sin coste adicional para ti.{" "}
+          {hasAffiliateLinks
+            ? "La comparación contiene al menos un enlace afiliado; podemos recibir una comisión si compras desde él, sin coste adicional para ti."
+            : "Estos enlaces no tienen afiliación activa; medimos anónimamente las salidas y enviamos atribución de campaña a las tiendas."}{" "}
           <Link href="/legal" className="underline">
             Más información
           </Link>
@@ -319,9 +322,13 @@ export default async function ComparePage({
                 <td key={product.id} className="border-l p-4">
                   <Button asChild className="w-full gap-2">
                     <a
-                      href={`/go/${product.slug}`}
+                      href={`/go/${product.slug}?placement=compare`}
                       target="_blank"
-                      rel="nofollow sponsored noopener noreferrer"
+                      rel={
+                        product.affiliate_url
+                          ? "nofollow sponsored noopener noreferrer"
+                          : "nofollow noopener noreferrer"
+                      }
                     >
                       Ver en {product.store_name}{" "}
                       <ExternalLink className="h-4 w-4" />

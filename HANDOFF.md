@@ -1,6 +1,6 @@
 # Shopifind — Handoff del proyecto
 
-> Documento vivo. Última actualización: 2026-07-29. **Estado:** MVP live en `shopifind.app` (Vercel) con DB poblada en Supabase Cloud. 4 nichos curados · 4 stores activas saneadas · 82 productos públicos · 4 colecciones editoriales · sitemap.xml + robots.txt operacionales.
+> Documento vivo. Última actualización: 2026-07-30. **Estado:** MVP live en `shopifind.app` (Vercel) con DB poblada en Supabase Cloud. 4 nichos curados · 4 stores activas saneadas · 82 productos públicos · 4 colecciones editoriales · sitemap.xml + robots.txt operacionales.
 
 ---
 
@@ -9,8 +9,8 @@
 |                    |                                                                                                                                                                                                                  |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Qué es**         | Buscador B2C de tiendas independientes reales. Indexa 4 nichos curados (sustainable-fashion, indie-gadgets, home-deco, **iluminacion**), permite búsqueda conversacional con IA, wishlist universal cross-store. |
-| **Quién monetiza** | Redirect afiliado server-side preparado con Skimlinks publisher `306854X1795120`; la cuenta sigue en revisión y no hay comisión E2E verificada. Comparador manual live; AdSense no integrado.                    |
-| **Stack core**     | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (`fra1`) · Hestia SMTP (Auth) · Resend (alertas) · Skimlinks · OpenAI · Plausible · Tailwind + shadcn/ui                        |
+| **Quién monetiza** | Routing server-side por merchant/red preparado; Skimlinks fue rechazado y retirado. No hay aún programa ni comisión E2E verificados. Comparador manual live; AdSense no integrado.                         |
+| **Stack core**     | Next.js 15 (App Router) · TypeScript · Supabase (Postgres + Auth + RLS) · Vercel (`fra1`) · Hestia SMTP (Auth) · Resend (alertas) · OpenAI · analítica interna/Umami planificado · Tailwind + shadcn/ui     |
 | **Live URL**       | https://shopifind.app                                                                                                                                                                                            |
 | **Status**         | MVP público. Masterled curado a 50 productos: 1.572 referencias históricas conservadas, 1.388 desactivadas reversiblemente y 8 filas protegidas por familia.                                                     |
 
@@ -25,7 +25,7 @@
 ### Por qué existe (3 problemas que resuelve)
 
 1. **Descubrimiento vs. búsqueda**: cuando ya sabes qué tienda quieres, vas directo. Cuando sabes qué _te importa_ pero no la tienda, comes tiempo muerto. Shopifind cataloga por _valores_ (eco_score 0-100, `eco_tags[]`, país, certificaciones) — no solo por keyword.
-2. **Afiliación saneada**: Skimlinks auto-joins transactions >60k programas. Cero coupling con cada merchant program (no nos enteramos si uno cambia el commission rate).
+2. **Afiliación saneada**: cada merchant usa su programa directo o red aprobada, con fallback canónico medido. Se registran producto, placement y canal sin depender de un agregador único.
 3. **Curación humana + IA estructurada**: AI interpreta la query → typed filters (Zod/JSON Schema) → SQL con pg_trgm + tsvector. El humano curador publica colecciones SEO tipo "Top 10 mochilas indie" que rankean para long-tails de alta conversión.
 
 ### Dominios defensivos (registrados / a registrar)
@@ -40,7 +40,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                              USUARIO                                │
-│              (browsers · Googlebot · crawler Skimlinks)             │
+│                   (browsers · Googlebot · crawlers)                 │
 └──────────────────────────┬──────────────────────────────────────────┘
                            │  HTTPS
                            ▼
@@ -70,7 +70,7 @@
 │   └──────────┘  └─────────────┘  └─────────────┘  └─────────────┘    │
 │                  ┌──────────────────┐  ┌──────────────────────┐     │
 │                  │ editorial_       │  │ click_attribution    │     │
-│                  │ collections      │  │ (Skimlinks webhook)  │     │
+│                  │ collections      │  │ (legacy, sin writer) │     │
 │                  └──────────────────┘  └──────────────────────┘     │
 │   ┌──────────┐  ┌─────────────┐  ┌────────────┐                     │
 │   │ users    │  │  wishlists  │  │  search_   │                     │
@@ -88,9 +88,9 @@
                   │                │                │
                   ▼                ▼                ▼
    ┌────────────────────┐ ┌──────────────────┐ ┌────────────────────┐
-   │ SKIMLINKS  ·  pub  │ │ HESTIA · Auth    │ │ OPENAI  ·  intent  │
-   │ 306854X1795120     │ │ auth.shopifind…  │ │ gpt-4o-mini via    │
-   │ go.redirectingat…  │ │ Resend: alertas  │ │ Structured Outputs │
+   │ AFFILIATE ROUTER   │ │ HESTIA · Auth    │ │ OPENAI  ·  intent  │
+   │ merchant / network │ │ auth.shopifind…  │ │ gpt-4o-mini via    │
+   │ /go + UTM fallback │ │ Resend: alertas  │ │ Structured Outputs │
    └────────────────────┘ └──────────────────┘ └────────────────────┘
 ```
 
@@ -118,8 +118,8 @@
         │
 6. User click en ProductCard "/product/[slug]"
         │ → PDP propia; CTA de compra enlaza a "/go/[slug]"
-        │ → 302 server-side a https://go.redirectingat.com/?id=…&url=…&xcust=…
-        │ → Skimlinks carga su JS en destino → auto-joins transaction si compra
+        │ → /go registra producto, tienda, placement y canal
+        │ → 302 a deep link aprobado o a la URL canónica con UTM Shopifind
 ```
 
 ---
@@ -135,7 +135,7 @@
 | UI        | **Tailwind** + **shadcn/ui** + **Radix** + **Lucide**     | 3.4 / latest       | Radix primitives para dialog/popover/tabs/toast. shadcn wrapper.                                                                                                                           |
 | Auth + DB | **Supabase** (`@supabase/ssr` + `supabase-js`)            | ssr 0.12 / js 2.43 | Service-role key SOLO server-side.                                                                                                                                                         |
 | AI        | **OpenAI** (`OPENAI_SEARCH_MODEL`, default `gpt-4o-mini`) | 4.47               | Chat Completions + Structured Outputs. 4s timeout, sin retry, caché de intent válido 1h, kill switch y fallback literal.                                                                   |
-| Affiliate | **Por merchant/red**; Skimlinks rechazado y desactivado   | —                  | `/go/<slug>` prioriza `affiliate_url`, usa agregador sólo con opt-in explícito y degrada al destino canónico.                                                                              |
+| Affiliate | **Por merchant/red**; Skimlinks rechazado y retirado      | —                  | `/go/<slug>` prioriza `affiliate_url` y degrada al destino canónico con UTMs. Masterled es pro-bono.                                                                                        |
 | Email     | **Resend HTTP API**                                       | REST               | Builder HTML/text, idempotency key y sender configurados sin SDK; entrega real aceptada por Resend y ledger idempotente verificado.                                                        |
 | CRM email | **react-hook-form** + **zod**                             | 7.51 / 3.23        | Formularios de captura + validación.                                                                                                                                                       |
 | Build     | **tsx** (scripts), **pnpm**                               | 4.16 / 11.17       | Scripts en `/scripts/*.ts` corren vía `tsx`, no `next`. La versión queda fijada en `packageManager`; pnpm 11 lee permisos, overrides y excepciones de antigüedad en `pnpm-workspace.yaml`. |
@@ -155,7 +155,7 @@
 > **Pendientes** (backlog):
 >
 > - Valorar scanner cada 12h cuando se migre el scheduler o el plan lo permita; el MVP ejecuta una vez al día por el límite de Vercel Hobby.
-> - Configuración externa + prueba end-to-end del webhook Skimlinks. El receiver y el INSERT ya están implementados.
+> - Alta y prueba end-to-end del primer programa merchant/red.
 
 ---
 
@@ -244,7 +244,8 @@ La migración `20260728190000_price_history_alerts.sql` registra únicamente cam
 
 #### `click_attribution` — target del Skimlinks webhook
 
-> Migración 0001 aplicada + receiver desplegado en `/api/webhooks/skimlinks`. Falta configurar credenciales/CIDRs en producción, registrar la URL en Skimlinks y validar un evento real.
+> Migración 0001 aplicada históricamente. El receiver fue retirado tras el
+> rechazo; la tabla se conserva sin writer para no hacer un DROP destructivo.
 
 - `xcust` (nuestro custom), `product_slug`, `source_url`, `merchant_id`.
 - `intent` ENUM `'visit' | 'buys'` (los dos tipos que Skimlinks envía).
@@ -280,7 +281,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/explore/<niche>`                | ✅ live                         | Paginación server-side (24/page, máximo 100 páginas) · chips de nicho · spotlight de colección (Cuando iluminacion → `verano-techos-led`). ISR `revalidate=60`.             |
 | `/search`                         | ✅ live                         | DRY-up facet (NICHE_FACET, 4 niches + "Todos") · AI intent parser · filtros sin texto · parámetros URL validados · pagination · selector de comparación.                    |
 | `/collections/<slug>`             | ✅ live                         | 4 colecciones (1 SF + 3 iluminación verano) · JSON-LD `ItemList` + `Product/ Offer` schema · rich snippets Google.                                                          |
-| `/go/[id]`                        | ✅ live                         | Server-side 302 a Skimlinks con `xcust=shopifind-<slug>` · bloqueado en robots.                                                                                             |
+| `/go/[id]`                        | ✅ live                         | Server-side 302: deep link merchant/red → agregador opt-in → canónico con UTMs; click interno v3 y bloqueo en robots.                                                       |
 | `/product/<slug>`                 | ✅ live                         | Canonical + Product/Offer JSON-LD seguro, compartir funcional, CTA afiliado, información de tienda, wishlist y alertas con fallback.                                        |
 | `/compare?ids=...`                | ✅ live                         | Comparador manual de 2-5 productos, `noindex`, atributos normalizados, mejor precio sólo entre monedas iguales y CTA afiliado por producto; smoke E2E con dos filas reales. |
 | `/wishlist`                       | ✅ live                         | Middleware gate + lista owner-only + corazones funcionales en cards/PDP; escritura usa datos autoritativos del producto.                                                    |
@@ -293,7 +294,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | `/api/cron/refresh-masterled`     | ✅ live / diario 03:15 UTC      | Bearer auth, preflight real de `price_history`, feed allowlisted/acotado y guardias de integridad. Ejecución manual auditada; schedule Vercel diario declarado.             |
 | `/api/cron/process-price-alerts`  | ✅ live / diario 04:15 UTC      | Evaluator + outbox con claim, retries, skip de avisos obsoletos e idempotencia Resend. Envío real y segunda pasada sin duplicado verificados.                               |
 | `/api/account/export`             | ✅ privado / no-store           | Exporta Auth/identidades, perfil, wishlist, búsquedas, alertas y entregas con paginación estable; anónimo recibe 401 y nunca se cachea.                                     |
-| `/api/webhooks/skimlinks`         | ⚠ receiver live / E2E pendiente | Valida tamaño, CIDR, HMAC, payload y replay; inserta con dedupe. Falta conectar Skimlinks y probar evento real.                                                             |
+| `/api/webhooks/skimlinks`         | ❌ retirado                     | La ruta runtime se eliminó tras el rechazo; sólo permanece la migración histórica sin writer.                                                                              |
 | `/api/test/*`                     | ✅ restringido                  | Gate default-deny y bloqueo absoluto en `NODE_ENV=production`; GET/POST verificados con 404 en `shopifind.app`.                                                             |
 
 ### Features cross-cutting
@@ -304,7 +305,7 @@ Reune productos con 10 columnas de `stores` que el frontend lee (`store_name`, `
 | **Server-side pagination**       | `src/components/pagination/Pagination.tsx`                                        | ✅ page size `[12, 96]`, máximo 100 páginas y offset real sin tandas repetidas.                                                                                 |
 | **JSON-LD ItemList**             | `src/app/(shop)/collections/[slug]/page.tsx`                                      | ✅ validado Google Rich Results.                                                                                                                                |
 | **Supabase Auth SSR refresh**    | `src/middleware.ts`                                                               | ✅ smoke tested: anónimo en `/wishlist` recibe 307; rutas con prefijo parecido no quedan bloqueadas.                                                            |
-| **Skimlinks affiliate redirect** | `src/app/go/[id]/route.ts` + `src/lib/skimlinks.ts`                               | ✅ publisher `306854X1795120`.                                                                                                                                  |
+| **Affiliate click-out redirect** | `src/app/go/[id]/route.ts` + `src/lib/affiliate.ts`                                | ✅ prioriza deep link por merchant/red, registra click y degrada a destino con UTM.                                                                                                                                             |
 | **Eco-score badges en cards**    | `src/components/product/ProductCard.tsx`                                          | ✅ muestra `store_eco_score` + `eco_tags[..n]`.                                                                                                                 |
 | **Wishlist JSONB**               | `src/actions/wishlist.ts` + `src/app/(shop)/wishlist/`                            | ✅ read/write · RLS owner-only · corazones reales y precio/URL resueltos server-side.                                                                           |
 | **Gestión de price alerts**      | `src/actions/priceAlerts.ts` + PDP + `/account`                                   | ✅ tres modos, owner-only y cursor precio+moneda; alerta `any_drop` creada con sesión real y baseline/currency/cursor verificados en Cloud.                     |
@@ -380,7 +381,7 @@ Si OpenAI está caído, tarda más de 4s o schema validation falla → fallback 
     │   ├── (auth)/login                                      # UI Supabase Auth
     │   ├── (marketing)/legal + /privacy + /about              # estáticos SEO
     │   ├── api/auth + /products + /test + /webhooks          # Server-only
-    │   └── go/[id]/route.ts               # 302 Skimlinks
+    │   └── go/[id]/route.ts               # 302 merchant/red o UTM referral
     │
     ├── components/
     │   ├── pagination/Pagination.tsx     # server component, Anterior/Siguiente + total
@@ -394,7 +395,7 @@ Si OpenAI está caído, tarda más de 4s o schema validation falla → fallback 
     ├── lib/
     │   ├── auth/redirect.ts               # safeNextPath + boundary matching de rutas protegidas
     │   ├── config.ts                      # SITE_CONFIG + NicheId + NICHE_LABEL + NICHE_FACET + pagination defaults
-    │   ├── skimlinks.ts                   # buildSkimlinksUrl(sourceUrl, slug)
+    │   ├── affiliate.ts                   # routing seguro + UTMs por placement
     │   ├── ai/queryIntent.ts              # parseQueryIntent (OpenAI Strict)
     │   ├── email/resend.ts                # sendWishlistPriceAlert (Resend stub)
     │   ├── supabase/{server,client,public,admin}.ts
@@ -409,7 +410,7 @@ Si OpenAI está caído, tarda más de 4s o schema validation falla → fallback 
     ├── types/database.types.ts            # generado con `pnpm db:types` desde Supabase
     └── middleware.ts                      # Supabase SSR refresh + protected paths (debe vivir en src/)
 
-tests/                                     # node:test: redirects, wishlist y Skimlinks
+tests/                                     # node:test: redirects, wishlist y afiliación
 ```
 
 ### Archivos **imprescindibles de leer primero** para un nuevo dev
@@ -433,7 +434,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **0**  | Pivot a Supabase Cloud + bootstrap Next.js 14                                                                          | early seeds                                                          | DB en EU, anon + service role conectadas.                                                                                                                                                                                                                                                     |
 | **1**  | Schema + RLS + view + 6 stores seed                                                                                    | `seed.sql`                                                           | 6 merchants, 10 productos base, RLS saneada.                                                                                                                                                                                                                                                  |
 | **2**  | Editorial collection scaffolding (`editorial_collections` table + page JSON-LD)                                        | migration 0000 + `/(shop)/collections/[slug]/`                       | ItemList schema listo para SEO launch.                                                                                                                                                                                                                                                        |
-| **3**  | Skimlinks `/go/[id]` redirect                                                                                          | `src/lib/skimlinks.ts` + `/go/[id]/route.ts`                         | publisher `306854X1795120` activo.                                                                                                                                                                                                                                                            |
+| **3**  | Primer `/go/[id]` redirect comercial                                                                                   | artefactos históricos, sustituidos por `src/lib/affiliate.ts`        | Wrapper server-side inicial; su dependencia del agregador quedó eliminada en los milestones 60–62.                                                                                                                                                                                           |
 | **4**  | masterled.es ingest (lighting)                                                                                         | `scripts/seed-lighting-v1.ts`                                        | **1452 productos in-stock del 1563 ingestados** (eco_score=78).                                                                                                                                                                                                                               |
 | **5**  | Seed extension SF ethical‑staples + lighting cápsula "verano-techos-led"                                               | `seed.sql` extend + `seed-editorial-collection.ts`                   | Curación vertical + SEO entry point para iluminación.                                                                                                                                                                                                                                         |
 | **6**  | Hardening pre-prod (`npm audit`)                                                                                       | reportado · upgrades safe-only                                       | 0 critical vulnerabilidad (3 dev-deps sub-pinned that flagged).                                                                                                                                                                                                                               |
@@ -453,11 +454,11 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **20** | Guarded Masterled refresh                                                                                              | `373d38d`                                                            | Parser único CLI/cron, 1.563 filas reales validadas, Bearer auth, preflight, lotes y stale-stock; endpoint live devuelve 401 y no tiene schedule.                                                                                                                                             |
 | **21** | Price-alert management UI                                                                                              | `src/actions/priceAlerts.ts` + `PriceAlertCard` + `PriceAlertList`   | Tres modos validados, baseline/cursor autoritativos, PDP/cuenta y fallback honesto si falta schema.                                                                                                                                                                                           |
 | **22** | Price-alert evaluator + idempotent sender                                                                              | `/api/cron/process-price-alerts` + `src/lib/alerts/evaluate.ts`      | Estado final del ciclo, outbox con claim/recovery, precio de referencia congelado, stale skip, Resend idempotency y HTML escapado; 33 tests totales.                                                                                                                                          |
-| **23** | Sourcing del segundo merchant de iluminación                                                                           | `docs/merchant-sourcing-lighting.md`                                 | GreenIce recomendado y Barcelona LED como fallback; catálogos públicos viables, pero cero SKU exactos cross-store. Ingest bloqueada hasta verificar Skimlinks y obtener feed/permiso.                                                                                                         |
-| **24** | Telemetría interna fiable                                                                                              | `src/lib/analytics/*`                                                | Búsquedas y click-outs se escriben con cliente anónimo y operación esperada; eventos estructurados, total real y paginación. Plausible sigue sin configurar.                                                                                                                                  |
+| **23** | Sourcing del segundo merchant de iluminación                                                                           | `docs/merchant-sourcing-lighting.md`                                 | GreenIce recomendado y Barcelona LED como fallback; catálogos públicos viables, pero cero SKU exactos cross-store. Ingest bloqueada hasta obtener programa/red y feed/permiso.                                                                                                                |
+| **24** | Telemetría interna fiable                                                                                              | `src/lib/analytics/*`                                                | Búsquedas y click-outs se escriben con cliente anónimo; el smoke se excluye y la versión 3 añade merchant, placement, canal, hosts y estado UTM. No hay tracker general activo.                                                                                                                 |
 | **25** | PDP SEO + share real                                                                                                   | `src/lib/seo/jsonLd.ts` + `ShareButton`                              | Canonical/OG URL, Product/Offer con seller honesto, serialización anti-`</script>` y Web Share/clipboard; JSON-LD de colecciones corregido.                                                                                                                                                   |
 | **26** | Upgrade de seguridad Next.js 15                                                                                        | `package.json` + `pnpm-workspace.yaml` + migración de APIs dinámicas | Next 15.5.22, pnpm 11.17 fijado, dependencias transitivas vulnerables parcheadas por override; build de producción y 39 tests pasan y `pnpm audit` completo reporta 0 vulnerabilidades.                                                                                                       |
-| **27** | Smoke de release automatizado                                                                                          | `scripts/smoke-production.ts`                                        | 15 checks read-only descubren una PDP desde sitemap y validan navegación, paginación, auth, cabeceras, robots, SEO, imágenes, Skimlinks, cron y ocultación de APIs de test.                                                                                                                   |
+| **27** | Smoke de release automatizado                                                                                          | `scripts/smoke-production.ts`                                        | Los checks read-only descubren una PDP desde sitemap y validan navegación, paginación, auth, cabeceras, robots, SEO, imágenes, redirect comercial, cron y ocultación de APIs de test.                                                                                                         |
 | **28** | Hardening de cabeceras web                                                                                             | `next.config.mjs` + `docs/security-headers.md`                       | CSP compatible con ISR, Permissions-Policy, anti-frame estricto y COOP; `X-Powered-By` eliminado y el smoke ampliado para impedir regresiones.                                                                                                                                                |
 | **29** | Control operativo de AI search                                                                                         | `queryIntent.ts` + `docs/ai-search-operations.md`                    | Caché compartida 1h sólo para intents válidos, kill switch, telemetría de tokens sin query y fallback literal; control puro cubierto por tests.                                                                                                                                               |
 | **30** | Allowlist de imágenes remotas                                                                                          | `next.config.mjs` + smoke de release                                 | El wildcard HTTPS se sustituye por `masterled.es` y `placehold.co`, los dos hosts presentes en 1452 productos activos; el smoke exige ambos y rechaza un host ajeno.                                                                                                                          |
@@ -484,13 +485,15 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **51** | Readiness de Google Search Console                                                                                     | `docs/search-console-launch.md`                                      | Robots y sitemap live revalidados: referencia canónica y 1.483 URLs absolutas. Alta DNS, envío, muestra de inspección y seguimiento quedan documentados; la propiedad y el submit siguen siendo una acción manual del owner.                                                                  |
 | **52** | Readiness del límite de gasto OpenAI                                                                                   | `docs/ai-search-operations.md`                                       | Procedimiento actual de hard cap por proyecto, alertas previas y semántica `429 insufficient_quota` documentados. El fallback literal ya absorbe ese fallo; activar el límite y decidir su importe siguen siendo acciones manuales del owner.                                                 |
 | **53** | Readiness de Bing Webmaster Tools                                                                                      | `docs/bing-webmaster-launch.md`                                      | Bingbot recibe robots y 1.483 URLs correctamente. Importación desde GSC, alternativa manual, permisos persistentes y seguimiento quedan documentados; se difiere IndexNow hasta medir latencia real de descubrimiento.                                                                        |
-| **54** | Piloto técnico Woodendot sin escritura                                                                                 | `315f25a` + adaptador/seed UCP                                       | 12/12 disponibles en EUR; allowlist live e imagen 1920 px = 200, smoke 19/19. Runner respeta el máximo UCP de 10 IDs con lotes 10+2. Store oculta, no verificada y eco-score 0; no hay filas Cloud hasta superar Skimlinks y autorizar escritura/activación.                                  |
-| **55** | Piloto técnico Thinking MU sin escritura                                                                               | `e2e7b63` + adaptador/seed UCP                                       | 12/12 prendas disponibles en EUR, reparto mujer/hombre 6/6 y composición obligatoria. Allowlist live, imagen 1920 px = 200 y smoke 19/19. Store oculta y eco-score 0; sin filas Cloud mientras la cuenta Skimlinks siga pendiente de aprobación.                                              |
-| **56** | Piloto técnico Native Union sin escritura                                                                              | `b901695` + adaptador/seed UCP                                       | 10/10 accesorios disponibles en EUR e imágenes de origen válidas. Allowlist exacta desplegada; una imagen real a 1920 px respondió 200. Store oculta, no verificada y eco-score 0; ninguna fila Cloud mientras Skimlinks siga pendiente.                                                      |
+| **54** | Piloto técnico Woodendot sin escritura                                                                                 | `315f25a` + adaptador/seed UCP                                       | 12/12 disponibles en EUR; allowlist live e imagen 1920 px = 200, smoke 19/19. Runner respeta el máximo UCP de 10 IDs con lotes 10+2. Store oculta, no verificada y eco-score 0; no hay filas Cloud hasta obtener programa/permiso y autorizar activación.                                    |
+| **55** | Piloto técnico Thinking MU sin escritura                                                                               | `e2e7b63` + adaptador/seed UCP                                       | 12/12 prendas disponibles en EUR, reparto mujer/hombre 6/6 y composición obligatoria. Allowlist live, imagen 1920 px = 200 y smoke 19/19. Store oculta y eco-score 0; sin filas Cloud hasta obtener permiso/programa y autorización.                                                          |
+| **56** | Piloto técnico Native Union sin escritura                                                                              | `b901695` + adaptador/seed UCP                                       | 10/10 accesorios disponibles en EUR e imágenes de origen válidas. Allowlist exacta desplegada; una imagen real a 1920 px respondió 200. Store oculta, no verificada y eco-score 0; ninguna fila Cloud hasta aprobar su programa directo.                                                     |
 | **57** | Masterled reducido a catálogo editorial                                                                                | `f0abcad` + `docs/masterled-curation.md`                             | 50/50 variantes públicas, 8 protegidas (3 ventiladores + 2 carriles + 3 mecanismos), 1.388 desactivadas sin borrar y 1.572 filas históricas conservadas. Colecciones 6/6, 5/5 y 6/6; alerta G4 preservada.                                                                                    |
 | **58** | Piloto técnico Orbitkey sin escritura                                                                                  | `293c0ac` + adaptador/seed UCP                                       | 10/10 accesorios disponibles para España en EUR y diez imágenes de origen válidas. Allowlist live: imagen real 1920 px = 200 y smoke 19/19. Store oculta, eco-score 0, programa directo bajo solicitud y ninguna fila Cloud sin autorización.                                                 |
 | **59** | Limpieza reversible del fixture Resend                                                                                 | operación Cloud exacta por slug                                      | La alerta E2E y el producto oculto se desactivaron sin borrar el ledger `sent` del intento 2. Catálogo público permanece en 82 productos y quedan 2 alertas reales activas.                                                                                                                   |
 | **60** | Kill switch tras rechazo de Skimlinks                                                                                  | routing afiliado + `SKIMLINKS_ENABLED`                               | El ID antiguo ya no basta para enviar tráfico: Skimlinks requiere opt-in estricto. `/go` prioriza programas directos/redes por producto y degrada a la URL canónica; 85 tests y build pasan.                                                                                                  |
+| **61** | Atribución comercial por merchant                                                                                      | `/go` + analytics v3 + `docs/affiliate-strategy-spain.md`            | Los fallbacks canónicos llevan UTMs estables por placement; los deep links firmados no se mutan. Cada click registra producto, tienda, canal y hosts sin IP. Matriz España y plantillas de alta/contacto documentadas; 87 tests pasan.                                                         |
+| **62** | Retirada definitiva de Skimlinks + estado pro-bono                                                                    | `src/lib/affiliate.ts` + seeds + UI/legal                            | Eliminados runtime, webhook, variables y tests del agregador. Masterled queda explícitamente pro-bono; la UI sólo usa `sponsored` y comunica comisión cuando existe `affiliate_url`.                                                                                                         |
 
 ### Métricas post-deploy
 
@@ -541,11 +544,14 @@ tests/                                     # node:test: redirects, wishlist y Sk
 18. **Cliente Supabase público vs. sesión**: las lecturas de catálogo sin identidad usan `createPublicSupabaseClient()` para permitir Data Cache/ISR. Auth, perfiles, wishlist y alertas siguen usando `createServerSupabaseClient()`; usar el cliente público ahí ignoraría la sesión. En rutas dinámicas de búsqueda, comparación y `/go`, pasar `{ revalidate: false }` para no servir decisiones request-time desde caché.
 19. **Precio sin moneda no es una referencia**: `baseline_price_cents` siempre viaja con `baseline_currency`, y el outbox congela ambos. Si cambia la moneda, no convertir ni comparar enteros directamente; los targets fijos se desactivan y los modos relativos adoptan el nuevo precio como baseline.
 
-### Affiliate / Skimlinks
+### Affiliate
 
-18. **`xcust=shopifind-<slug>` es la palanca de atribución**. Tiene que ser único por producto. Si dos slugs generan el mismo xcust, los reportes de Skimlinks los confunden.
+18. **La atribución outbound tiene dos capas**: evento interno v3 y UTMs en el
+    fallback canónico. Los deep links aprobados se almacenan completos y no se
+    mutan en `/go`.
 19. **Bloquear `/go/` en robots.txt** — **obligatorio**. Sin esto, Googlebot ejecuta el 302 como click válido, infla las comisiones "visit" en el dashboard y distorsiona el funnel.
-20. **Skimlinks está rechazado y default-off**: conservar un ID antiguo no activa nada. Sólo se usa si `SKIMLINKS_ENABLED=true` y existe `SKIMLINKS_DOMAIN_ID`; no volver a habilitarlo sin aprobación vigente.
+20. **Skimlinks está fuera de alcance**: no hay variables, builder ni webhook
+    runtime. La tabla histórica no autoriza reintroducirlo.
 21. **`/go/[id]` prioriza al vendor**: primero `affiliate_url` (programa directo/Awin/Impact/etc.), después un agregador explícitamente habilitado y finalmente `source_url`; el route param se llama `id` por historia, pero contiene el slug.
 
 ### Masterled / PrestaShop
@@ -557,7 +563,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 ### Revisión / proceso propio
 
 25. **Cambios mecánicos**: al reemplazar un bloque, revisar también consumidores y referencias. Ejecutar `pnpm test`, typecheck, build y `git diff --check`; el typecheck por sí solo no detecta fallos de comportamiento.
-26. **Verificación post-deploy**: esperar el estado `success` de Vercel y ejecutar `pnpm smoke:production`; descubre una PDP desde el sitemap y valida rutas, auth, SEO, imágenes, Skimlinks, cron y APIs de test sin secretos. El hash enviado a Git no demuestra por sí solo qué versión está sirviendo el dominio.
+26. **Verificación post-deploy**: esperar el estado `success` de Vercel y ejecutar `pnpm smoke:production`; descubre una PDP desde el sitemap y valida rutas, auth, SEO, imágenes, redirect comercial, cron y APIs de test sin secretos. El hash enviado a Git no demuestra por sí solo qué versión está sirviendo el dominio.
 27. **Preflight de tablas PostgREST**: no usar `select(..., { head: true })` para comprobar que una tabla existe; puede devolver 204 aunque falte del schema cache. Usar un GET acotado con `.select('id').limit(1)` y comprobar `error`.
 28. **Alta segura de merchants con imágenes remotas**: desplegar primero el `remotePatterns` exacto y mantener la tienda inactiva; comprobar en producción una URL real de `/_next/image` (incluido el ancho mayor usado por la UI) y sólo entonces activar la tienda. Como el sitemap usa ISR diario, tras activarla hay que provocar/verificar una regeneración con la tienda ya activa antes de dar el release por cerrado. Si falla el optimizador, desactivar la tienda es el rollback reversible: no se borran productos.
 29. **Magic links y PKCE cross-device**: `ConfirmationURL` queda ligado al verificador del navegador que pidió el enlace y falla si se abre en otro dispositivo. Auth email usa `TokenHash` con una landing GET que no verifica nada y un POST explícito a `verifyOtp({type: 'email'})`; no volver a consumir tokens en GET porque los filtros de correo precargan enlaces.
@@ -576,7 +582,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | ------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **M-1** | ✅ **Completar Supabase Auth**             | Google OAuth/perfiles y magic link E2E completados. SMTP propio de marca, autenticación DNS y flujo cross-device resistente a prefetch verificados en producción.                                                      |
 | **M-2** | **Submit sitemap a Google Search Console** | El sitio está listo: robots + 95 URLs live. Registrar la propiedad de dominio, mantener el TXT DNS y enviar el XML siguiendo `docs/search-console-launch.md`.                                                          |
-| **M-3** | **Conectar webhook Skimlinks**             | Configurar secret, salt y CIDRs en Vercel; registrar `/api/webhooks/skimlinks` en Skimlinks y enviar evento de prueba. El receiver ya existe.                                                                          |
+| **M-3** | **Altas de afiliación prioritarias**        | Completar Awin y Rakuten; solicitar Rapanui 50425, ShiftCam y Native Union, y entregar IDs/deep links aprobados siguiendo `docs/affiliate-strategy-spain.md`.                                                           |
 | **M-4** | **Completar identidad legal y privacidad** | El sitio live aún usa scaffolds. Facilitar/decidir los datos y bases de `docs/launch-compliance-checklist.md` antes de escalar tráfico, AdSense o newsletters.                                                         |
 | **M-5** | **Fijar presupuesto de OpenAI**            | En Project settings > Limits: decidir importe, activar `Enforce a hard limit` y alertas previas según `docs/ai-search-operations.md`. El fallback literal ya cubre `429 insufficient_quota`; falta el control externo. |
 
@@ -590,7 +596,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 | **B-4**  | ✅ **Alertas de bajada**                         | nada                                            | UI/evaluator/outbox, Resend E2E e idempotencia verificados; cron diario 04:15 UTC declarado. El fixture temporal quedó desactivado de forma reversible conservando su ledger.                                                        |
 | **B-5**  | ✅ **Corregir AI search actual**                 | nada                                            | Contrato corregido y E2E verificado en Vercel; se mantiene `gpt-4o-mini` por rol de extracción/coste en vez de migrar ciegamente a flagship.                                                                                         |
 | **B-6**  | ✅ **Comparador manual MVP**                     | nada                                            | Selección de 2-5 cards → `/compare?ids=...`, `noindex`, columnas por producto y CTA `/go`. No afirma “mismo producto”; smoke live completado.                                                                                        |
-| **B-7**  | 🟡 **Segundo merchant de iluminación**           | verificación Skimlinks + feed/permiso del owner | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`.                                                                                         |
+| **B-7**  | 🟡 **Segundo merchant de iluminación**           | programa/red aprobada + feed/permiso del owner  | Spike completado: GreenIce recomendado, Barcelona LED fallback. No ingestar hasta superar los gates de `docs/merchant-sourcing-lighting.md`.                                                                                         |
 | **B-7A** | 🟡 **Segundos merchants en los otros nichos**    | aprobación/verificación afiliada + activación   | Woodendot 12/12, Thinking MU 12/12, Native Union 10/10 y Orbitkey 10/10 tienen dry-run validado. Los cuatro siguen fuera de Cloud; las allowlists se despliegan antes de cualquier activación (`docs/merchant-sourcing-round-3.md`). |
 
 ### 🟡 Después del núcleo
@@ -608,7 +614,7 @@ tests/                                     # node:test: redirects, wishlist y Sk
 
 - Generar `database.types.ts` después de cada migration.
 - Mantener tests de redirects, wishlist y atribución; añadir tests a cada nuevo handler de cron.
-- Revisar el loader inline de Skimlinks y su impacto CWV cuando haya métricas reales.
+- Revisar periódicamente términos, deep links, comisión y feed de cada programa activo.
 - Documentar el scheduler elegido y su autenticación en `docs/cron-pattern.md`.
 
 ---
@@ -654,11 +660,14 @@ pnpm scripts:hide:placeholder  # marca .example.com como live=false
 3. **`scripts/seed-products-v2.ts`**: agrega el seed block para tu merchant.
 4. **Deploy Vercel** (auto al push). Ya renderiza `/explore/mi-nuevo-niche`, en home aparece como chip, en sidebar de /search aparece en NICHE_FACET, y `/sitemap.xml` lo incluye en su siguiente regeneración diaria; si forma parte del release SEO, seguir el procedimiento urgente del gotcha 11.
 
-### Cómo rotar las Skimlinks publisher keys
+### Cómo integrar un programa afiliado
 
-1. Crea nuevo publisher en https://hub.skimlinks.com/.
-2. Update `SKIMLINKS_DOMAIN_ID` en `.env.local` + Vercel env.
-3. New build → nuevas URLs `go.redirectingat.com/?id=<NEW_DOMAIN_ID>`. **Importante**: el publisher viejo sigue attributable al `xcust=shopifind-<slug>` durante ~90 días (Skimlinks retention window). No hay cut-over abrupto.
+1. Obtener aprobación, términos y un deep link de producto real.
+2. Confirmar territorio, moneda, uso de imágenes/feed y UTMs permitidas.
+3. Probar el salto completo y guardar la URL HTTPS exacta en
+   `products.affiliate_url`; `/go` la prioriza sin modificarla.
+4. Verificar click, venta y comisión E2E siguiendo
+   `docs/affiliate-strategy-spain.md`.
 
 ### Cómo debuggear un deploy que no refleja el último commit
 
@@ -683,7 +692,6 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - **capsule / capsule editorial** — `editorial_collections` row, ej. `ethical-staples`, `verano-techos-led`.
 - **dry-run vs write** — todos los scripts `seed-*` aceptan `--dry-run` (no insert, sólo report) y `--write` (commit a DB). Patrón: dry-run primero, leer el plan, luego write.
 - **Ventana de paginación** — máximo 100 páginas con offset real; si el catálogo crece más allá, sustituir por cursores en vez de reintroducir un offset truncado.
-- **Skylinks / Skimlinks** — typos que nos han salido; la grafía correcta es **Skimlinks**.
 
 ---
 
@@ -693,30 +701,30 @@ curl -H 'Cache-Control: no-cache' https://shopifind.app/sitemap.xml?nocache=$(da
 - [x] Google OAuth: cliente web, callback Supabase, provider, PKCE, sesión, perfil y persistencia E2E verificados el 2026-07-29.
 - [ ] Google Search Console: registrar la propiedad de dominio `shopifind.app` (sin protocolo) → mantener el TXT DNS → Sitemaps > Add → `https://shopifind.app/sitemap.xml`; registrar el resultado siguiendo `docs/search-console-launch.md`.
 - [ ] Bing Webmaster Tools (opcional): tras completar GSC, importar sólo `shopifind.app` y su sitemap o verificarla manualmente siguiendo `docs/bing-webmaster-launch.md`.
-- [ ] Plausible analytics: crear/verificar `shopifind.app`, copiar su URL
-      `https://plausible.io/js/pa-….js` a `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` en
-      Vercel y completar el E2E de `docs/analytics-operations.md`.
+- [ ] Analítica web: elegir VPS/subdominio y autorizar Umami v3 self-hosted;
+      después configurar HTTPS, backup, retención, CSP y E2E según
+      `docs/analytics-operations.md`. No contratar Plausible por ahora.
 - [ ] OpenAI: seleccionar el proyecto API de producción → Limits > Spend → decidir importe → activar `Enforce a hard limit` y alertas previas; registrar fecha/importe según `docs/ai-search-operations.md`.
 - [ ] Legal/privacidad: proporcionar identidad pública, NIF, domicilio/datos registrales si aplican, bases y retenciones; completar `docs/launch-compliance-checklist.md` antes de activar más tracking o adquisición.
 - [ ] Confirmar el eco-score `78` para masterled con curación humana (es el único valor auto-asignado en el seed; el resto vieram del seed.sql).
-- [ ] Rotar el `SKIMLINKS_DOMAIN_ID` placeholder en `.env.local` (real key ya está en Vercel env, ¿OK?).
-- [ ] Segundo merchant iluminación: comprobar primero GreenIce y después Barcelona LED en el dashboard real de Skimlinks; sólo entonces solicitar/usar un feed autorizado (`docs/merchant-sourcing-lighting.md`).
-- [ ] Skimlinks: la cuenta sigue pendiente de aprobación aunque el publisher/domain ID esté configurado en Vercel. Tras aprobarse, comprobar `oakywood.shop`, `rapanuiclothing.com` y `shiftcam.com`; ninguna comisión está verificada todavía.
-- [ ] Woodendot: tras la aprobación, comprobar `woodendot.com` y deep linking; el piloto de 12 y la imagen live están validados, pero seguirá fuera de Supabase hasta autorizar escritura/activación.
-- [ ] Thinking MU: tras la aprobación, comprobar `thinkingmu.com` y deep linking; el piloto de 12 y la imagen live están validados, pero seguirá fuera de Supabase hasta autorizar escritura/activación.
-- [ ] Native Union: tras la aprobación, comprobar `nativeunion.com`, territorios y deep linking; el piloto de 10 y la imagen live están validados, pero seguirá fuera de Supabase hasta autorizar escritura/activación.
+- [ ] Afiliación: crear cuentas publisher en Awin y Rakuten; solicitar Rapanui 50425, ShiftCam y Native Union; seguir la matriz y texto de `docs/affiliate-strategy-spain.md`.
+- [ ] Partnerships: crear/confirmar `partners@shopifind.app` y contactar Masterled, Oakywood, Woodendot, Thinking MU y Orbitkey con la plantilla documentada.
+- [ ] Segundo merchant iluminación: negociar un programa/feed directo o una red aprobada para GreenIce/Barcelona LED; no confundir el apadrinamiento de clientes con afiliación publisher (`docs/merchant-sourcing-lighting.md`).
+- [ ] Woodendot: obtener términos y deep linking para España; el piloto de 12 y la imagen live están validados, pero seguirá fuera de Supabase hasta autorizar escritura/activación.
+- [ ] Thinking MU: obtener permiso/programa y deep linking; el piloto de 12 y la imagen live están validados, pero seguirá fuera de Supabase hasta autorizar escritura/activación.
+- [ ] Native Union: solicitar su programa directo, comprobar territorio y deep linking; el piloto de 10 y la imagen live están validados, pero seguirá fuera de Supabase hasta autorizar escritura/activación.
 - [ ] Orbitkey: solicitar/admitir su programa afiliado directo, verificar deep links para España y autorizar escritura/activación; el piloto 10/10 seguirá fuera de Supabase hasta entonces.
 
 ---
 
 ## 13. TL;DR one-liners para una nueva persona en el proyecto
 
-- **¿Qué es esto?** Buscador D2C de tiendas indie en 4 verticales · busca conversacional con IA · monetiza con Skimlinks affiliate.
+- **¿Qué es esto?** Buscador D2C de tiendas indie en 4 verticales · búsqueda conversacional con IA · monetización por merchant/red en proceso de alta.
 - **¿Dónde corre?** Vercel EU Frankfurt + Supabase Cloud. Domain `shopifind.app`.
 - **¿Cómo se cambia un nicho?** Editar `src/lib/config.ts → primaryNiches + NICHE_LABEL`. Vercel auto-redeploy.
 - **¿Cómo se añade un producto?** Vía `pnpm scripts:seed:products` (multi-merchant) o `pnpm scripts:seed:lighting` (masterled) → usar `--dry-run` primero.
-- **¿Cómo se mide?** Plausible (setup pendiente de verificar) + `click_attribution`; el receiver existe, falta conexión y prueba E2E con Skimlinks.
-- **¿Cuál es el siguiente milestone live pendiente?** Enviar el sitemap ya validado a GSC, completar identidad legal y validar el segundo merchant en Skimlinks; el núcleo de alertas ya está operativo.
+- **¿Cómo se mide?** `search_history` v3 para búsquedas/click-outs; Umami self-hosted planificado para sesiones, funnels y UTMs.
+- **¿Cuál es el siguiente milestone live pendiente?** Completar identidad legal y altas Awin/Rakuten/directas, validar el primer programa E2E y enviar el sitemap a GSC; el núcleo de alertas ya está operativo.
 
 ---
 

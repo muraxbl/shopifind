@@ -6,7 +6,7 @@
 
 Priorizar **GreenIce** para la validación comercial y contractual. Mantener **Barcelona LED** como segunda opción. No ingestar ninguno hasta completar los dos gates del owner:
 
-1. confirmar en el dashboard de Skimlinks que el dominio concreto está monetizable para Shopifind, admite deep links y opera en los mercados objetivo;
+1. conseguir un programa directo o una red que admita Shopifind, España y deep links del dominio concreto;
 2. conseguir un feed autorizado o permiso explícito para indexar y refrescar datos de producto, incluidas imágenes y descripciones.
 
 Que un endpoint sea público y rastreable no equivale a permiso para republicar su contenido.
@@ -40,7 +40,7 @@ Las 66 son sólo candidatos. La muestra incluye falsos positivos evidentes: un d
 
 ## Gate propuesto antes de implementar
 
-1. **Elegibilidad comercial:** verificar `greenice.com` y `barcelonaled.com` dentro de la cuenta real de Skimlinks. Registrar merchant ID, países, deep linking, comisión vigente y restricciones; esos datos cambian y no deben codificarse desde resultados públicos.
+1. **Elegibilidad comercial:** contactar a `greenice.com` y `barcelonaled.com` o buscarlos dentro de una red publisher aprobada. Registrar programa/merchant ID, países, deep linking, comisión vigente y restricciones; esos datos cambian y no deben codificarse desde resultados públicos.
 2. **Derechos y fuente estable:** pedir feed de afiliado/API/CSV autorizado. Evitar depender de `products.json` como contrato de integración aunque sirva para el spike.
 3. **Piloto acotado:** seleccionar 100–300 variantes comparables (bombillas, tubos, paneles y tiras), no clonar todo el catálogo.
 4. **Identidad canónica:** guardar identificadores normalizados como EAN/GTIN/MPN cuando existan. SKU interno sólo es prueba dentro del mismo merchant.
@@ -50,4 +50,8 @@ Las 66 son sólo candidatos. La muestra incluye falsos positivos evidentes: un d
 
 ## Resultado para el backlog
 
-B-7 deja de ser un problema de descubrimiento técnico y pasa a estar bloqueado por una decisión externa verificable: elegibilidad Skimlinks + autorización/feed. GreenIce es la primera comprobación; Barcelona LED, el fallback. B-8 debe permanecer bloqueado hasta tener datos reales del segundo merchant y un conjunto revisado de equivalencias.
+B-7 deja de ser un problema de descubrimiento técnico y pasa a estar bloqueado
+por una decisión externa verificable: programa/red aprobada + autorización/feed.
+GreenIce es la primera comprobación; Barcelona LED, el fallback. B-8 debe
+permanecer bloqueado hasta tener datos reales del segundo merchant y un conjunto
+revisado de equivalencias.

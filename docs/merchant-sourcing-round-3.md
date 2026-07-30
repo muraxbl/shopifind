@@ -1,8 +1,8 @@
 # Ronda 3 de sourcing — segundos merchants por nicho
 
 > Snapshot técnico/editorial: 2026-07-29. Este documento no autoriza todavía
-> una ingestión. La elegibilidad real de Skimlinks debe comprobarse en la cuenta
-> del owner antes de presentar un piloto como monetizable.
+> una ingestión. Tras el rechazo de Skimlinks, cada piloto requiere un programa
+> directo o red aprobada antes de presentarse como monetizable.
 
 ## Cobertura que queremos corregir
 
@@ -26,7 +26,7 @@ verificados. El segundo merchant de iluminación conserva su gate específico en
 | Prioridad | Candidato        | Nicho               | Permiso/fuente técnica                                  | Afiliación pública                               | Juicio editorial                                                                                                  |
 | --------: | ---------------- | ------------------- | ------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
 |         1 | **Woodendot**    | home-deco           | UCP + `agents.md` permiten lectura de catálogo sin auth | Página oficial de afiliados                      | Mejor candidato: marca española independiente, fabricación local, madera FSC y circularidad documentadas          |
-|         2 | **Thinking MU**  | sustainable-fashion | UCP + `agents.md` permiten lectura de catálogo sin auth | No localizada públicamente; exige gate Skimlinks | Muy buen encaje: fundada en Barcelona, trazabilidad, fibras certificadas y envío EUR desde Girona                 |
+|         2 | **Thinking MU**  | sustainable-fashion | UCP + `agents.md` permiten lectura de catálogo sin auth | No localizada públicamente; requiere contacto directo | Muy buen encaje: fundada en Barcelona, trazabilidad, fibras certificadas y envío EUR desde Girona            |
 |         3 | **Native Union** | indie-gadgets       | UCP + `agents.md` permiten lectura de catálogo sin auth | Programa de creadores/afiliados oficial          | Buen catálogo y EUR para España; claims ambientales deben evaluarse producto a producto, sin eco-score automático |
 |         4 | **Orbitkey**     | indie-gadgets       | UCP + `agents.md` permiten lectura de catálogo sin auth | Programa oficial disponible previa solicitud     | Piloto validado: diseño australiano, catálogo EUR y expedición europea desde Países Bajos                         |
 |         5 | HANNUN           | home-deco           | UCP + `agents.md` permiten lectura de catálogo sin auth | Sólo se encontró rewards/referral de cliente     | Catálogo útil, pero menor encaje “indie” y sin señal afiliada pública suficiente                                  |
@@ -41,7 +41,7 @@ Implementar, tras aprobación del owner, en este orden:
    un programa afiliado explícito y fabricación española bien documentada.
 2. **Thinking MU, 12 productos de moda.** Selección equilibrada por categorías,
    sólo con materiales/certificaciones presentes en la ficha concreta. Mantener
-   `verified=false` hasta confirmar Skimlinks.
+   `verified=false` hasta obtener permiso y relación comercial verificable.
 3. **Native Union, 10 gadgets.** Carga, cables y organización tecnológica.
    `eco_score=0` inicialmente; independencia/diseño no equivalen a evidencia eco.
 
@@ -90,7 +90,7 @@ certificada, fabricación UE, circularidad y vocación de larga duración, pero 
 justifica todavía una puntuación numérica. La allowlist llegó a producción en
 `315f25a`: la imagen Pelican respondió `200 image/jpeg` a 1920 px mediante
 `/_next/image` y el smoke quedó 19/19. Antes de `--write` sólo siguen faltando el
-gate del owner en Skimlinks y la decisión expresa de escribir/activar.
+programa/permiso comercial y la decisión expresa de escribir/activar.
 
 ## Piloto técnico Thinking MU preparado
 
@@ -129,8 +129,8 @@ La tienda queda definida con `eco_score=0`, `active=false`,
 `verified=false` y `featured=false`. La allowlist llegó a producción en
 `e2e7b63`: la imagen Santos respondió `200 image/jpeg` a 1920 px (100.408
 bytes) mediante `/_next/image` y el smoke quedó 19/19. Antes de cualquier
-`--write`, Skimlinks debe aprobar la cuenta y después hay que comprobar
-`thinkingmu.com` y deep linking.
+`--write`, hay que obtener permiso/programa para `thinkingmu.com` y comprobar
+deep linking para España.
 
 ## Piloto técnico Native Union preparado
 
@@ -160,8 +160,8 @@ La tienda permanece `active=false`, `verified=false`, `featured=false` y con
 `eco_score=0`. Sólo se derivan materiales, garantía y etiquetas ambientales de
 la ficha completa de cada producto; diseño o independencia no se convierten en
 claims ambientales. Native Union publica un programa propio de colaboración,
-pero no se activa ni se presenta como monetizado mientras Skimlinks siga en
-revisión.
+pero no se activa ni se presenta como monetizado hasta que el programa directo
+apruebe Shopifind y entregue deep links válidos para España.
 
 ## Piloto técnico Orbitkey preparado
 
@@ -234,8 +234,8 @@ verificar deep links para España y autorizar expresamente la escritura.
 - **GreenIce:** el catálogo técnico sigue siendo el mejor candidato de
   iluminación (3.572 productos/4.952 variantes observadas), pero la única
   recompensa pública localizada es un apadrinamiento de clientes, no un
-  programa para publishers. Continúa bloqueado por validación Skimlinks y
-  feed/permiso; además, dio cero coincidencias exactas de SKU con Masterled.
+  programa para publishers. Continúa bloqueado por programa/red y feed/permiso;
+  además, dio cero coincidencias exactas de SKU con Masterled.
 
 Fuentes adicionales:
 
@@ -255,10 +255,9 @@ Fuentes adicionales:
 ## Gates antes de escribir
 
 1. Owner elige uno o varios candidatos.
-2. Esperar la aprobación de la cuenta Skimlinks y después verificar el dominio
-   exacto, deep linking, territorios y
-   restricciones; si no aparece, el piloto puede seguir siendo editorial pero
-   no se describirá como monetizado.
+2. Obtener aprobación directa o mediante una red y verificar dominio exacto,
+   deep linking, territorios y restricciones; si no existe relación, el piloto
+   puede seguir siendo editorial pero no se describirá como monetizado.
 3. Seleccionar manualmente 10–15 IDs y rechazar precio cero, stock ambiguo,
    variantes no EUR, destinos no canónicos o imágenes fuera del CDN permitido.
 4. Asignar eco-score sólo con una rúbrica y evidencia por marca/producto. Usar

@@ -54,14 +54,30 @@ test('search history bounds query length and invalid negative totals', () => {
 });
 
 test('click-out history has structured event metadata', () => {
-  const event = buildClickOutHistoryEvent('masterled-bombilla-gu10');
+  const event = buildClickOutHistoryEvent({
+    productId: 'd75f163f-2b9a-419f-ad29-d1190558c37e',
+    productSlug: 'masterled-bombilla-gu10',
+    storeSlug: 'masterled-es',
+    placement: 'pdp',
+    channel: 'referral',
+    merchantHost: 'masterled.es',
+    targetHost: 'masterled.es',
+    utmApplied: true,
+  });
 
   assert.equal(event.user_id, null);
   assert.equal(event.query, '[click-out] /product/masterled-bombilla-gu10');
   assert.deepEqual(event.filters, {
     event: 'click_out',
     schema_version: ANALYTICS_SCHEMA_VERSION,
+    product_id: 'd75f163f-2b9a-419f-ad29-d1190558c37e',
     product_slug: 'masterled-bombilla-gu10',
+    store_slug: 'masterled-es',
+    placement: 'pdp',
+    channel: 'referral',
+    merchant_host: 'masterled.es',
+    target_host: 'masterled.es',
+    utm_applied: true,
   });
 });
 

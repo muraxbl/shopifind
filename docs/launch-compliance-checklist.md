@@ -33,20 +33,23 @@ No compartir secretos, claves API, credenciales OAuth ni documentos de identidad
 - `search_history` conserva consulta, intención/filtros, paginación, total y click-out de forma anónima a nivel de fila;
 - una consulta puede enviarse a OpenAI para extraer filtros cuando la integración está activa;
 - Resend recibe email y contenido del aviso para entregar alertas activas;
-- `/go/<slug>` redirige a Skimlinks y después al merchant; desde ese punto aplican sus tecnologías y políticas;
-- Plausible está contemplado en código, pero el script no aparece en producción
-  mientras no se configure la URL específica
-  `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` entregada por el proveedor.
+- `/go/<slug>` registra una salida anónima y redirige al deep link aprobado o a
+  la URL canónica con UTMs; desde el destino aplican las tecnologías y políticas
+  de la tienda o red;
+- no hay tracker general cargando en producción. Umami self-hosted está
+  planificado, pero no se activará hasta documentar configuración y privacidad.
 
 ## Cookies y tecnologías similares
 
-El frontend actual no instala un loader cliente de Skimlinks: el contacto con su dominio ocurre tras pulsar un CTA afiliado. Las cookies de sesión de Supabase son necesarias para auth. Plausible no está cargando en el snapshot live comprobado.
+El frontend actual no instala loaders de redes afiliadas. Las cookies de sesión
+de Supabase son necesarias para auth. La telemetría propia de búsqueda/click-out
+no usa cookies ni almacena IP en sus filas.
 
 Antes de activar cualquier script de analítica, publicidad o afiliación en cliente, repetir un inventario real de cookies/local storage y decidir el consentimiento con asesoramiento. La AEPD indica que las cookies que impliquen seguimiento o análisis del comportamiento pueden requerir consentimiento válido y que aceptar y rechazar deben ofrecerse al mismo nivel: [FAQ oficial](https://www.aepd.es/preguntas-frecuentes/17-internet-y-redes-sociales/FAQ-1707-importancia-de-las-cookies-en-la-proteccion-de-datos) y [Guía de cookies](https://www.aepd.es/guias/guia-cookies.pdf).
 
 ## Cambios técnicos cuando estén los datos
 
-1. Sustituir “Última actualización: hoy” por una fecha real versionada.
+1. ✅ Sustituir “Última actualización: hoy” por una fecha real versionada.
 2. Centralizar la identidad pública y emails en una configuración legal única.
 3. Reescribir `/legal` y `/privacy` con los datos, fines, bases, destinatarios, conservación, derechos y transferencias decididos.
 4. Quitar redes o proveedores no usados; no prometer anonimato, ausencia de tracking o regiones que no se hayan verificado.

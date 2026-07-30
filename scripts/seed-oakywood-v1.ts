@@ -27,7 +27,7 @@ const STORE = {
     "five-year-warranty",
   ],
   country: "PL",
-  affiliate_program: "skimlinks",
+  affiliate_program: "direct-outreach",
   affiliate_id: null,
   feed_source: "shopify-ucp-curated",
   active: true,
